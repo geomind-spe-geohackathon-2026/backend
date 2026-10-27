@@ -1,0 +1,7 @@
+Create migrations with:
+
+    alembic revision --autogenerate -m "describe change"
+
+Apply migrations with:
+
+    alembic upgrade head

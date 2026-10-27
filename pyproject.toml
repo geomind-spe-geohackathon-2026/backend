@@ -1,0 +1,19 @@
+[tool.pytest.ini_options]
+addopts = ["--cov=src", "--cov-branch", "--cov-report=term-missing"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore:Using `httpx`.*:starlette.exceptions.StarletteDeprecationWarning",
+]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

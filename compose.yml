@@ -1,0 +1,43 @@
+name: swarmax-backend
+
+x-service: &service
+  build: .
+  image: swarmax-backend:latest
+  restart: unless-stopped
+  stop_grace_period: 30s
+  env_file: [.env]
+  networks: [swarmax]
+
+services:
+  fastapi:
+    <<: *service
+    container_name: swarmax-fastapi
+    command: [python, -m, src.main, --fastapi]
+    networks: [swarmax, traefik]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1/api/v1/system/health', timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.swarmax-backend.rule=Host(`api.swarmax.xyz`)
+      - traefik.http.routers.swarmax-backend.entrypoints=websecure
+      - traefik.http.routers.swarmax-backend.tls=true
+      - traefik.http.routers.swarmax-backend.tls.certresolver=letsencrypt
+      - traefik.http.services.swarmax-backend.loadbalancer.server.port=80
+
+  celery:
+    <<: *service
+    container_name: swarmax-celery
+    command: [python, -m, src.main, --celery]
+
+networks:
+  swarmax:
+    external: true
+    name: swarmax
+  traefik:
+    external: true
+    name: traefik
