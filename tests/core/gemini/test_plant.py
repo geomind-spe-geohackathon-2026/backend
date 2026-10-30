@@ -38,8 +38,11 @@ def test_validate_content_returns_the_content() -> None:
     assert validate_content(example_plant()) == example_plant()
 
 
-def test_stored_path_from_before_a_gemini_move_still_loads() -> None:
-    content = {**example_plant(), "plant_type": "gemini.old.place:Doublet"}
+def test_stored_paths_from_before_a_gemini_move_still_load() -> None:
+    content = deepcopy(example_plant())
+    content["plant_type"] = "gemini.old.place:Doublet"
+    for module in content["modules"].values():
+        module["class"] = module["class"].replace("gemini.core.", "gemini.")
 
     assert dump_plant(load_plant(content)) == example_plant()
 

@@ -1,7 +1,10 @@
 name: swarmax-backend
 
 x-service: &service
-  build: .
+  build:
+    context: .
+    additional_contexts:
+      gemini: ../gemini
   image: swarmax-backend:latest
   restart: unless-stopped
   stop_grace_period: 30s

@@ -111,3 +111,10 @@ POSTGRES_TEST_URL=postgresql+asyncpg://user:password@localhost:5432/test_databas
 These tests create and drop every table, so point them at a scratch database.
 
 Write tests for behavior, security boundaries, and failure handling. Do not add tests that only repeat the implementation.
+
+## Compose
+
+`../infrastructure/compose.yml` is the source of truth for the whole stack. The backend
+image needs `../gemini`, which compose passes as the `gemini` build context; the same
+will apply to the agent package in B2. This folder's `compose.yml` deploys only the API
+and the worker behind Traefik.
