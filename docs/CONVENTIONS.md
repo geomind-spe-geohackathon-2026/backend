@@ -155,6 +155,15 @@ src/
 - `core/middlewares.py` only registers middleware in application order.
 - `core/lifespan.py` opens and closes infrastructure clients.
 
+## Import boundaries
+
+`tests/test_boundaries.py` scans `src/` and fails with the file and the import:
+
+- features never import each other; shared data goes through repositories;
+- only `core/gemini` imports `gemini`, and only `gemini` or `gemini.errors`;
+- only `api/v1/assistant/runs/adapters` imports the agent package, as `swarmax` or
+  `geomind`.
+
 ## gemini
 
 - Only `core/gemini` imports gemini, and only through `import gemini as gm`
