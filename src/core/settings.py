@@ -7,6 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from src.core.errors import AppError
 
 EXACT_ORIGIN = re.compile(r"https?://(\[[0-9A-Fa-f:]+\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?")
+FIRST_ADMIN_PASSWORD_PLACEHOLDER = "replace-with-first-admin-password"
+FIRST_ADMIN_PASSWORD_MIN_LENGTH = 12
 
 
 class SettingsValidationError(AppError, ValueError):
@@ -61,6 +63,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",
+        hide_input_in_errors=True,
     )
 
     @model_validator(mode="after")
@@ -70,6 +73,26 @@ class Settings(BaseSettings):
                 raise SettingsValidationError(
                     "APP_CORS_ORIGINS entries must be exact HTTP or HTTPS origins"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def validate_first_admin_password(self) -> "Settings":
+        """Refuse a known or short admin password, except in development.
+
+        An empty password stays allowed: it only means no admin is created.
+        """
+        password = self.FIRST_ADMIN_PASSWORD
+        if self.APP_ENV == "development" or not password:
+            return self
+        if password == FIRST_ADMIN_PASSWORD_PLACEHOLDER:
+            raise SettingsValidationError(
+                "FIRST_ADMIN_PASSWORD still has the .env.example value; set a real one"
+            )
+        if len(password) < FIRST_ADMIN_PASSWORD_MIN_LENGTH:
+            raise SettingsValidationError(
+                "FIRST_ADMIN_PASSWORD must have at least "
+                f"{FIRST_ADMIN_PASSWORD_MIN_LENGTH} characters"
+            )
         return self
 
 

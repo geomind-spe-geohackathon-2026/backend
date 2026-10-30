@@ -238,6 +238,9 @@ src/
 - Changing a password or deactivating a user sets `tokens_valid_after`.
   `require_token_holder` refuses access and refresh tokens issued before it, so the
   user signs in again, including in the session that changed the password.
+- Outside the development environment, settings refuse to load when
+  `FIRST_ADMIN_PASSWORD` is the `.env.example` value or shorter than 12 characters, so
+  neither the API nor the worker starts. An empty value is allowed and creates no admin.
 - Users are deactivated, never deleted, so authorship stays valid.
 - Access tokens last minutes; refresh tokens are single-use and rotate on refresh.
   Logout revokes the access token and its paired refresh token.
