@@ -14,7 +14,9 @@ from sqlalchemy.pool import StaticPool
 
 from src.core.clients.postgres import models  # noqa: F401
 from src.core.clients.postgres.client import Base
+from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
+from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.security.jwt import create_token_pair
 from src.core.security.passwords import hash_password
@@ -96,5 +98,16 @@ def make_user(
             name = email.partition("@")[0]
             user = await repository.create(email, PASSWORD_HASH, name=name, role=role)
             return await repository.update(user, {"active": active})
+
+    return create
+
+
+@pytest.fixture
+def make_project(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> Callable[..., Awaitable[Project]]:
+    async def create(owner: User, name: str = "Doublet") -> Project:
+        async with session_factory() as session:
+            return await ProjectRepository(session).create(name, owner.id)
 
     return create

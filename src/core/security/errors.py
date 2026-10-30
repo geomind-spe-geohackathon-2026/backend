@@ -1,6 +1,6 @@
 from starlette import status
 
-from src.core.errors import AppError
+from src.core.errors import AppError, NotFoundError
 
 
 class TokenValidationError(AppError, ValueError):
@@ -17,3 +17,7 @@ class UnauthorizedError(AppError):
 
 class AuthenticationUnavailableError(AppError):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+
+class ProjectNotFoundError(NotFoundError):
+    code = "project_not_found"

@@ -32,7 +32,7 @@ src/
 │       │       ├── schemas.py
 │       │       ├── services.py
 │       │       └── jobs.py
-│       └── identity/         # Domain
+│       ├── identity/         # Domain
 │           ├── __init__.py   # Domain routers and jobs
 │           ├── authn/        # Feature
 │           │   ├── __init__.py
@@ -47,6 +47,13 @@ src/
 │           │   ├── services.py
 │           │   └── jobs.py
 │           └── users/        # Feature
+│               ├── __init__.py
+│               ├── router.py
+│               ├── schemas.py
+│               └── services.py
+│       └── workspace/        # Domain
+│           ├── __init__.py   # Domain routers and jobs
+│           └── projects/     # Feature
 │               ├── __init__.py
 │               ├── router.py
 │               ├── schemas.py
@@ -176,6 +183,10 @@ src/
 - The security middleware only checks the token. A protected route must also depend
   on `CurrentUser` (or `AdminUser`), which loads the user and refuses inactive ones,
   so deactivating a user takes effect on their existing tokens.
+- Every route that takes a project id depends on `AccessibleProject`, which calls
+  `core.security.access.require_project`. The owner or an admin may read and change a
+  project; anyone else gets `404 project_not_found`, the same as a missing project.
+  Sharing will change only that function.
 - Users are deactivated, never deleted, so authorship stays valid.
 - Access tokens last minutes; refresh tokens are single-use and rotate on refresh.
   Logout revokes the access token and its paired refresh token.
