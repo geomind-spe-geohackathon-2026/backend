@@ -1,4 +1,6 @@
-from typing import Annotated
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Annotated, Any
 from uuid import UUID
 
 from sqlalchemy import Select, delete, func, select
@@ -10,6 +12,7 @@ from src.core.clients.postgres.client import get_db
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.repositories.base import BaseRepository
+from src.core.clients.postgres.repositories.plant_version import content_digest
 from src.core.pagination.page import PageRequest, paginate
 
 DatabaseSession = Annotated[AsyncSession, Depends(get_db)]
@@ -20,6 +23,14 @@ LATEST_PLANT_NUMBER = (
     .correlate(Project)
     .scalar_subquery()
 )
+
+
+@dataclass(frozen=True, slots=True)
+class ImportedVersion:
+    number: int
+    note: str
+    created: datetime
+    content: dict[str, Any]
 
 
 class ProjectRepository(BaseRepository):
@@ -48,6 +59,32 @@ class ProjectRepository(BaseRepository):
     async def create(self, name: str, owner_id: UUID) -> Project:
         project = Project(name=name, owner_id=owner_id)
         self.session.add(project)
+        await self.session.commit()
+        return await self.get_by_id(project.id)
+
+    async def create_with_versions(
+        self,
+        name: str,
+        owner_id: UUID,
+        versions: list[ImportedVersion],
+    ) -> Project:
+        """Create a project and its plant versions in one transaction."""
+        project = Project(name=name, owner_id=owner_id)
+        self.session.add(project)
+        await self.session.flush()
+        self.session.add_all(
+            PlantVersion(
+                project_id=project.id,
+                number=version.number,
+                plant_type=version.content["plant_type"],
+                content=version.content,
+                digest=content_digest(version.content),
+                note=version.note,
+                author_id=owner_id,
+                created=version.created,
+            )
+            for version in versions
+        )
         await self.session.commit()
         return await self.get_by_id(project.id)
 

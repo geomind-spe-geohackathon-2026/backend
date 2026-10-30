@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_WINDOW_SECONDS: int = 60
 
+    PROJECT_IMPORT_MAX_BYTES: int = 100_000_000
+
     MINIO_ENDPOINT: str = "minio:9000"
     MINIO_ACCESS_KEY: str = "admin"
     MINIO_SECRET_KEY: str = "replace-with-minio-password"

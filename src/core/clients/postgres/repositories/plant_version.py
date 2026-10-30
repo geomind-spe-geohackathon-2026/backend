@@ -55,6 +55,15 @@ class PlantVersionRepository(BaseRepository):
         )
         return list(await self.session.scalars(statement))
 
+    async def all_versions(self, project_id: UUID) -> list[PlantVersion]:
+        """List versions, oldest first, with their content."""
+        statement = (
+            select(PlantVersion)
+            .where(PlantVersion.project_id == project_id)
+            .order_by(PlantVersion.number)
+        )
+        return list(await self.session.scalars(statement))
+
     async def save_version(
         self,
         project_id: UUID,

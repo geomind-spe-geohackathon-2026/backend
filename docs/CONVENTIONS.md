@@ -178,6 +178,17 @@ src/
   versions. The unique `(project_id, number)` constraint settles concurrent saves;
   the loser retries once.
 
+## Export and import
+
+- An export is a zip of `project.json` and one `plant/<number>.json` per version.
+- Import checks every version with `validate_content` before writing and writes in
+  one transaction. One bad version refuses the import with `422 plant_invalid` and
+  the file name in `details`; a bad archive is `422 validation_failed` on `file`.
+- Archives with `..` or absolute paths, or above `PROJECT_IMPORT_MAX_BYTES` uploaded or
+  unpacked, are refused. Only `project.json` and `plant/<number>.json` are read.
+- Imported versions keep their number, note and creation time; the importer becomes
+  their author. Legacy project zips are not accepted.
+
 ## Middleware
 
 - Register middleware in `core/middlewares.py` through `include_middlewares`.

@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
 
 ProjectName = Annotated[
     str,
@@ -12,6 +12,19 @@ ProjectName = Annotated[
 
 class ProjectCreate(BaseModel):
     name: ProjectName
+
+
+class ProjectFile(BaseModel):
+    format: Literal[1]
+    name: ProjectName
+    exported: AwareDatetime
+
+
+class VersionFile(BaseModel):
+    number: int
+    note: str
+    created: AwareDatetime
+    content: Any
 
 
 class OwnerResponse(BaseModel):
