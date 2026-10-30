@@ -7,7 +7,11 @@
 - Prefer direct, readable code over clever or generic code.
 - Keep functions focused, but do not split a short flow into unnecessary wrappers.
 - Reuse an existing pattern before introducing a new one.
-- Add comments only when they explain a decision that the code cannot express.
+- Do not write comments inside code. Explanations go in docstrings. Tool directives
+  such as `# noqa` are allowed.
+- Use full-word names, nesting of at most three levels, about 40 lines per function
+  at most, and guard clauses instead of nested conditions.
+- Keep times timezone-aware; store and return them in UTC.
 - Use four spaces only for real Python blocks and continuations required by the formatter. Do not add visual indentation.
 - Keep code compatible with Ruff and the configured 88-character line length.
 
@@ -76,12 +80,20 @@ async def signup(credentials: schemas.Credentials) -> schemas.TokenResponse:
 
 ## Validation
 
-Run these checks after code changes:
+The virtual environment was moved once, so call its tools through the interpreter:
 
 ```bash
-.venv/bin/ruff check .
-.venv/bin/ruff format --check .
-.venv/bin/pytest
+.venv/bin/python -m ruff check .
+.venv/bin/python -m ruff format --check .
+.venv/bin/python -m pytest -n auto
 ```
+
+While working, run only the tests of the changed code and of what imports it. Run the
+full fast suite before each commit.
+
+The fast suite never uses the network. New API tests use the `client` fixture from
+`tests/conftest.py`: the real application on in-memory SQLite and `fakeredis`. New
+tests mirror the source tree: `tests/api/v1/<domain>/<feature>/test_<usecase>.py` and
+`tests/core/<package>/test_<module>.py`.
 
 Write tests for behavior, security boundaries, and failure handling. Do not add tests that only repeat the implementation.

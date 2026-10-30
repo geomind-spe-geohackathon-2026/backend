@@ -1,8 +1,17 @@
 [tool.pytest.ini_options]
-addopts = ["--cov=src", "--cov-branch", "--cov-report=term-missing"]
+addopts = [
+    "--cov=src",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "-m",
+    "not postgres",
+]
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore:Using `httpx`.*:starlette.exceptions.StarletteDeprecationWarning",
+]
+markers = [
+    "postgres: runs against the compose PostgreSQL (POSTGRES_TEST_URL)",
 ]
 pythonpath = ["."]
 testpaths = ["tests"]

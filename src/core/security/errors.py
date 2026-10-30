@@ -9,9 +9,10 @@ class TokenValidationError(AppError, ValueError):
 
 class UnauthorizedError(AppError):
     status_code = status.HTTP_401_UNAUTHORIZED
+    code = "unauthorized"
 
-    def __init__(self, detail: str) -> None:
-        super().__init__(detail, headers={"WWW-Authenticate": "Bearer"})
+    def __init__(self, message: str) -> None:
+        super().__init__(message, headers={"WWW-Authenticate": "Bearer"})
 
 
 class AuthenticationUnavailableError(AppError):

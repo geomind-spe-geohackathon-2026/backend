@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Request, status
 from starlette.concurrency import run_in_threadpool
 
+from fastapi import APIRouter, Request, status
 from src.api.v1.identity.me import jobs, schemas
 
 router = APIRouter(prefix="/me", tags=["Me"])

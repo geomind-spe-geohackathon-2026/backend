@@ -57,7 +57,13 @@ def test_app_error_is_returned_as_json() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 409
-    assert response.json() == {"detail": "Email is already registered"}
+    assert response.json() == {
+        "error": {
+            "code": "conflict",
+            "message": "Email is already registered",
+            "details": {},
+        }
+    }
 
 
 def test_protected_route_requires_token() -> None:
@@ -143,6 +149,6 @@ def test_rate_limit_returns_too_many_requests() -> None:
         )
 
     assert response.status_code == 429
-    assert response.json() == {"detail": "Rate limit exceeded"}
+    assert response.json()["error"]["code"] == "rate_limited"
     assert response.headers["x-ratelimit-remaining"] == "0"
     assert int(response.headers["retry-after"]) > 0

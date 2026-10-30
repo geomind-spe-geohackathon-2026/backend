@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-
 from src.api.v1.system.health import schemas, services
 
 router = APIRouter(prefix="/health", tags=["Health"])

@@ -65,6 +65,8 @@ src/
     ├── logging/
     │   ├── logger.py         # Logger configuration
     │   └── middleware.py     # Request logging middleware
+    ├── pagination/
+    │   └── page.py           # Cursor pagination for list endpoints
     ├── ratelimit/
     │   ├── errors.py
     │   └── middleware.py
@@ -142,6 +144,8 @@ src/
   user ID and public requests by IP address.
 - Middleware raises application errors; `ErrorMiddleware` creates error
   responses.
+- `ErrorMiddleware` sits inside `CORSMiddleware` and `RequestLoggingMiddleware`, so
+  error responses carry CORS headers and are logged with their status.
 
 ## Responses
 
@@ -150,10 +154,16 @@ src/
 - Services and middleware raise application errors instead of creating error
   responses.
 - `ErrorMiddleware` serializes application errors through `ErrorResponse`.
+- Every error body is `{"error": {"code", "message", "details"}}`. Codes are stable
+  and listed in `../docs/contracts.md`; messages may change.
+- Request validation becomes `422 validation_failed` with
+  `details = {"fields": {"<field>": "<message>"}}`.
+- Lists return `core.pagination.page.Page` (`{"items", "next"}`) and take `?cursor=`
+  and `?limit=` through `PageParams`.
 
 ## Errors
 
-- All project-defined errors inherit from `core.errors.AppError`.
+- All project-defined errors inherit from `core.errors.AppError` and set `code`.
 - Keep shared HTTP application errors in `core/errors.py`.
 - Define errors used by one area close to that area, such as
   `core/security/errors.py`, `core/ratelimit/errors.py`, or

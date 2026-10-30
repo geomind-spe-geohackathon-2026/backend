@@ -13,6 +13,8 @@ def include_middlewares(app: FastAPI) -> None:
     app.add_middleware(GZipMiddleware, minimum_size=1024)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(SecurityMiddleware)
+    app.add_middleware(ErrorMiddleware)
+    app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.APP_CORS_ORIGINS,
@@ -20,5 +22,3 @@ def include_middlewares(app: FastAPI) -> None:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.add_middleware(RequestLoggingMiddleware)
-    app.add_middleware(ErrorMiddleware)

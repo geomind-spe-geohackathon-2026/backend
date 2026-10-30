@@ -2,6 +2,7 @@ import uvicorn
 
 from fastapi import FastAPI
 from src.api import router
+from src.core.errors import include_exception_handlers
 from src.core.lifespan import lifespan
 from src.core.logging.logger import configure_logging
 from src.core.middlewares import include_middlewares
@@ -14,6 +15,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(router)
+include_exception_handlers(app)
 include_middlewares(app)
 
 

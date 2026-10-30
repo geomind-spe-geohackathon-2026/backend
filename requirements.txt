@@ -1,3 +1,4 @@
+-e ../gemini
 alembic>=1.13,<2
 asyncpg>=0.29,<1
 celery[redis]>=5.6,<6
@@ -9,6 +10,7 @@ pydantic>=2.12,<3
 pydantic-settings>=2.5,<3
 pyjwt>=2.10,<3
 pwdlib[argon2]>=0.3,<1
+python-multipart>=0.0.20,<1
 redis>=5,<6
 sqlalchemy[asyncio]>=2.0,<3
 uvicorn[standard]>=0.30,<1
