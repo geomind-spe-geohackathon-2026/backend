@@ -17,14 +17,12 @@ class RevokedAccessTokenRepository(BaseRedisRepository):
     async def is_revoked(self, token_id: str) -> bool:
         return await self.exists(token_id)
 
-    async def revoke(self, revoked_access_token: RevokedAccessToken) -> None:
+    async def revoke(self, revoked_access_token: RevokedAccessToken) -> bool:
+        """Revoke a token; return False when it was already revoked."""
         remaining = revoked_access_token.expires_at - datetime.now(UTC)
         ttl = max(int(remaining.total_seconds()), 1)
-        await self.set(
-            revoked_access_token.token_id,
-            "1",
-            expires_in=ttl,
-        )
+        key = self.key(revoked_access_token.token_id)
+        return bool(await self.redis.set(key, "1", ex=ttl, nx=True))
 
 
 def get_revoked_access_token_repository(

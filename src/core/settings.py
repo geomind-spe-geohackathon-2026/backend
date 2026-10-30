@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: Literal["HS256"] = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+
+    FIRST_ADMIN_EMAIL: str = ""
+    FIRST_ADMIN_PASSWORD: str = ""
 
     POSTGRES_URL: str = "postgresql+asyncpg://admin:replace-with-postgres-password@postgres:5432/swarmax"
     POSTGRES_POOL_SIZE: int = 5

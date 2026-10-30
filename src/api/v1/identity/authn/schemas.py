@@ -1,6 +1,6 @@
-from uuid import UUID
+from pydantic import BaseModel, EmailStr, Field
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from src.core.security.schemas import UserResponse
 
 
 class Credentials(BaseModel):
@@ -8,17 +8,17 @@ class Credentials(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
-class UserResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: UUID
-    email: EmailStr
-
-
-class TokenResponse(BaseModel):
+class TokenPairResponse(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    refresh_token: str
+
+
+class TokenResponse(TokenPairResponse):
     user: UserResponse
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 class ForgotPasswordRequest(BaseModel):

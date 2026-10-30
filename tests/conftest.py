@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 
 import fakeredis
 import pytest
@@ -14,7 +14,19 @@ from sqlalchemy.pool import StaticPool
 
 from src.core.clients.postgres import models  # noqa: F401
 from src.core.clients.postgres.client import Base
+from src.core.clients.postgres.models.user import User
+from src.core.clients.postgres.repositories.user import UserRepository
+from src.core.security.jwt import create_token_pair
+from src.core.security.passwords import hash_password
 from src.fastapi import app
+
+PASSWORD = "correct-password"
+PASSWORD_HASH = hash_password(PASSWORD)
+
+
+def bearer(user: User) -> dict[str, str]:
+    token = create_token_pair(user.id).access_token
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
@@ -68,3 +80,21 @@ async def client(
         yield client
     app.state.postgres_session_factory = None
     app.state.redis = None
+
+
+@pytest.fixture
+def make_user(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> Callable[..., Awaitable[User]]:
+    async def create(
+        email: str = "member@example.com",
+        role: str = "member",
+        active: bool = True,
+    ) -> User:
+        async with session_factory() as session:
+            repository = UserRepository(session)
+            name = email.partition("@")[0]
+            user = await repository.create(email, PASSWORD_HASH, name=name, role=role)
+            return await repository.update(user, {"active": active})
+
+    return create

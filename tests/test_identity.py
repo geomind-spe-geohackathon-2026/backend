@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-from src.api.v1.identity.authn.router import forgot_password, signin, signout, signup
+from src.api.v1.identity.authn.router import forgot_password, login, logout, signup
 from src.api.v1.identity.authn.schemas import Credentials, ForgotPasswordRequest
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.user import UserRepository
@@ -17,7 +17,14 @@ from src.core.security.passwords import hash_password
 async def test_signup_creates_user_and_token() -> None:
     repository = AsyncMock(spec=UserRepository)
     repository.get_by_email.return_value = None
-    user = User(id=uuid4(), email="user@example.com", password_hash="hashed")
+    user = User(
+        id=uuid4(),
+        email="user@example.com",
+        name="user",
+        role="member",
+        password_hash="hashed",
+        active=True,
+    )
     repository.create.return_value = user
 
     response = await signup(
@@ -31,17 +38,19 @@ async def test_signup_creates_user_and_token() -> None:
     assert decode_access_token(response.access_token).subject == user.id
 
 
-async def test_signin_returns_token_for_valid_credentials() -> None:
+async def test_login_returns_token_for_valid_credentials() -> None:
     user = User(
         id=uuid4(),
         email="user@example.com",
+        name="user",
+        role="member",
         password_hash=hash_password("correct-password"),
-        is_active=True,
+        active=True,
     )
     repository = AsyncMock(spec=UserRepository)
     repository.get_by_email.return_value = user
 
-    response = await signin(
+    response = await login(
         Credentials(email="user@example.com", password="correct-password"),
         repository,
     )
@@ -50,22 +59,23 @@ async def test_signin_returns_token_for_valid_credentials() -> None:
     assert decode_access_token(response.access_token).subject == user.id
 
 
-async def test_signout_revokes_token() -> None:
+async def test_logout_revokes_token() -> None:
     claims = AccessTokenClaims(
         subject=uuid4(),
         token_id="token-id",
+        refresh_token_id="refresh-id",
         expires_at=datetime.now(UTC) + timedelta(minutes=5),
     )
     request = SimpleNamespace(state=SimpleNamespace(access_token_claims=claims))
     repository = AsyncMock(spec=RevokedAccessTokenRepository)
 
-    response = await signout(request, repository)
+    response = await logout(request, repository)
 
     assert response is None
-    repository.revoke.assert_awaited_once()
-    revoked_access_token = repository.revoke.call_args.args[0]
-    assert revoked_access_token.token_id == "token-id"
-    assert revoked_access_token.expires_at == claims.expires_at
+    access, refresh = (call.args[0] for call in repository.revoke.await_args_list)
+    assert access.token_id == "token-id"
+    assert access.expires_at == claims.expires_at
+    assert refresh.token_id == "refresh-id"
 
 
 async def test_forgot_password_has_generic_response() -> None:

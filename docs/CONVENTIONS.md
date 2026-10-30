@@ -40,12 +40,17 @@ src/
 │           │   ├── schemas.py
 │           │   ├── services.py
 │           │   └── jobs.py
-│           └── me/           # Feature
+│           ├── me/           # Feature
+│           │   ├── __init__.py
+│           │   ├── router.py
+│           │   ├── schemas.py
+│           │   ├── services.py
+│           │   └── jobs.py
+│           └── users/        # Feature
 │               ├── __init__.py
 │               ├── router.py
 │               ├── schemas.py
-│               ├── services.py
-│               └── jobs.py
+│               └── services.py
 └── core/
     ├── clients/
     │   ├── chromadb/client.py
@@ -71,11 +76,15 @@ src/
     │   ├── errors.py
     │   └── middleware.py
     ├── security/
+    │   ├── access.py         # current_user and require_admin dependencies
+    │   ├── bootstrap.py      # First admin from settings
+    │   ├── emails.py
     │   ├── errors.py
     │   ├── jwt.py
     │   ├── middleware.py
     │   ├── passwords.py
-    │   └── paths.py
+    │   ├── paths.py
+    │   └── schemas.py        # The `user` response shared by identity features
     ├── lifespan.py           # Startup and shutdown
     ├── middlewares.py        # Middleware registration
     └── settings.py           # Environment settings
@@ -95,7 +104,8 @@ src/
 
 ## Background jobs
 
-- Each feature defines a `jobs.py` and exposes its module in `JOB_MODULES`.
+- A feature with Celery tasks defines a `jobs.py` and exposes its module in
+  `JOB_MODULES`. A feature has only the files it needs.
 - Domain, version, and API `__init__.py` files gather `JOB_MODULES` from below.
 - `src/celery.py` configures Celery and includes all gathered job modules.
 - Run FastAPI with `python -m src.main --fastapi`.
@@ -128,8 +138,8 @@ src/
 - Keep focused application contracts and configuration, such as `errors.py` and
   `settings.py`, as files.
 - `core/logging` owns logger configuration and request logging middleware.
-- `core/security` owns JWT, passwords, public paths, security errors, and its
-  middleware.
+- `core/security` owns JWT, passwords, public paths, access dependencies, security
+  errors, and its middleware.
 - `core/ratelimit` owns rate limit errors and middleware. Its persistent state
   belongs to the Redis models and repositories.
 - `core/middlewares.py` only registers middleware in application order.
@@ -160,6 +170,17 @@ src/
   `details = {"fields": {"<field>": "<message>"}}`.
 - Lists return `core.pagination.page.Page` (`{"items", "next"}`) and take `?cursor=`
   and `?limit=` through `PageParams`.
+
+## Access
+
+- The security middleware only checks the token. A protected route must also depend
+  on `CurrentUser` (or `AdminUser`), which loads the user and refuses inactive ones,
+  so deactivating a user takes effect on their existing tokens.
+- Users are deactivated, never deleted, so authorship stays valid.
+- Access tokens last minutes; refresh tokens are single-use and rotate on refresh.
+  Logout revokes the access token and its paired refresh token.
+- `signup` and `forgot-password` exist outside `../docs/contracts.md`; `forgot-password`
+  only logs the request and sends nothing.
 
 ## Errors
 

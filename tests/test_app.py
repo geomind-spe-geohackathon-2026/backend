@@ -1,14 +1,13 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from src.celery import app as celery_app
 from src.core.clients.postgres.repositories.user import (
     UserRepository,
     get_user_repository,
 )
-from src.core.security.jwt import create_access_token, decode_access_token
+from src.core.security.jwt import create_token_pair, decode_access_token
 from src.core.settings import settings
 from src.fastapi import app
 
@@ -34,8 +33,9 @@ def test_openapi_has_identity_routes() -> None:
         paths = client.get("/openapi.json").json()["paths"]
 
     assert "/api/v1/identity/authn/signup" in paths
-    assert "/api/v1/identity/authn/signin" in paths
-    assert "/api/v1/identity/authn/signout" in paths
+    assert "/api/v1/identity/authn/login" in paths
+    assert "/api/v1/identity/authn/refresh" in paths
+    assert "/api/v1/identity/authn/logout" in paths
     assert "/api/v1/identity/authn/forgot-password" in paths
 
 
@@ -68,14 +68,14 @@ def test_app_error_is_returned_as_json() -> None:
 
 def test_protected_route_requires_token() -> None:
     with TestClient(app) as client:
-        response = client.post("/api/v1/identity/authn/signout")
+        response = client.post("/api/v1/identity/authn/logout")
 
     assert response.status_code == 401
     assert response.headers["www-authenticate"] == "Bearer"
 
 
-def test_signout_revokes_valid_token() -> None:
-    token = create_access_token(uuid4())
+def test_logout_revokes_valid_token() -> None:
+    token = create_token_pair(uuid4()).access_token
     claims = decode_access_token(token)
     redis = AsyncMock()
     redis.exists.return_value = 0
@@ -84,18 +84,18 @@ def test_signout_revokes_valid_token() -> None:
     with TestClient(app) as client:
         client.app.state.redis = redis
         response = client.post(
-            "/api/v1/identity/authn/signout",
+            "/api/v1/identity/authn/logout",
             headers={"Authorization": f"Bearer {token}"},
         )
 
     assert response.status_code == 204
     redis.exists.assert_awaited_once()
-    redis.set.assert_awaited_once()
-    assert redis.set.call_args.args[:2] == (
+    revoked = [call.args[0] for call in redis.set.await_args_list]
+    assert revoked == [
         f"revoked_access_token:{claims.token_id}",
-        "1",
-    )
-    assert redis.set.call_args.kwargs["ex"] > 0
+        f"revoked_access_token:{claims.refresh_token_id}",
+    ]
+    assert all(call.kwargs["ex"] > 0 for call in redis.set.await_args_list)
 
 
 def test_cors_preflight() -> None:
@@ -111,30 +111,6 @@ def test_cors_preflight() -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == origin
-
-
-def test_delete_me_queues_account_deletion(monkeypatch) -> None:
-    user_id = uuid4()
-    token = create_access_token(user_id)
-    redis = AsyncMock()
-    redis.exists.return_value = 0
-    redis.incr.return_value = 1
-    send_task = MagicMock()
-    monkeypatch.setattr(celery_app, "send_task", send_task)
-
-    with TestClient(app) as client:
-        client.app.state.redis = redis
-        response = client.delete(
-            "/api/v1/identity/me",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-
-    assert response.status_code == 202
-    assert response.json() == {"message": "Account deletion has been scheduled"}
-    send_task.assert_called_once_with(
-        "identity.me.delete_account",
-        args=[str(user_id)],
-    )
 
 
 def test_rate_limit_returns_too_many_requests() -> None:

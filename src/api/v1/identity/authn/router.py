@@ -33,21 +33,30 @@ async def signup(
     return await services.signup_user(credentials, repository)
 
 
-@router.post("/signin", response_model=schemas.TokenResponse)
-async def signin(
+@router.post("/login", response_model=schemas.TokenResponse)
+async def login(
     credentials: schemas.Credentials,
     repository: UserRepositoryDependency,
 ) -> schemas.TokenResponse:
-    return await services.signin_user(credentials, repository)
+    return await services.login_user(credentials, repository)
 
 
-@router.post("/signout", status_code=status.HTTP_204_NO_CONTENT)
-async def signout(
+@router.post("/refresh", response_model=schemas.TokenPairResponse)
+async def refresh(
+    payload: schemas.RefreshRequest,
+    users: UserRepositoryDependency,
+    revoked_tokens: RevokedAccessTokenRepositoryDependency,
+) -> schemas.TokenPairResponse:
+    return await services.refresh_tokens(payload, users, revoked_tokens)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
     request: Request,
     repository: RevokedAccessTokenRepositoryDependency,
 ) -> None:
     claims: AccessTokenClaims = request.state.access_token_claims
-    await services.signout_user(claims, repository)
+    await services.logout_user(claims, repository)
 
 
 @router.post("/forgot-password", response_model=schemas.MessageResponse)
