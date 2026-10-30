@@ -226,9 +226,11 @@ src/
 
 ## Access
 
-- The security middleware only checks the token. A protected route must also depend
-  on `CurrentUser` (or `AdminUser`), which loads the user and refuses inactive ones,
-  so deactivating a user takes effect on their existing tokens.
+- The security middleware only checks the token. Every route must also depend on
+  `CurrentUser` (or `AdminUser`), which loads the user and refuses inactive ones and
+  revoked tokens. `tests/test_route_guard.py` fails, naming the route, for any route
+  that does not, unless its path is in `PUBLIC_PATHS` in `core/security/paths.py`.
+  That list holds login, refresh and health, and the test pins it.
 - Every route that takes a project id depends on `AccessibleProject`, which calls
   `core.security.access.require_project`. The owner or an admin may read and change a
   project; anyone else gets `404 project_not_found`, the same as a missing project.

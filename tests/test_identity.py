@@ -46,7 +46,7 @@ async def test_logout_revokes_token() -> None:
     request = SimpleNamespace(state=SimpleNamespace(access_token_claims=claims))
     repository = AsyncMock(spec=RevokedAccessTokenRepository)
 
-    response = await logout(request, repository)
+    response = await logout(request, object(), repository)
 
     assert response is None
     access, refresh = (call.args[0] for call in repository.revoke.await_args_list)

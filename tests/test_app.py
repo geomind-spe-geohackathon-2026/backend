@@ -7,6 +7,7 @@ from src.core.clients.postgres.repositories.user import (
     UserRepository,
     get_user_repository,
 )
+from src.core.security.access import current_user
 from src.core.security.jwt import create_token_pair, decode_access_token
 from src.core.settings import settings
 from src.fastapi import app
@@ -81,12 +82,16 @@ def test_logout_revokes_valid_token() -> None:
     redis.exists.return_value = 0
     redis.incr.return_value = 1
 
-    with TestClient(app) as client:
-        client.app.state.redis = redis
-        response = client.post(
-            "/api/v1/identity/authn/logout",
-            headers={"Authorization": f"Bearer {token}"},
-        )
+    app.dependency_overrides[current_user] = object
+    try:
+        with TestClient(app) as client:
+            client.app.state.redis = redis
+            response = client.post(
+                "/api/v1/identity/authn/logout",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+    finally:
+        app.dependency_overrides.clear()
 
     assert response.status_code == 204
     redis.exists.assert_awaited_once()

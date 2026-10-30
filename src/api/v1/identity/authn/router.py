@@ -10,6 +10,7 @@ from src.core.clients.redis.repositories.revoked_access_token import (
     RevokedAccessTokenRepository,
     get_revoked_access_token_repository,
 )
+from src.core.security.access import CurrentUser
 from src.core.security.jwt import AccessTokenClaims
 
 router = APIRouter(prefix="/authn", tags=["Authn"])
@@ -41,6 +42,7 @@ async def refresh(
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     request: Request,
+    _user: CurrentUser,
     repository: RevokedAccessTokenRepositoryDependency,
 ) -> None:
     claims: AccessTokenClaims = request.state.access_token_claims
