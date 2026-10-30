@@ -8,6 +8,7 @@ from src.core.clients.redis.repositories.revoked_access_token import (
     RevokedAccessTokenRepository,
 )
 from src.core.errors import ForbiddenError
+from src.core.security.access import require_token_holder
 from src.core.security.emails import normalize_email
 from src.core.security.errors import TokenValidationError, UnauthorizedError
 from src.core.security.jwt import (
@@ -54,9 +55,10 @@ async def refresh_tokens(
     except TokenValidationError:
         raise UnauthorizedError("Invalid or expired token") from None
 
-    user = await users.get_by_id(claims.subject)
-    if user is None or not user.active:
-        raise UnauthorizedError("User is inactive")
+    user = require_token_holder(
+        await users.get_by_id(claims.subject),
+        claims.issued_at,
+    )
     unused = await revoked_tokens.revoke(
         RevokedAccessToken(claims.token_id, claims.expires_at)
     )

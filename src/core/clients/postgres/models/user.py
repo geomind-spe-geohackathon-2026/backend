@@ -19,4 +19,5 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(16), default="member")
     password_hash: Mapped[str] = mapped_column(String(255))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    tokens_valid_after: Mapped[datetime | None] = mapped_column(UtcDateTime)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utc_now)

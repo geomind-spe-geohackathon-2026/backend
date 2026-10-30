@@ -1,4 +1,5 @@
 from src.api.v1.identity.me import schemas
+from src.core.clients.postgres.client import utc_now
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.errors import ValidationFailedError
@@ -14,5 +15,8 @@ async def change_password(
         raise ValidationFailedError({"old_password": "Password is incorrect"})
     await repository.update(
         user,
-        {"password_hash": hash_password(payload.new_password)},
+        {
+            "password_hash": hash_password(payload.new_password),
+            "tokens_valid_after": utc_now(),
+        },
     )

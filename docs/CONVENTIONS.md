@@ -233,6 +233,9 @@ src/
   `core.security.access.require_project`. The owner or an admin may read and change a
   project; anyone else gets `404 project_not_found`, the same as a missing project.
   Sharing will change only that function.
+- Changing a password or deactivating a user sets `tokens_valid_after`.
+  `require_token_holder` refuses access and refresh tokens issued before it, so the
+  user signs in again, including in the session that changed the password.
 - Users are deactivated, never deleted, so authorship stays valid.
 - Access tokens last minutes; refresh tokens are single-use and rotate on refresh.
   Logout revokes the access token and its paired refresh token.

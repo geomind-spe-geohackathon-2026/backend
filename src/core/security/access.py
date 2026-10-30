@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -22,15 +23,22 @@ ProjectRepositoryDependency = Annotated[
 UserRepositoryDependency = Annotated[UserRepository, Depends(get_user_repository)]
 
 
+def require_token_holder(user: User | None, issued_at: datetime) -> User:
+    """Refuse a token of an inactive user, or one issued before tokens were revoked."""
+    if user is None or not user.active:
+        raise UnauthorizedError("User is inactive")
+    if user.tokens_valid_after and issued_at < user.tokens_valid_after:
+        raise UnauthorizedError("Token has been revoked")
+    return user
+
+
 async def current_user(
     request: Request,
     repository: UserRepositoryDependency,
 ) -> User:
-    """Return the signed-in user, refusing tokens of deactivated users."""
+    """Return the signed-in user whose access token is still valid."""
     user = await repository.get_by_id(request.state.user_id)
-    if user is None or not user.active:
-        raise UnauthorizedError("User is inactive")
-    return user
+    return require_token_holder(user, request.state.access_token_claims.issued_at)
 
 
 CurrentUser = Annotated[User, Depends(current_user)]

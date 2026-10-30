@@ -17,6 +17,7 @@ class AccessTokenClaims:
     subject: UUID
     token_id: str
     refresh_token_id: str
+    issued_at: datetime
     expires_at: datetime
 
 
@@ -24,6 +25,7 @@ class AccessTokenClaims:
 class RefreshTokenClaims:
     subject: UUID
     token_id: str
+    issued_at: datetime
     expires_at: datetime
 
 
@@ -34,11 +36,12 @@ class TokenPair:
 
 
 def encode_token(subject: UUID, token_id: str, lifetime: timedelta, **claims) -> str:
+    """Sign a token. ``iat`` keeps fractions of a second, for ``tokens_valid_after``."""
     now = datetime.now(UTC)
     payload = {
         "sub": str(subject),
         "jti": token_id,
-        "iat": now,
+        "iat": now.timestamp(),
         "exp": now + lifetime,
         "iss": settings.APP_NAME,
         "aud": settings.APP_NAME,
@@ -94,6 +97,7 @@ def decode_access_token(token: str) -> AccessTokenClaims:
             subject=UUID(payload["sub"]),
             token_id=payload["jti"],
             refresh_token_id=payload["rid"],
+            issued_at=datetime.fromtimestamp(payload["iat"], tz=UTC),
             expires_at=datetime.fromtimestamp(payload["exp"], tz=UTC),
         )
     except (InvalidTokenError, KeyError, TypeError, ValueError) as exc:
@@ -106,6 +110,7 @@ def decode_refresh_token(token: str) -> RefreshTokenClaims:
         return RefreshTokenClaims(
             subject=UUID(payload["sub"]),
             token_id=payload["jti"],
+            issued_at=datetime.fromtimestamp(payload["iat"], tz=UTC),
             expires_at=datetime.fromtimestamp(payload["exp"], tz=UTC),
         )
     except (InvalidTokenError, KeyError, TypeError, ValueError) as exc:

@@ -40,6 +40,7 @@ async def test_logout_revokes_token() -> None:
         subject=uuid4(),
         token_id="token-id",
         refresh_token_id="refresh-id",
+        issued_at=datetime.now(UTC),
         expires_at=datetime.now(UTC) + timedelta(minutes=5),
     )
     request = SimpleNamespace(state=SimpleNamespace(access_token_claims=claims))

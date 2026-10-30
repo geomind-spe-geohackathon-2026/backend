@@ -2,6 +2,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.core.security.jwt import create_token_pair
 from tests.conftest import bearer
 
 USERS = "/api/v1/identity/users"
@@ -36,6 +37,26 @@ async def test_deactivated_user_loses_access(client, make_user) -> None:
     assert response.json()["active"] is False
     me = await client.get("/api/v1/identity/me", headers=member_headers)
     assert me.status_code == 401
+
+
+async def test_reactivating_does_not_revive_old_tokens(client, make_user) -> None:
+    admin = await make_user("admin@example.com", role="admin")
+    member = await make_user()
+    tokens = create_token_pair(member.id)
+    headers = bearer(admin)
+
+    await client.patch(
+        f"{USERS}/{member.id}",
+        json={"active": False},
+        headers=headers,
+    )
+    await client.patch(f"{USERS}/{member.id}", json={"active": True}, headers=headers)
+
+    response = await client.post(
+        "/api/v1/identity/authn/refresh",
+        json={"refresh_token": tokens.refresh_token},
+    )
+    assert response.status_code == 401
 
 
 @pytest.mark.parametrize("change", [{"active": False}, {"role": "member"}])
