@@ -40,7 +40,7 @@ async def login(credentials: schemas.Credentials) -> schemas.TokenResponse:
 - One function in `services.py` per use-case, named after it, such as
   `create_user`.
 - `services.py` contains the feature workflow and coordinates repositories and security helpers.
-- `jobs.py` defines Celery tasks and exposes its module in `JOB_MODULES`.
+- `tasks.py` defines Celery tasks and exposes its module in `TASK_MODULES`.
 - Keep database queries in `core/clients/postgres/repositories`, not in routers
   or services.
 - Keep Redis data access in `core/clients/redis/repositories`.

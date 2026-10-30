@@ -21,38 +21,38 @@ src/
 ├── main.py                   # FastAPI and Celery service entry point
 ├── celery.py                 # Celery application and runner
 ├── api/
-│   ├── __init__.py           # Root routers and jobs
+│   ├── __init__.py           # Root routers and tasks
 │   └── v1/
-│       ├── __init__.py       # Version routers and jobs
+│       ├── __init__.py       # Version routers and tasks
 │       ├── system/           # Domain
-│       │   ├── __init__.py   # Domain routers and jobs
+│       │   ├── __init__.py   # Domain routers and tasks
 │       │   └── health/       # Feature
 │       │       ├── __init__.py
 │       │       ├── router.py
 │       │       ├── schemas.py
 │       │       ├── services.py
-│       │       └── jobs.py
+│       │       └── tasks.py
 │       ├── identity/         # Domain
-│           ├── __init__.py   # Domain routers and jobs
+│           ├── __init__.py   # Domain routers and tasks
 │           ├── authn/        # Feature
 │           │   ├── __init__.py
 │           │   ├── router.py
 │           │   ├── schemas.py
 │           │   ├── services.py
-│           │   └── jobs.py
+│           │   └── tasks.py
 │           ├── me/           # Feature
 │           │   ├── __init__.py
 │           │   ├── router.py
 │           │   ├── schemas.py
 │           │   ├── services.py
-│           │   └── jobs.py
+│           │   └── tasks.py
 │           └── users/        # Feature
 │               ├── __init__.py
 │               ├── router.py
 │               ├── schemas.py
 │               └── services.py
 │       └── workspace/        # Domain
-│           ├── __init__.py   # Domain routers and jobs
+│           ├── __init__.py   # Domain routers and tasks
 │           └── projects/     # Feature
 │               ├── __init__.py
 │               ├── router.py
@@ -108,16 +108,18 @@ src/
 - Each domain package owns its domain prefix and includes its feature routers.
 - Each feature router owns its feature prefix and endpoints.
 - Define OpenAPI tags on feature routers, using the feature name as the tag.
-- Only features have standalone `router.py` and `jobs.py` files.
-- API, version, and domain packages gather routers and jobs in `__init__.py`.
+- Only features have standalone `router.py` and `tasks.py` files.
+- API, version, and domain packages gather routers and tasks in `__init__.py`.
 - Do not define feature endpoints directly in aggregation packages.
 
-## Background jobs
+## Background tasks
 
-- A feature with Celery tasks defines a `jobs.py` and exposes its module in
-  `JOB_MODULES`. A feature has only the files it needs.
-- Domain, version, and API `__init__.py` files gather `JOB_MODULES` from below.
-- `src/celery.py` configures Celery and includes all gathered job modules.
+- A *task* is the Celery code in `tasks.py`. A *job* is the record a user sees; jobs
+  arrive later with their table.
+- A feature with Celery tasks defines a `tasks.py` and exposes its module in
+  `TASK_MODULES`. A feature has only the files it needs.
+- Domain, version, and API `__init__.py` files gather `TASK_MODULES` from below.
+- `src/celery.py` configures Celery and includes all gathered task modules.
 - Run FastAPI with `python -m src.main --fastapi`.
 - Run Celery with `python -m src.main --celery`.
 - Run workers with `celery -A src.celery:app worker --loglevel=INFO`.

@@ -12,7 +12,7 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
 `../docs/contracts.md`; change that file first, never a route on its own.
 
 - **Features** live in `src/api/v1/<domain>/<feature>/`, with only the files they need
-  out of `router.py`, `schemas.py`, `services.py` and `jobs.py`. Today: `system/health`,
+  out of `router.py`, `schemas.py`, `services.py` and `tasks.py`. Today: `system/health`,
   `identity/{authn,me,users}`, `workspace/projects`. One function in `services.py` per
   use-case.
 - **Storage:** models and repositories in `src/core/clients/postgres/`.
@@ -33,7 +33,8 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   follow it. Rows are never updated.
 - **Stack:** `../infrastructure/compose.yml` runs everything:
   `cd ../infrastructure && cp .env.example .env && docker compose up -d --build`.
-- **Tests:** `.venv/bin/python -m pytest -n auto`. See
+- **Tests:** `.venv/bin/python -m pytest -n auto`, including the import boundary test
+  and `tests/test_route_guard.py`, which every new route must pass. See
   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 Temporary files go to `.tmp/`, which is git-ignored. Lasting docs go to `docs/`.
