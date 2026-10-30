@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 GEMINI_ALLOWED = Path("src/core/gemini")
 AGENT_ALLOWED = Path("src/api/v1/assistant/runs/adapters")
-AGENT_PACKAGES = {"swarmax", "geomind"}
+AGENT_PACKAGES = {"geomind"}
 GEMINI_MODULES = {"gemini", "gemini.errors"}
 FEATURES = Path("src/api/v1")
 
@@ -111,13 +111,13 @@ def test_public_gemini_imports_are_allowed_in_core(tmp_path: Path) -> None:
     assert violations(tmp_path) == []
 
 
-def test_agent_package_is_found_under_either_name(tmp_path: Path) -> None:
-    write(tmp_path, "src/core/one.py", "import swarmax as sx\n")
+def test_agent_package_is_found_outside_the_adapters(tmp_path: Path) -> None:
+    write(tmp_path, "src/core/one.py", "import geomind as gd\n")
     write(tmp_path, "src/core/two.py", "from geomind import Run\n")
 
     found = violations(tmp_path)
 
-    assert any("src/core/one.py:1: imports swarmax" in item for item in found)
+    assert any("src/core/one.py:1: imports geomind" in item for item in found)
     assert any("src/core/two.py:1: imports geomind" in item for item in found)
 
 

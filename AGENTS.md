@@ -20,7 +20,7 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   `AccessibleProject` (`require_project`) on every route that takes a project id.
 - **gemini:** only `src/core/gemini/` imports it, and only the public API
   (`import gemini as gm`, `gm.<name>`, `gm.errors.<name>`), never `gemini.core.*`.
-  The agent package (`swarmax`, becoming `geomind`) will be imported only in
+  The agent package (`geomind`) will be imported only in
   `src/api/v1/assistant/runs/adapters/`. Features never import each other.
   `tests/test_boundaries.py` enforces all of this.
 - **Errors:** `{"error": {"code", "message", "details"}}`, raised as `AppError`

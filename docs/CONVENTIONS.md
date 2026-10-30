@@ -163,8 +163,7 @@ src/
 
 - features never import each other; shared data goes through repositories;
 - only `core/gemini` imports `gemini`, and only `gemini` or `gemini.errors`;
-- only `api/v1/assistant/runs/adapters` imports the agent package, as `swarmax` or
-  `geomind`.
+- only `api/v1/assistant/runs/adapters` imports the agent package, `geomind`.
 
 ## gemini
 
