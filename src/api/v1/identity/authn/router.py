@@ -21,18 +21,6 @@ RevokedAccessTokenRepositoryDependency = Annotated[
 UserRepositoryDependency = Annotated[UserRepository, Depends(get_user_repository)]
 
 
-@router.post(
-    "/signup",
-    response_model=schemas.TokenResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def signup(
-    credentials: schemas.Credentials,
-    repository: UserRepositoryDependency,
-) -> schemas.TokenResponse:
-    return await services.signup_user(credentials, repository)
-
-
 @router.post("/login", response_model=schemas.TokenResponse)
 async def login(
     credentials: schemas.Credentials,
@@ -57,11 +45,3 @@ async def logout(
 ) -> None:
     claims: AccessTokenClaims = request.state.access_token_claims
     await services.logout_user(claims, repository)
-
-
-@router.post("/forgot-password", response_model=schemas.MessageResponse)
-async def forgot_password(
-    payload: schemas.ForgotPasswordRequest,
-    repository: UserRepositoryDependency,
-) -> schemas.MessageResponse:
-    return await services.request_password_reset(payload, repository)

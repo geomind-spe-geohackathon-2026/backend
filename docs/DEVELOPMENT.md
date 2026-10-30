@@ -19,7 +19,7 @@
 
 - Order imports as standard library, third-party packages, then local modules.
 - Inside a feature package, import sibling modules and qualify their members.
-- Use `schemas.Credentials` and `services.signup_user`, instead of importing many names from `schemas.py` or `services.py`.
+- Use `schemas.Credentials` and `services.login_user`, instead of importing many names from `schemas.py` or `services.py`.
 - Direct symbol imports are fine for small, stable dependencies from `core` or third-party packages when qualification would add no clarity.
 - Do not create re-export modules only to shorten imports.
 
@@ -29,8 +29,8 @@ Example:
 from src.api.v1.identity.authn import schemas, services
 
 
-async def signup(credentials: schemas.Credentials) -> schemas.TokenResponse:
-    return await services.signup_user(credentials)
+async def login(credentials: schemas.Credentials) -> schemas.TokenResponse:
+    return await services.login_user(credentials)
 ```
 
 ## API implementation

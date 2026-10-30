@@ -1,7 +1,5 @@
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy.exc import IntegrityError
-
 from src.api.v1.identity.authn import schemas
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.user import UserRepository
@@ -9,8 +7,7 @@ from src.core.clients.redis.models.revoked_access_token import RevokedAccessToke
 from src.core.clients.redis.repositories.revoked_access_token import (
     RevokedAccessTokenRepository,
 )
-from src.core.errors import ConflictError, ForbiddenError
-from src.core.logging.logger import get_logger
+from src.core.errors import ForbiddenError
 from src.core.security.emails import normalize_email
 from src.core.security.errors import TokenValidationError, UnauthorizedError
 from src.core.security.jwt import (
@@ -18,14 +15,8 @@ from src.core.security.jwt import (
     create_token_pair,
     decode_refresh_token,
 )
-from src.core.security.passwords import (
-    hash_password,
-    verify_dummy_password,
-    verify_password,
-)
+from src.core.security.passwords import verify_dummy_password, verify_password
 from src.core.settings import settings
-
-logger = get_logger(__name__)
 
 
 def token_response(user: User) -> schemas.TokenResponse:
@@ -35,26 +26,6 @@ def token_response(user: User) -> schemas.TokenResponse:
         refresh_token=tokens.refresh_token,
         user=user,
     )
-
-
-async def signup_user(
-    credentials: schemas.Credentials,
-    repository: UserRepository,
-) -> schemas.TokenResponse:
-    email = normalize_email(credentials.email)
-    existing_user = await repository.get_by_email(email)
-    if existing_user is not None:
-        raise ConflictError("Email is already registered")
-
-    try:
-        user = await repository.create(
-            email,
-            hash_password(credentials.password),
-            name=email.partition("@")[0],
-        )
-    except IntegrityError as exc:
-        raise ConflictError("Email is already registered") from exc
-    return token_response(user)
 
 
 async def login_user(
@@ -107,16 +78,3 @@ async def logout_user(
         days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
     )
     await repository.revoke(RevokedAccessToken(claims.refresh_token_id, refresh_expiry))
-
-
-async def request_password_reset(
-    payload: schemas.ForgotPasswordRequest,
-    repository: UserRepository,
-) -> schemas.MessageResponse:
-    email = normalize_email(payload.email)
-    user = await repository.get_by_email(email)
-    if user is not None:
-        logger.info("Password reset requested for user %s", user.id)
-    return schemas.MessageResponse(
-        message="If the account exists, password reset instructions will be sent"
-    )

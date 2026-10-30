@@ -32,16 +32,16 @@ def test_openapi_has_identity_routes() -> None:
     with TestClient(app) as client:
         paths = client.get("/openapi.json").json()["paths"]
 
-    assert "/api/v1/identity/authn/signup" in paths
     assert "/api/v1/identity/authn/login" in paths
     assert "/api/v1/identity/authn/refresh" in paths
     assert "/api/v1/identity/authn/logout" in paths
-    assert "/api/v1/identity/authn/forgot-password" in paths
+    assert "/api/v1/identity/authn/signup" not in paths
+    assert "/api/v1/identity/authn/forgot-password" not in paths
 
 
 def test_app_error_is_returned_as_json() -> None:
     repository = AsyncMock(spec=UserRepository)
-    repository.get_by_email.return_value = object()
+    repository.get_by_email.return_value = None
     redis = AsyncMock()
     redis.incr.return_value = 1
     app.dependency_overrides[get_user_repository] = lambda: repository
@@ -50,17 +50,17 @@ def test_app_error_is_returned_as_json() -> None:
         with TestClient(app) as client:
             client.app.state.redis = redis
             response = client.post(
-                "/api/v1/identity/authn/signup",
+                "/api/v1/identity/authn/login",
                 json={"email": "user@example.com", "password": "correct-password"},
             )
     finally:
         app.dependency_overrides.clear()
 
-    assert response.status_code == 409
+    assert response.status_code == 401
     assert response.json() == {
         "error": {
-            "code": "conflict",
-            "message": "Email is already registered",
+            "code": "unauthorized",
+            "message": "Invalid email or password",
             "details": {},
         }
     }
@@ -120,8 +120,8 @@ def test_rate_limit_returns_too_many_requests() -> None:
     with TestClient(app) as client:
         client.app.state.redis = redis
         response = client.post(
-            "/api/v1/identity/authn/forgot-password",
-            json={"email": "user@example.com"},
+            "/api/v1/identity/authn/login",
+            json={"email": "user@example.com", "password": "correct-password"},
         )
 
     assert response.status_code == 429

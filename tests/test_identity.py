@@ -3,8 +3,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-from src.api.v1.identity.authn.router import forgot_password, login, logout, signup
-from src.api.v1.identity.authn.schemas import Credentials, ForgotPasswordRequest
+from src.api.v1.identity.authn.router import login, logout
+from src.api.v1.identity.authn.schemas import Credentials
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.clients.redis.repositories.revoked_access_token import (
@@ -12,30 +12,6 @@ from src.core.clients.redis.repositories.revoked_access_token import (
 )
 from src.core.security.jwt import AccessTokenClaims, decode_access_token
 from src.core.security.passwords import hash_password
-
-
-async def test_signup_creates_user_and_token() -> None:
-    repository = AsyncMock(spec=UserRepository)
-    repository.get_by_email.return_value = None
-    user = User(
-        id=uuid4(),
-        email="user@example.com",
-        name="user",
-        role="member",
-        password_hash="hashed",
-        active=True,
-    )
-    repository.create.return_value = user
-
-    response = await signup(
-        Credentials(email="User@Example.com", password="correct-password"),
-        repository,
-    )
-
-    email, password_hash = repository.create.call_args.args
-    assert email == "user@example.com"
-    assert password_hash != "correct-password"
-    assert decode_access_token(response.access_token).subject == user.id
 
 
 async def test_login_returns_token_for_valid_credentials() -> None:
@@ -76,17 +52,3 @@ async def test_logout_revokes_token() -> None:
     assert access.token_id == "token-id"
     assert access.expires_at == claims.expires_at
     assert refresh.token_id == "refresh-id"
-
-
-async def test_forgot_password_has_generic_response() -> None:
-    repository = AsyncMock(spec=UserRepository)
-    repository.get_by_email.return_value = None
-
-    response = await forgot_password(
-        ForgotPasswordRequest(email="missing@example.com"),
-        repository,
-    )
-
-    assert response.message == (
-        "If the account exists, password reset instructions will be sent"
-    )

@@ -236,8 +236,7 @@ src/
 - Users are deactivated, never deleted, so authorship stays valid.
 - Access tokens last minutes; refresh tokens are single-use and rotate on refresh.
   Logout revokes the access token and its paired refresh token.
-- `signup` and `forgot-password` exist outside `../docs/contracts.md`; `forgot-password`
-  only logs the request and sends nothing.
+- Users are created by an admin only. There is no public signup.
 
 ## Errors
 
@@ -251,7 +250,7 @@ Examples:
 
 ```text
 system + health                 -> /api/v1/system/health
-identity + authn + signup       -> /api/v1/identity/authn/signup
+identity + authn + login        -> /api/v1/identity/authn/login
 identity + me                   -> /api/v1/identity/me
 ```
 
