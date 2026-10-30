@@ -27,6 +27,6 @@ class ProjectResponse(BaseModel):
     id: UUID
     name: str
     owner: OwnerResponse
-    plant_version: int | None = None
+    plant_version: int | None
     created: datetime
     updated: datetime

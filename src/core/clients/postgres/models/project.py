@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, query_expression, relationship
 
 from src.core.clients.postgres.client import Base, UtcDateTime, utc_now
 from src.core.clients.postgres.models.user import User
@@ -22,3 +22,4 @@ class Project(Base):
     )
 
     owner: Mapped[User] = relationship(lazy="joined")
+    plant_version: Mapped[int | None] = query_expression()

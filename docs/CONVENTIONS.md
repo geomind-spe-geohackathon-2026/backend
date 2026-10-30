@@ -74,6 +74,9 @@ src/
     │   │   └── repositories/ # Redis data access
     │   └── errors.py          # Shared client errors
     ├── errors.py             # Application errors and error middleware
+    ├── gemini/               # The only package that imports gemini
+    │   ├── errors.py
+    │   └── plant.py          # load_plant, dump_plant, validate_content, example_plant
     ├── logging/
     │   ├── logger.py         # Logger configuration
     │   └── middleware.py     # Request logging middleware
@@ -151,6 +154,29 @@ src/
   belongs to the Redis models and repositories.
 - `core/middlewares.py` only registers middleware in application order.
 - `core/lifespan.py` opens and closes infrastructure clients.
+
+## gemini
+
+- Only `core/gemini` imports gemini, and only through `import gemini as gm`
+  (`gm.<name>`, `gm.errors.<name>`). gemini's internal paths are moving; never use them.
+- Services never call gemini directly; they call `core/gemini`.
+- There are no physics formulas in the backend.
+- A plant is a class in `gm.plants`. `plant_type` from stored or uploaded JSON is
+  never imported: `resolve_plant_class` looks its class name up in `gm.plants.__all__`
+  and requires the `gemini` package. Comparing only those two means versions saved
+  before gemini moves a file still load.
+- Every gemini error becomes `422 plant_invalid` with gemini's message in `details`.
+
+## Plant versions
+
+- `plant_versions` holds one row per saved plant, with `content` exactly as
+  `to_dict()` writes it. Rows are never updated.
+- One JSON per version, because gemini's format already holds dated parameters and tag
+  bindings per module and gemini validates the whole file on load. A second, split
+  format would have to follow gemini forever.
+- Saving content equal to the latest version is `409 conflict`, so there are no empty
+  versions. The unique `(project_id, number)` constraint settles concurrent saves;
+  the loser retries once.
 
 ## Middleware
 

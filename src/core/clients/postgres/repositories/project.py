@@ -1,21 +1,34 @@
 from typing import Annotated
 from uuid import UUID
 
-from sqlalchemy import Select, delete, select
+from sqlalchemy import Select, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import with_expression
 
 from fastapi import Depends
 from src.core.clients.postgres.client import get_db
+from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.repositories.base import BaseRepository
 from src.core.pagination.page import PageRequest, paginate
 
 DatabaseSession = Annotated[AsyncSession, Depends(get_db)]
 
+LATEST_PLANT_NUMBER = (
+    select(func.max(PlantVersion.number))
+    .where(PlantVersion.project_id == Project.id)
+    .correlate(Project)
+    .scalar_subquery()
+)
+
 
 class ProjectRepository(BaseRepository):
     def select_projects(self) -> Select:
-        return select(Project).execution_options(populate_existing=True)
+        return (
+            select(Project)
+            .options(with_expression(Project.plant_version, LATEST_PLANT_NUMBER))
+            .execution_options(populate_existing=True)
+        )
 
     async def get_by_id(self, project_id: UUID) -> Project | None:
         statement = self.select_projects().where(Project.id == project_id)

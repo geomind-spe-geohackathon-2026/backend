@@ -1,5 +1,9 @@
 from uuid import uuid4
 
+from src.core.clients.postgres.repositories.plant_version import (
+    PlantVersionRepository,
+)
+from src.core.gemini.plant import example_plant
 from tests.conftest import bearer
 
 PROJECTS = "/api/v1/workspace/projects"
@@ -31,3 +35,23 @@ async def test_other_member_sees_the_same_answer_as_a_missing_project(
     assert hidden.status_code == missing.status_code == 404
     assert hidden.json() == missing.json()
     assert hidden.json()["error"]["code"] == "project_not_found"
+
+
+async def test_project_shows_its_latest_plant_version(
+    client,
+    make_user,
+    make_project,
+    session,
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    await PlantVersionRepository(session).save_version(
+        project.id,
+        example_plant(),
+        "",
+        owner.id,
+    )
+
+    response = await client.get(f"{PROJECTS}/{project.id}", headers=bearer(owner))
+
+    assert response.json()["plant_version"] == 1

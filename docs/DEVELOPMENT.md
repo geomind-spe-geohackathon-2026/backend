@@ -98,4 +98,16 @@ The fast suite never uses the network. New API tests use the `client` fixture fr
 tests mirror the source tree: `tests/api/v1/<domain>/<feature>/test_<usecase>.py` and
 `tests/core/<package>/test_<module>.py`.
 
+The current tests needed no database, so SQLite in memory was added for tests of
+repositories and routes, with portable column types (`UtcDateTime`, `JSON` with a
+`JSONB` variant). Tests that need real PostgreSQL behavior carry the `postgres` marker.
+The default `-m "not postgres"` skips them. To run them against the compose PostgreSQL:
+
+```bash
+POSTGRES_TEST_URL=postgresql+asyncpg://user:password@localhost:5432/test_database \
+    .venv/bin/python -m pytest -m postgres --no-cov
+```
+
+These tests create and drop every table, so point them at a scratch database.
+
 Write tests for behavior, security boundaries, and failure handling. Do not add tests that only repeat the implementation.
