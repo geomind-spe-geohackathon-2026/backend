@@ -5,8 +5,10 @@ from sqlalchemy import Select, func, select
 
 from src.core.clients.postgres.models.activity import Activity
 from src.core.clients.postgres.models.case_version import CaseVersion
+from src.core.clients.postgres.models.chat import Chat
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.result import Result
+from src.core.clients.postgres.models.run import Run
 from src.core.clients.postgres.models.study import Study
 from src.core.clients.postgres.repositories.base import BaseRepository, DatabaseSession
 from src.core.routes import REPORT_ROUTE
@@ -22,6 +24,8 @@ class ProjectFacts:
     studies: dict[str, int] = field(default_factory=dict)
     results: int = 0
     reported: bool = False
+    chats: int = 0
+    runs: int = 0
 
 
 class ProgressRepository(BaseRepository):
@@ -90,6 +94,16 @@ class ProgressRepository(BaseRepository):
             .group_by(Activity.project_id)
         )
         studies = await self.study_counts(project_ids)
+        chats = await self.grouped(
+            select(Chat.project_id, func.count(Chat.id))
+            .where(Chat.project_id.in_(project_ids))
+            .group_by(Chat.project_id)
+        )
+        runs = await self.grouped(
+            select(Run.project_id, func.count(Run.id))
+            .where(Run.project_id.in_(project_ids))
+            .group_by(Run.project_id)
+        )
         return {
             project_id: ProjectFacts(
                 case_version=case[project_id][0] if project_id in case else None,
@@ -98,6 +112,8 @@ class ProgressRepository(BaseRepository):
                 studies=studies.get(project_id, {}),
                 results=results.get(project_id, 0),
                 reported=project_id in reported,
+                chats=chats.get(project_id, 0),
+                runs=runs.get(project_id, 0),
             )
             for project_id in project_ids
         }

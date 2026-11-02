@@ -59,3 +59,5 @@ class Project(BaseModel):
     created: datetime
     updated: datetime
     progress: Progress
+    chats: int
+    runs: int

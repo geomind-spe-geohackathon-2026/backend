@@ -10,6 +10,7 @@ from starlette import status
 from src.core.errors import AppError, ValidationFailedError
 from src.core.gemini import case
 from src.core.gemini import plant as plant_document
+from src.core.problems import problem_of
 
 CASE_FILE = "case/case.json"
 PLANT_FILE = "plant.json"
@@ -147,7 +148,8 @@ def files_of(
 
 def validation_failed(problems: list[dict[str, Any]]) -> ValidationFailedError:
     """Return validation_failed with one field per problem gemini lists."""
-    fields = {problem["path"] or "settings": problem["message"] for problem in problems}
+    readable = [problem_of(problem) for problem in problems]
+    fields = {problem["path"] or "settings": problem["message"] for problem in readable}
     return ValidationFailedError(fields)
 
 
@@ -166,7 +168,7 @@ def from_dict(
 
 def issues_of(study: gm.Study) -> list[dict[str, Any]]:
     """Return gemini's problems for a study whose files it can read."""
-    return [issue.problem() for issue in study.check()]
+    return [problem_of(issue.problem()) for issue in study.check()]
 
 
 def missing_inputs(

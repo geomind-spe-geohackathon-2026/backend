@@ -81,6 +81,8 @@ def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
         created=project.created,
         updated=project.updated,
         progress=build_progress(facts),
+        chats=facts.chats,
+        runs=facts.runs,
     )
 
 

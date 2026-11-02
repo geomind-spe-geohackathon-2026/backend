@@ -1796,6 +1796,10 @@
             ],
             "title": "Case Version"
           },
+          "chats": {
+            "title": "Chats",
+            "type": "integer"
+          },
           "created": {
             "format": "date-time",
             "title": "Created",
@@ -1827,6 +1831,10 @@
           "progress": {
             "$ref": "#/components/schemas/Progress"
           },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
           "updated": {
             "format": "date-time",
             "title": "Updated",
@@ -1841,7 +1849,9 @@
           "case_version",
           "created",
           "updated",
-          "progress"
+          "progress",
+          "chats",
+          "runs"
         ],
         "title": "Project",
         "type": "object"
