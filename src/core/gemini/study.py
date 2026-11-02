@@ -1,5 +1,6 @@
 """The wrapper around gemini's study: its kinds, the inputs it misses, and its run."""
 
+import inspect
 import json
 from typing import Any
 
@@ -14,6 +15,8 @@ CASE_FILE = "case/case.json"
 PLANT_FILE = "plant.json"
 CASE_FOLDER = "case/"
 MISSING_CODE = "missing_value"
+INPUTS = frozenset({"plant", "case", "plan"})
+METHODS_WITH_ARGUMENTS = ("minimize", "sample", "sensitivity")
 
 
 class StudyRunError(AppError):
@@ -29,24 +32,71 @@ def reserved_keys() -> frozenset[str]:
     return frozenset(schema["required"]) | {"about"}
 
 
-def kinds() -> list[dict[str, Any]]:
-    """Return gemini's study methods, each with the settings schema they share."""
-    full = gm.Study.schema()
+def method_arguments(method: str) -> list[inspect.Parameter]:
+    """Return the settings a gemini study function takes beyond its inputs."""
+    function = getattr(gm.study, method, None)
+    if function is None:
+        return []
+    return [
+        parameter
+        for name, parameter in inspect.signature(function).parameters.items()
+        if name not in INPUTS and parameter.kind is not parameter.KEYWORD_ONLY
+    ]
+
+
+def settings_schema(method: str, full: dict[str, Any]) -> dict[str, Any]:
+    """Return the schema of the settings of one method, with metric names as choices."""
     reserved = reserved_keys()
-    settings = {
-        **{key: value for key, value in full.items() if key != "required"},
-        "properties": {
-            key: value
-            for key, value in full["properties"].items()
-            if key not in reserved
-        },
+    arguments = method_arguments(method)
+    taken = {name for other in METHODS_WITH_ARGUMENTS for name in argument_names(other)}
+    names = [parameter.name for parameter in arguments] or [
+        key for key in full["properties"] if key not in reserved | taken
+    ]
+    properties = {
+        key: with_choices(key, full["properties"][key])
+        for key in names
+        if key in full["properties"]
     }
+    required = [
+        parameter.name
+        for parameter in arguments
+        if parameter.default is parameter.empty and parameter.name in properties
+    ]
+    schema = {key: value for key, value in full.items() if key != "required"}
+    return {
+        **schema,
+        "properties": properties,
+        **({"required": required} if required else {}),
+    }
+
+
+def argument_names(method: str) -> list[str]:
+    return [parameter.name for parameter in method_arguments(method)]
+
+
+def metric_names() -> list[str]:
+    """Return the metrics gemini can read from a run."""
+    return list(gm.evaluate._utils.display.METRICS)
+
+
+def with_choices(key: str, schema: dict[str, Any]) -> dict[str, Any]:
+    """Make the metric settings choices of gemini's metric names."""
+    if key == "objective":
+        return {**schema, "enum": metric_names()}
+    if key == "metrics":
+        return {**schema, "items": {**schema["items"], "enum": metric_names()}}
+    return schema
+
+
+def kinds() -> list[dict[str, Any]]:
+    """Return gemini's study methods, each with the settings schema it takes."""
+    full = gm.Study.schema()
     return [
         {
             "kind": method,
             "title": method.capitalize(),
             "description": describe(method),
-            "schema": settings,
+            "schema": settings_schema(method, full),
         }
         for method in full["properties"]["method"]["enum"]
     ]
