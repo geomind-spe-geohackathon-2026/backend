@@ -375,6 +375,48 @@
         "title": "ChangePassword",
         "type": "object"
       },
+      "Chat": {
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project",
+          "title",
+          "created",
+          "last_run"
+        ],
+        "title": "Chat",
+        "type": "object"
+      },
       "ChatCreate": {
         "additionalProperties": false,
         "properties": {
@@ -401,25 +443,6 @@
           "project"
         ],
         "title": "ChatCreate",
-        "type": "object"
-      },
-      "ChatRun": {
-        "properties": {
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "status"
-        ],
-        "title": "ChatRun",
         "type": "object"
       },
       "ChatState": {
@@ -1045,7 +1068,7 @@
             "$ref": "#/components/schemas/Message"
           },
           "run": {
-            "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+            "$ref": "#/components/schemas/Run"
           }
         },
         "required": [
@@ -1077,7 +1100,7 @@
         "properties": {
           "active_runs": {
             "items": {
-              "$ref": "#/components/schemas/src__api__v1__workspace__overview__schemas__Run"
+              "$ref": "#/components/schemas/Run"
             },
             "title": "Active Runs",
             "type": "array"
@@ -1091,7 +1114,7 @@
           },
           "chats": {
             "items": {
-              "$ref": "#/components/schemas/src__api__v1__workspace__overview__schemas__Chat"
+              "$ref": "#/components/schemas/Chat"
             },
             "title": "Chats",
             "type": "array"
@@ -1132,7 +1155,7 @@
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/src__api__v1__assistant__chat__schemas__Chat"
+              "$ref": "#/components/schemas/Chat"
             },
             "title": "Items",
             "type": "array"
@@ -1272,7 +1295,7 @@
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+              "$ref": "#/components/schemas/Run"
             },
             "title": "Items",
             "type": "array"
@@ -2121,6 +2144,112 @@
         "title": "ResultDetail",
         "type": "object"
       },
+      "Run": {
+        "description": "A run of the assistant, as the runs page and the chat show it.",
+        "properties": {
+          "chat": {
+            "format": "uuid",
+            "title": "Chat",
+            "type": "string"
+          },
+          "ended": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Failure"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "loop": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loop"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "request": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request"
+          },
+          "started": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "waiting",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Tokens"
+          }
+        },
+        "required": [
+          "id",
+          "chat",
+          "project",
+          "status",
+          "loop",
+          "started",
+          "ended",
+          "usage",
+          "request",
+          "error"
+        ],
+        "title": "Run",
+        "type": "object"
+      },
       "RunAnswer": {
         "additionalProperties": false,
         "description": "The user's answer to the request a waiting run shows.",
@@ -2146,24 +2275,6 @@
           "answer"
         ],
         "title": "RunAnswer",
-        "type": "object"
-      },
-      "RunError": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "message"
-        ],
-        "title": "RunError",
         "type": "object"
       },
       "Series": {
@@ -2598,6 +2709,34 @@
         "title": "Tokens",
         "type": "object"
       },
+      "Usage": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runs",
+          "input_tokens",
+          "output_tokens",
+          "cost"
+        ],
+        "title": "Usage",
+        "type": "object"
+      },
       "UserCreate": {
         "properties": {
           "email": {
@@ -2786,76 +2925,6 @@
         "title": "Version",
         "type": "object"
       },
-      "src__api__v1__assistant__chat__schemas__Chat": {
-        "properties": {
-          "created": {
-            "format": "date-time",
-            "title": "Created",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "last_run": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/LastRun"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "project": {
-            "format": "uuid",
-            "title": "Project",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "project",
-          "title",
-          "created",
-          "last_run"
-        ],
-        "title": "Chat",
-        "type": "object"
-      },
-      "src__api__v1__assistant__usage__schemas__Usage": {
-        "properties": {
-          "cost": {
-            "title": "Cost",
-            "type": "number"
-          },
-          "input_tokens": {
-            "title": "Input Tokens",
-            "type": "integer"
-          },
-          "output_tokens": {
-            "title": "Output Tokens",
-            "type": "integer"
-          },
-          "runs": {
-            "title": "Runs",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "runs",
-          "input_tokens",
-          "output_tokens",
-          "cost"
-        ],
-        "title": "Usage",
-        "type": "object"
-      },
       "src__api__v1__design__study__schemas__Progress": {
         "properties": {
           "done": {
@@ -2872,274 +2941,6 @@
           "total"
         ],
         "title": "Progress",
-        "type": "object"
-      },
-      "src__api__v1__workspace__overview__schemas__Chat": {
-        "properties": {
-          "created": {
-            "format": "date-time",
-            "title": "Created",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "last_run": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ChatRun"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "project": {
-            "format": "uuid",
-            "title": "Project",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "project",
-          "title",
-          "created",
-          "last_run"
-        ],
-        "title": "Chat",
-        "type": "object"
-      },
-      "src__api__v1__workspace__overview__schemas__Run": {
-        "properties": {
-          "chat": {
-            "format": "uuid",
-            "title": "Chat",
-            "type": "string"
-          },
-          "ended": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ended"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RunError"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "loop": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Loop"
-          },
-          "project": {
-            "format": "uuid",
-            "title": "Project",
-            "type": "string"
-          },
-          "request": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request"
-          },
-          "started": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Started"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "usage": {
-            "$ref": "#/components/schemas/src__api__v1__workspace__overview__schemas__Usage"
-          }
-        },
-        "required": [
-          "id",
-          "chat",
-          "project",
-          "status",
-          "loop",
-          "started",
-          "ended",
-          "usage",
-          "request",
-          "error"
-        ],
-        "title": "Run",
-        "type": "object"
-      },
-      "src__api__v1__workspace__overview__schemas__Usage": {
-        "properties": {
-          "cost": {
-            "title": "Cost",
-            "type": "number"
-          },
-          "input_tokens": {
-            "title": "Input Tokens",
-            "type": "integer"
-          },
-          "output_tokens": {
-            "title": "Output Tokens",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "input_tokens",
-          "output_tokens",
-          "cost"
-        ],
-        "title": "Usage",
-        "type": "object"
-      },
-      "src__core__assistant__schemas__Run": {
-        "description": "A run of the assistant, as the runs page and the chat show it.",
-        "properties": {
-          "chat": {
-            "format": "uuid",
-            "title": "Chat",
-            "type": "string"
-          },
-          "ended": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ended"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Failure"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "loop": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Loop"
-          },
-          "project": {
-            "format": "uuid",
-            "title": "Project",
-            "type": "string"
-          },
-          "request": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request"
-          },
-          "started": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Started"
-          },
-          "status": {
-            "enum": [
-              "queued",
-              "running",
-              "waiting",
-              "done",
-              "failed",
-              "cancelled"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "usage": {
-            "$ref": "#/components/schemas/Tokens"
-          }
-        },
-        "required": [
-          "id",
-          "chat",
-          "project",
-          "status",
-          "loop",
-          "started",
-          "ended",
-          "usage",
-          "request",
-          "error"
-        ],
-        "title": "Run",
         "type": "object"
       },
       "src__core__progress__schemas__Progress": {
@@ -3265,7 +3066,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__api__v1__assistant__chat__schemas__Chat"
+                  "$ref": "#/components/schemas/Chat"
                 }
               }
             },
@@ -3352,7 +3153,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__api__v1__assistant__chat__schemas__Chat"
+                  "$ref": "#/components/schemas/Chat"
                 }
               }
             },
@@ -3648,7 +3449,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+                  "$ref": "#/components/schemas/Run"
                 }
               }
             },
@@ -3701,7 +3502,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+                  "$ref": "#/components/schemas/Run"
                 }
               }
             },
@@ -3744,7 +3545,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+                  "$ref": "#/components/schemas/Run"
                 }
               }
             },
@@ -3959,7 +3760,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__api__v1__assistant__usage__schemas__Usage"
+                  "$ref": "#/components/schemas/Usage"
                 }
               }
             },

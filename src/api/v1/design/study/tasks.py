@@ -5,8 +5,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from celery import Task, shared_task
 from src.api.v1.design.study import services
+from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.minio.client import create_minio_client
 from src.core.clients.postgres.client import create_postgres_client
+from src.core.settings import settings
 
 TASK_MODULES = (__name__,)
 
@@ -18,9 +20,8 @@ async def execute(task: Task, study_id: UUID) -> None:
     try:
         async with sessions() as session:
             stores = services.Stores.open(session)
-            await services.run_study(
-                study_id, stores, create_minio_client(), task.report
-            )
+            blobs = BlobStore(create_minio_client(), settings.MINIO_BUCKET_NAME)
+            await services.run_study(study_id, stores, blobs, task.report)
     finally:
         await engine.dispose()
 

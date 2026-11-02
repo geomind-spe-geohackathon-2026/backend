@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Depends, Query, Request
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.project import (
@@ -78,3 +78,15 @@ async def project_from_path(
 
 
 AccessibleProject = Annotated[Project, Depends(project_from_path)]
+
+
+async def project_from_query(
+    project: Annotated[UUID, Query()],
+    user: CurrentUser,
+    repository: ProjectRepositoryDependency,
+) -> Project:
+    """Return the project named by ``?project=`` if the caller may use it."""
+    return await require_project(project, user, repository)
+
+
+QueriedProject = Annotated[Project, Depends(project_from_query)]

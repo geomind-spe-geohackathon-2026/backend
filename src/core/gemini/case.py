@@ -44,6 +44,17 @@ def validate(
     return split(problems)
 
 
+def missing_values(
+    content: Any,
+    files: dict[str, bytes] | None,
+) -> list[dict[str, str]]:
+    """Return the values a case lacks as ``{path, message}``; else case_invalid."""
+    missing, structural = validate(content, files)
+    if structural:
+        raise CaseInvalidError(structural)
+    return [{"path": item["path"], "message": item["message"]} for item in missing]
+
+
 def ensure_complete(
     content: Any,
     files: dict[str, bytes] | None,

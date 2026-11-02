@@ -1,6 +1,7 @@
 """The committed openapi.json is what the application serves now."""
 
 import importlib.util
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,3 +30,10 @@ def test_script_writes_the_document(tmp_path: Path, monkeypatch) -> None:
     module.main()
 
     assert (tmp_path / "openapi.json").read_text() == module.to_json()
+
+
+def test_shared_schemas_have_plain_names() -> None:
+    names = set(json.loads(load_script().to_json())["components"]["schemas"])
+
+    assert {"Chat", "Run"} <= names
+    assert not [name for name in names if name.endswith(("__Chat", "__Run"))]

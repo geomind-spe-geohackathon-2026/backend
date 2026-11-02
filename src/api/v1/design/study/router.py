@@ -1,12 +1,11 @@
 from typing import Annotated
 from uuid import UUID
 
-from minio import Minio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, Depends, status
 from src.api.v1.design.study import schemas, services, tasks
-from src.core.clients.minio.client import get_minio
+from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.client import get_db
 from src.core.clients.redis.repositories.job import JobRepository, get_job_repository
 from src.core.pagination.page import Page, PageParams
@@ -21,7 +20,6 @@ def get_stores(session: Annotated[AsyncSession, Depends(get_db)]) -> services.St
 
 StoresDependency = Annotated[services.Stores, Depends(get_stores)]
 JobsDependency = Annotated[JobRepository, Depends(get_job_repository)]
-MinioDependency = Annotated[Minio, Depends(get_minio)]
 
 
 @router.get("/kinds", response_model=list[schemas.StudyKind])
@@ -45,9 +43,9 @@ async def create_study(
     payload: schemas.StudyCreate,
     user: CurrentUser,
     stores: StoresDependency,
-    minio: MinioDependency,
+    blobs: BlobStoreDependency,
 ) -> schemas.Study:
-    return await services.create_study(payload, user, stores, minio, tasks.enqueue)
+    return await services.create_study(payload, user, stores, blobs, tasks.enqueue)
 
 
 @router.get("/{study_id}", response_model=schemas.Study)
@@ -65,9 +63,9 @@ async def start_study(
     study_id: UUID,
     user: CurrentUser,
     stores: StoresDependency,
-    minio: MinioDependency,
+    blobs: BlobStoreDependency,
 ) -> schemas.Study:
-    return await services.start_study(study_id, user, stores, minio, tasks.enqueue)
+    return await services.start_study(study_id, user, stores, blobs, tasks.enqueue)
 
 
 @router.post("/{study_id}/cancel", response_model=schemas.Study)

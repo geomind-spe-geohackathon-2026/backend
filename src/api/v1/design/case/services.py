@@ -19,6 +19,7 @@ from src.core.clients.postgres.repositories.version import content_digest
 from src.core.errors import CaseInvalidError, ValidationFailedError
 from src.core.gemini import case
 from src.core.gemini.errors import CaseFileNotFoundError, CaseNotFoundError
+from src.core.gemini.stored import stored_files
 from src.core.pagination.page import Page
 from src.core.versioning import (
     Version,
@@ -37,20 +38,6 @@ def check_name(name: str) -> None:
     path = PurePosixPath(name)
     if not name or "\\" in name or path.is_absolute() or ".." in path.parts:
         raise ValidationFailedError({"name": "Name must be a relative path"})
-
-
-async def stored_files(
-    rows: list[CaseFile],
-    blobs: BlobStore,
-) -> dict[str, bytes]:
-    """Read the bytes of every file a case version holds."""
-    files = {}
-    for row in rows:
-        data = await blobs.get(row.object_key)
-        if data is None:
-            raise CaseFileNotFoundError(f"File {row.name} is missing from storage")
-        files[row.name] = data
-    return files
 
 
 def files_digest(content: dict[str, Any], files: dict[str, bytes]) -> str:

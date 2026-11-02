@@ -6,10 +6,10 @@ from src.core.assistant.access import (
     AccessibleChat,
     ChatRepositoryDependency,
     ProjectRepositoryDependency,
-    QueryProject,
     RunRepositoryDependency,
 )
 from src.core.assistant.queue import EnqueueDependency
+from src.core.assistant.schemas import Chat
 from src.core.clients.postgres.repositories.chat_state import (
     ChatStateRepository,
     get_chat_state_repository,
@@ -19,7 +19,7 @@ from src.core.clients.postgres.repositories.message import (
     get_message_repository,
 )
 from src.core.pagination.page import Page, PageParams
-from src.core.security.access import CurrentUser, require_project
+from src.core.security.access import CurrentUser, QueriedProject, require_project
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -33,9 +33,9 @@ ChatStateRepositoryDependency = Annotated[
 ]
 
 
-@router.get("", response_model=Page[schemas.Chat])
+@router.get("", response_model=Page[Chat])
 async def list_chats(
-    project: QueryProject,
+    project: QueriedProject,
     page: PageParams,
     chats: ChatRepositoryDependency,
     runs: RunRepositoryDependency,
@@ -45,7 +45,7 @@ async def list_chats(
 
 @router.post(
     "",
-    response_model=schemas.Chat,
+    response_model=Chat,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_chat(
@@ -53,7 +53,7 @@ async def create_chat(
     user: CurrentUser,
     projects: ProjectRepositoryDependency,
     chats: ChatRepositoryDependency,
-) -> schemas.Chat:
+) -> Chat:
     project = await require_project(payload.project, user, projects)
     return await services.create_chat(payload, project, user, chats)
 
@@ -86,13 +86,13 @@ async def send_message(
     )
 
 
-@router.patch("/{chat_id}", response_model=schemas.Chat)
+@router.patch("/{chat_id}", response_model=Chat)
 async def rename_chat(
     payload: schemas.ChatUpdate,
     chat: AccessibleChat,
     chats: ChatRepositoryDependency,
     runs: RunRepositoryDependency,
-) -> schemas.Chat:
+) -> Chat:
     return await services.rename_chat(chat, payload, chats, runs)
 
 

@@ -37,6 +37,9 @@ class BlobStore:
             response.close()
             response.release_conn()
 
+    def delete_sync(self, key: str) -> None:
+        self.client.remove_object(self.bucket, key)
+
     async def put(self, key: str, data: bytes) -> None:
         """Write the object, creating the bucket on first use."""
         await asyncio.to_thread(self.put_sync, key, data)
@@ -44,6 +47,10 @@ class BlobStore:
     async def get(self, key: str) -> bytes | None:
         """Return the object's bytes, or ``None`` when there is no such object."""
         return await asyncio.to_thread(self.get_sync, key)
+
+    async def delete(self, key: str) -> None:
+        """Remove the object; removing one that is not there is not an error."""
+        await asyncio.to_thread(self.delete_sync, key)
 
 
 def get_blob_store(request: Request) -> BlobStore:

@@ -9,23 +9,23 @@ from pathlib import PurePosixPath
 from uuid import UUID, uuid4
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile, ZipInfo
 
-from minio import Minio
 from pydantic import ValidationError
 
 from fastapi import UploadFile
 from src.api.v1.workspace.projects import schemas
-from src.core.clients.postgres.models.case_file import CaseFile
+from src.core.clients.minio.blobs import BlobStore
+from src.core.clients.minio.keys import layout_key
 from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
+from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
 from src.core.clients.postgres.repositories.progress import (
-    ProgressRepository,
     ProjectFacts,
 )
 from src.core.clients.postgres.repositories.project import (
@@ -34,11 +34,13 @@ from src.core.clients.postgres.repositories.project import (
     ImportedVersion,
     ProjectRepository,
 )
-from src.core.documents.storage import read_object, remove_object, store_object
-from src.core.errors import ValidationFailedError
+from src.core.errors import CaseInvalidError, ValidationFailedError
+from src.core.gemini import case as case_document
 from src.core.gemini.errors import PlantInvalidError
 from src.core.gemini.plant import validate_content
+from src.core.gemini.stored import stored_files
 from src.core.pagination.page import Page, PageRequest, encode_cursor
+from src.core.progress.reader import ProgressReader
 from src.core.progress.states import build_progress
 from src.core.settings import settings
 
@@ -46,7 +48,7 @@ EXPORT_FORMAT = 1
 PROJECT_FILE = "project.json"
 PLANT_FILE = re.compile(r"plant/([1-9][0-9]*)\.json")
 CASE_FILE = re.compile(r"case/([1-9][0-9]*)\.json")
-CASE_ATTACHMENT = re.compile(r"case/files/([1-9][0-9]*)/([^/]+)")
+CASE_ATTACHMENT = re.compile(r"case/files/([1-9][0-9]*)/(.+)")
 WINDOWS_DRIVE = re.compile(r"[A-Za-z]:")
 ARCHIVE_ERRORS = (BadZipFile, EOFError, NotImplementedError, RuntimeError, zlib.error)
 
@@ -81,7 +83,7 @@ def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
 
 async def describe_one(
     project: Project,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> schemas.Project:
     facts = await progress.facts([project.id])
     return describe_project(project, facts[project.id])
@@ -92,7 +94,7 @@ async def list_projects(
     page: PageRequest,
     search: str | None,
     repository: ProjectRepository,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> Page:
     owner_id = None if user.role == "admin" else user.id
     rows = await repository.list_page(page, owner_id, search)
@@ -109,7 +111,7 @@ async def create_project(
     payload: schemas.ProjectCreate,
     user: User,
     repository: ProjectRepository,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> schemas.Project:
     project = await repository.create(payload.name, user.id)
     return await describe_one(project, progress)
@@ -117,7 +119,7 @@ async def create_project(
 
 async def get_project(
     project: Project,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> schemas.Project:
     return await describe_one(project, progress)
 
@@ -126,14 +128,28 @@ async def rename_project(
     project: Project,
     payload: schemas.ProjectUpdate,
     repository: ProjectRepository,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> schemas.Project:
     renamed = await repository.rename(project, payload.name)
     return await describe_one(renamed, progress)
 
 
-async def delete_project(project: Project, repository: ProjectRepository) -> None:
+async def delete_project(
+    project: Project,
+    repository: ProjectRepository,
+    documents: DocumentRepository,
+    files: CaseFileRepository,
+    blobs: BlobStore,
+) -> None:
+    """Delete the project, then its stored bytes; a failed delete of bytes is raised."""
+    keys = [
+        *await documents.object_keys(project.id),
+        *await files.object_keys(project.id),
+        layout_key(project.id),
+    ]
     await repository.delete(project.id)
+    for key in keys:
+        await blobs.delete(key)
 
 
 def write_archive(
@@ -170,21 +186,17 @@ def version_json(version: PlantVersion | CaseVersion) -> str:
     )
 
 
-def read_case_files(minio: Minio, files: list[CaseFile]) -> dict[str, bytes]:
-    return {file.name: read_object(minio, file.object_key) for file in files}
-
-
 async def export_project(
     project: Project,
     plants: PlantVersionRepository,
     cases: CaseVersionRepository,
     files: CaseFileRepository,
-    minio: Minio,
+    blobs: BlobStore,
 ) -> bytes:
     case_archives = []
     for version in await cases.all_versions(project.id):
         rows = await files.list_for_version(version.id)
-        data = await asyncio.to_thread(read_case_files, minio, rows)
+        data = await stored_files(rows, blobs)
         case_archives.append(CaseArchive(version, data))
     versions = await plants.all_versions(project.id)
     return await asyncio.to_thread(write_archive, project, versions, case_archives)
@@ -245,6 +257,14 @@ def read_case(name: str, number: int, data: bytes) -> ParsedCase:
     return ParsedCase(number, stored.note, stored.created, stored.content, {})
 
 
+def check_case(parsed: ParsedCase) -> None:
+    """Refuse a case version that gemini finds structurally wrong; gaps are allowed."""
+    _, problems = case_document.validate(parsed.content, parsed.files)
+    if problems:
+        name = f"case/{parsed.number}.json"
+        raise CaseInvalidError([{**problem, "file": name} for problem in problems])
+
+
 def read_cases(archive: ZipFile) -> list[ParsedCase]:
     cases = {
         int(match[1]): read_case(name, int(match[1]), archive.read(name))
@@ -258,7 +278,10 @@ def read_cases(archive: ZipFile) -> list[ParsedCase]:
         if int(match[1]) not in cases:
             raise refuse_file(f"{name} belongs to a case version that is missing")
         cases[int(match[1])].files[match[2]] = archive.read(name)
-    return sorted(cases.values(), key=lambda case: case.number)
+    ordered = sorted(cases.values(), key=lambda case: case.number)
+    for parsed in ordered:
+        check_case(parsed)
+    return ordered
 
 
 def read_archive(
@@ -281,8 +304,8 @@ def read_archive(
     return project_file.name, versions, cases
 
 
-def store_cases(
-    minio: Minio,
+async def store_cases(
+    blobs: BlobStore,
     project_id: UUID,
     parsed: list[ParsedCase],
 ) -> list[ImportedCase]:
@@ -291,7 +314,7 @@ def store_cases(
         files = []
         for name, data in case.files.items():
             key = f"projects/{project_id}/case/{case.number}/{name}"
-            store_object(minio, key, data)
+            await blobs.put(key, data)
             files.append(ImportedCaseFile(name, len(data), key))
         cases.append(
             ImportedCase(case.number, case.note, case.created, case.content, files)
@@ -299,30 +322,30 @@ def store_cases(
     return cases
 
 
-def remove_cases(minio: Minio, cases: list[ImportedCase]) -> None:
+async def remove_cases(blobs: BlobStore, cases: list[ImportedCase]) -> None:
     for case in cases:
         for file in case.files:
-            remove_object(minio, file.object_key)
+            await blobs.delete(file.object_key)
 
 
 async def import_project(
     file: UploadFile,
     user: User,
     repository: ProjectRepository,
-    progress: ProgressRepository,
-    minio: Minio,
+    progress: ProgressReader,
+    blobs: BlobStore,
 ) -> schemas.Project:
     upload = await file.read(settings.PROJECT_IMPORT_MAX_BYTES + 1)
     if len(upload) > settings.PROJECT_IMPORT_MAX_BYTES:
         raise refuse_file("Archive is too large")
     name, plants, parsed = await asyncio.to_thread(read_archive, upload)
     project_id = uuid4()
-    cases = await asyncio.to_thread(store_cases, minio, project_id, parsed)
+    cases = await store_cases(blobs, project_id, parsed)
     try:
         project = await repository.create_with_versions(
             project_id, name, user.id, plants, cases
         )
     except Exception:
-        await asyncio.to_thread(remove_cases, minio, cases)
+        await remove_cases(blobs, cases)
         raise
     return await describe_one(project, progress)

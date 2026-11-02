@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from minio import Minio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.design.study import errors, schemas
+from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.client import utc_now
 from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.plant_version import PlantVersion
@@ -34,11 +34,11 @@ from src.core.errors import (
 )
 from src.core.gemini import evaluate as gemini_evaluate
 from src.core.gemini import study as gemini_study
+from src.core.gemini.stored import stored_files
 from src.core.jobs import control
 from src.core.pagination.page import Page, PageRequest, encode_cursor
 from src.core.security.access import require_project
 from src.core.security.errors import ProjectNotFoundError
-from src.core.settings import settings
 
 CANCELLABLE = ("queued", "running", "blocked")
 STUDY_ROUTE = "study"
@@ -79,27 +79,6 @@ class Inputs:
     case_files: dict[str, bytes]
 
 
-def read_object(minio: Minio, object_key: str) -> bytes:
-    response = minio.get_object(settings.MINIO_BUCKET_NAME, object_key)
-    try:
-        return response.read()
-    finally:
-        response.close()
-        response.release_conn()
-
-
-async def read_case_files(
-    case: CaseVersion,
-    stores: Stores,
-    minio: Minio,
-) -> dict[str, bytes]:
-    rows = await stores.files.list_for_version(case.id)
-    return {
-        row.name: await asyncio.to_thread(read_object, minio, row.object_key)
-        for row in rows
-    }
-
-
 async def find_version(
     repository: PlantVersionRepository | CaseVersionRepository,
     project_id: UUID,
@@ -113,14 +92,15 @@ async def find_version(
 async def gather_inputs(
     project_id: UUID,
     stores: Stores,
-    minio: Minio,
+    blobs: BlobStore,
     plant_number: int | None = None,
     case_number: int | None = None,
 ) -> Inputs:
     """Read the named versions, or the latest ones, with the case's files."""
     plant = await find_version(stores.plants, project_id, plant_number)
     case = await find_version(stores.cases, project_id, case_number)
-    files = {} if case is None else await read_case_files(case, stores, minio)
+    rows = [] if case is None else await stores.files.list_for_version(case.id)
+    files = await stored_files(rows, blobs)
     return Inputs(plant, case, files)
 
 
@@ -264,14 +244,14 @@ async def create_study(
     payload: schemas.StudyCreate,
     user: User,
     stores: Stores,
-    minio: Minio,
+    blobs: BlobStore,
     enqueue: Callable[[UUID], str],
 ) -> schemas.Study:
     project = await require_project(payload.project, user, stores.projects)
     if payload.kind not in {item["kind"] for item in gemini_study.kinds()}:
         raise ValidationFailedError({"kind": "Unknown study kind"})
     gemini_study.from_dict(payload.kind, payload.name, payload.settings)
-    inputs = await gather_inputs(project.id, stores, minio)
+    inputs = await gather_inputs(project.id, stores, blobs)
     missing = await find_missing(payload.kind, payload.name, payload.settings, inputs)
     study = await stores.studies.create(
         {
@@ -303,13 +283,13 @@ async def start_study(
     study_id: UUID,
     user: User,
     stores: Stores,
-    minio: Minio,
+    blobs: BlobStore,
     enqueue: Callable[[UUID], str],
 ) -> schemas.Study:
     study = await accessible_study(study_id, user, stores)
     if study.status != "blocked":
         raise ConflictError("Study is not blocked")
-    inputs = await gather_inputs(study.project_id, stores, minio)
+    inputs = await gather_inputs(study.project_id, stores, blobs)
     missing = await find_missing(study.kind, study.name, study.settings, inputs)
     values = {
         "missing": missing,
@@ -400,9 +380,9 @@ async def finish_done(
     )
 
 
-async def compute(study: Study, stores: Stores, minio: Minio) -> dict[str, Any]:
+async def compute(study: Study, stores: Stores, blobs: BlobStore) -> dict[str, Any]:
     inputs = await gather_inputs(
-        study.project_id, stores, minio, study.plant_version, study.case_version
+        study.project_id, stores, blobs, study.plant_version, study.case_version
     )
     if inputs.plant is None or inputs.case is None:
         raise gemini_study.StudyRunError("The versions the study names are gone")
@@ -419,7 +399,7 @@ async def compute(study: Study, stores: Stores, minio: Minio) -> dict[str, Any]:
 async def run_study(
     study_id: UUID,
     stores: Stores,
-    minio: Minio,
+    blobs: BlobStore,
     report: Callable[[str, int, int], None],
 ) -> None:
     """Run a queued study; a study in any other state is left alone.
@@ -435,7 +415,7 @@ async def run_study(
     )
     report(str(study.id), 0, 1)
     try:
-        outcome = await compute(study, stores, minio)
+        outcome = await compute(study, stores, blobs)
     except AppError as error:
         await finish_failed(study, stores, failure_of(error))
         return

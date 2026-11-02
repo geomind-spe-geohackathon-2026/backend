@@ -18,6 +18,7 @@ class ProjectFacts:
     """What the progress of one project is computed from."""
 
     case_version: int | None = None
+    case_missing: int = 0
     plant_version: int | None = None
     studies: dict[str, int] = field(default_factory=dict)
     results: int = 0

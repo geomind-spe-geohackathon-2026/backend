@@ -4,7 +4,6 @@ from pydantic import AwareDatetime
 
 from fastapi import APIRouter, Depends, Query, status
 from src.api.v1.plant.parameters import schemas, services
-from src.api.v1.plant.parameters.dependencies import QueriedProject
 from src.core.clients.postgres.repositories.activity import (
     ActivityRepository,
     get_activity_repository,
@@ -20,6 +19,7 @@ from src.core.clients.postgres.repositories.user import (
 from src.core.security.access import (
     CurrentUser,
     ProjectRepositoryDependency,
+    QueriedProject,
     require_project,
 )
 from src.core.versioning import Version

@@ -16,38 +16,13 @@ from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
 from src.core.jobs import control
-from src.fastapi import app
 from tests import design_inputs
-
-
-class Body:
-    def __init__(self, data: bytes) -> None:
-        self.data = data
-
-    def read(self) -> bytes:
-        return self.data
-
-    def close(self) -> None:
-        return None
-
-    def release_conn(self) -> None:
-        return None
-
-
-class FakeMinio:
-    def __init__(self) -> None:
-        self.objects: dict[str, bytes] = {}
-
-    def get_object(self, bucket: str, key: str) -> Body:
-        return Body(self.objects[key])
+from tests.blobs import MemoryBlobStore, blobs  # noqa: F401
 
 
 @pytest.fixture(autouse=True)
-def minio() -> FakeMinio:
-    fake = FakeMinio()
-    app.state.minio = fake
-    yield fake
-    app.state.minio = None
+def use_memory_blobs(blobs: MemoryBlobStore) -> None:  # noqa: F811
+    return None
 
 
 @pytest.fixture
@@ -72,7 +47,7 @@ def terminated(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 @pytest.fixture
 def save_inputs(
     session_factory: async_sessionmaker[AsyncSession],
-    minio: FakeMinio,
+    blobs: MemoryBlobStore,  # noqa: F811
 ) -> Callable[[Project, User], Awaitable[None]]:
     async def save(project: Project, owner: User, files: bool = True) -> None:
         async with session_factory() as session:
@@ -86,7 +61,7 @@ def save_inputs(
             if not files:
                 return
             for name, data in design_inputs.case_files().items():
-                minio.objects[f"{project.id}/{name}"] = data
+                blobs.objects[f"{project.id}/{name}"] = data
                 await CaseFileRepository(session).add(
                     project.id, case.id, name, len(data), f"{project.id}/{name}"
                 )

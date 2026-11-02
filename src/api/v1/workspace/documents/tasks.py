@@ -5,9 +5,11 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from celery import shared_task
 from src.api.v1.workspace.documents import services
+from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.minio.client import create_minio_client
 from src.core.clients.postgres.client import create_postgres_client
 from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.settings import settings
 
 TASK_MODULES = (__name__,)
 
@@ -20,7 +22,7 @@ async def extract(document_id: UUID) -> None:
             await services.extract_document(
                 document_id,
                 DocumentRepository(session),
-                create_minio_client(),
+                BlobStore(create_minio_client(), settings.MINIO_BUCKET_NAME),
             )
     finally:
         await engine.dispose()

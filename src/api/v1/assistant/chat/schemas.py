@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.core.assistant.schemas import Run, RunStatus
+from src.core.assistant.schemas import Run
 
 
 class ChatCreate(BaseModel):
@@ -24,19 +24,6 @@ class MessageCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     content: str = Field(min_length=1)
-
-
-class LastRun(BaseModel):
-    id: UUID
-    status: RunStatus
-
-
-class Chat(BaseModel):
-    id: UUID
-    project: UUID
-    title: str
-    created: datetime
-    last_run: LastRun | None
 
 
 class Message(BaseModel):

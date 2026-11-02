@@ -4,7 +4,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, Response, UploadFile, status
 from src.api.v1.design.case import schemas, services
-from src.api.v1.design.case.dependencies import QueriedProject
 from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.repositories.activity import (
     ActivityRepository,
@@ -27,8 +26,10 @@ from src.core.pagination.page import Page
 from src.core.security.access import (
     CurrentUser,
     ProjectRepositoryDependency,
+    QueriedProject,
     require_project,
 )
+from src.core.uploads import read_upload
 from src.core.versioning import Version
 
 router = APIRouter(prefix="/case", tags=["Case"])
@@ -105,7 +106,7 @@ async def add_file(
         accessible,
         base,
         name,
-        await file.read(),
+        await read_upload(file),
         user,
         repository,
         files,

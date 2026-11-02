@@ -3,11 +3,10 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from fastapi import Depends, Query, Request
+from fastapi import Depends, Request
 from src.core.assistant.errors import ChatNotFoundError, RunNotFoundError
 from src.core.clients.errors import ClientNotInitializedError
 from src.core.clients.postgres.models.chat import Chat
-from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.run import Run
 from src.core.clients.postgres.repositories.chat import (
     ChatRepository,
@@ -30,18 +29,6 @@ ProjectRepositoryDependency = Annotated[
     Depends(get_project_repository),
 ]
 RunRepositoryDependency = Annotated[RunRepository, Depends(get_run_repository)]
-
-
-async def project_from_query(
-    project: Annotated[UUID, Query()],
-    user: CurrentUser,
-    repository: ProjectRepositoryDependency,
-) -> Project:
-    """Return the project named by ``?project=`` if the user may use it."""
-    return await require_project(project, user, repository)
-
-
-QueryProject = Annotated[Project, Depends(project_from_query)]
 
 
 async def chat_from_path(

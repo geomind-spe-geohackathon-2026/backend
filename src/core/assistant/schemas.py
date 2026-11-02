@@ -4,6 +4,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from src.core.clients.postgres.models import chat as chat_model
+from src.core.clients.postgres.models import run as run_model
+
 RunStatus = Literal["queued", "running", "waiting", "done", "failed", "cancelled"]
 
 
@@ -16,6 +19,31 @@ class Tokens(BaseModel):
 class Failure(BaseModel):
     code: str
     message: str
+
+
+class LastRun(BaseModel):
+    id: UUID
+    status: RunStatus
+
+
+class Chat(BaseModel):
+    id: UUID
+    project: UUID
+    title: str
+    created: datetime
+    last_run: LastRun | None
+
+
+def to_chat(chat: chat_model.Chat, last: run_model.Run | None) -> Chat:
+    """Describe a chat row with the status of its latest run."""
+    last_run = None if last is None else LastRun(id=last.id, status=last.status)
+    return Chat(
+        id=chat.id,
+        project=chat.project_id,
+        title=chat.title,
+        created=chat.created,
+        last_run=last_run,
+    )
 
 
 class Run(BaseModel):

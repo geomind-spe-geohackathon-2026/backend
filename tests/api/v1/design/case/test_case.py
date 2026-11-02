@@ -1,3 +1,4 @@
+from src.core.settings import settings
 from tests.cases import DEMAND_CSV, DEMAND_FILE, broken_case, example_case
 from tests.conftest import bearer
 
@@ -301,3 +302,45 @@ async def test_empty_form_base_means_no_version_yet(
 
     assert response.status_code == 409
     assert response.json()["error"]["details"] == {"latest": 1}
+
+
+async def test_every_later_version_still_reads_the_earlier_file(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    headers = bearer(owner)
+    project = await make_project(owner)
+    await save_case(client, headers, project)
+    await upload(client, headers, project, 1)
+    renamed = example_case()
+    renamed["name"] = "renamed"
+    await save_case(client, headers, project, 2, renamed)
+    await upload(client, headers, project, 3, data=DEMAND_CSV, name="other.csv")
+    query = {"project": str(project.id)}
+
+    for number in (2, 3, 4):
+        response = await client.get(
+            f"{CASE}/files/{DEMAND_FILE}",
+            params={**query, "version": number},
+            headers=headers,
+        )
+        assert response.content == DEMAND_CSV, number
+    latest = await client.get(f"{CASE}", params=query, headers=headers)
+    assert sorted(item["name"] for item in latest.json()["files"]) == sorted(
+        [DEMAND_FILE, "other.csv"]
+    )
+
+
+async def test_a_file_above_the_upload_limit_is_refused(
+    client, make_user, make_project, blobs, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "PROJECT_IMPORT_MAX_BYTES", len(DEMAND_CSV) - 1)
+    owner = await make_user()
+    project = await make_project(owner)
+    await save_case(client, bearer(owner), project)
+
+    response = await upload(client, bearer(owner), project, 1)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_failed"
+    assert blobs.objects == {}

@@ -1,25 +1,25 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
+from pathlib import Path
 
 from fpdf import FPDF
 from fpdf.enums import WrapMode
+
+from src.core import fonts
 
 HEADING_SIZES = {1: 18, 2: 14}
 TEXT_SIZE = 10
 CODE_SIZE = 7
 LINE_HEIGHT = 5
 FENCE = "```"
+FONT = "Vazirmatn"
+FONT_DIR = Path(fonts.__file__).parent
 
 
 @dataclass(frozen=True, slots=True)
 class Block:
     kind: str
     lines: list[str]
-
-
-def printable(text: str) -> str:
-    """Make text fit the built-in PDF font, which holds Latin-1 only."""
-    return text.encode("latin-1", "replace").decode("latin-1")
 
 
 def cells_of(line: str) -> list[str]:
@@ -77,30 +77,30 @@ def continues(line: str, kind: str) -> bool:
 
 def write_heading(pdf: FPDF, line: str) -> None:
     level = len(line) - len(line.lstrip("#"))
-    pdf.set_font("Helvetica", "B", HEADING_SIZES.get(level, 12))
-    pdf.multi_cell(0, 8, printable(line.lstrip("# ")), new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(FONT, "B", HEADING_SIZES.get(level, 12))
+    pdf.multi_cell(0, 8, line.lstrip("# "), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
 
 
 def write_table(pdf: FPDF, lines: list[str]) -> None:
-    pdf.set_font("Helvetica", size=9)
+    pdf.set_font(FONT, size=9)
     with pdf.table(text_align="LEFT") as table:
         for line in lines:
             if is_separator(line):
                 continue
             row = table.row()
             for cell in cells_of(line):
-                row.cell(printable(cell))
+                row.cell(cell)
     pdf.ln(2)
 
 
 def write_code(pdf: FPDF, lines: list[str]) -> None:
-    pdf.set_font("Courier", size=CODE_SIZE)
+    pdf.set_font(FONT, size=CODE_SIZE)
     for line in lines:
         pdf.multi_cell(
             0,
             3.5,
-            printable(line) or " ",
+            line or " ",
             new_x="LMARGIN",
             new_y="NEXT",
             wrapmode=WrapMode.CHAR,
@@ -109,8 +109,8 @@ def write_code(pdf: FPDF, lines: list[str]) -> None:
 
 
 def write_text(pdf: FPDF, block: Block) -> None:
-    pdf.set_font("Helvetica", size=TEXT_SIZE)
-    text = printable(" ".join(line.strip() for line in block.lines))
+    pdf.set_font(FONT, size=TEXT_SIZE)
+    text = " ".join(line.strip() for line in block.lines)
     pdf.multi_cell(0, LINE_HEIGHT, text, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
 
@@ -118,6 +118,9 @@ def write_text(pdf: FPDF, block: Block) -> None:
 def to_pdf(markdown: str) -> bytes:
     """Draw Markdown (headings, tables, code, bullets, paragraphs) as a PDF."""
     pdf = FPDF()
+    pdf.add_font(FONT, "", str(FONT_DIR / "Vazirmatn-Regular.ttf"))
+    pdf.add_font(FONT, "B", str(FONT_DIR / "Vazirmatn-Bold.ttf"))
+    pdf.set_text_shaping(True)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     for block in blocks_of(markdown):

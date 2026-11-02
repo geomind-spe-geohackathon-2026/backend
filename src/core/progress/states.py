@@ -2,6 +2,15 @@ from src.core.clients.postgres.repositories.progress import ProjectFacts
 from src.core.progress.schemas import Progress, ProgressStep
 
 
+def case_step(version: int | None, missing: int) -> ProgressStep:
+    """A case with values gemini lists as missing is incomplete, not ready."""
+    if version is not None and missing:
+        return ProgressStep(
+            state="incomplete", label=f"Version {version}, {missing} missing"
+        )
+    return version_step(version)
+
+
 def version_step(version: int | None) -> ProgressStep:
     if version is None:
         return ProgressStep(state="empty", label="Not started")
@@ -37,7 +46,7 @@ def report_step(facts: ProjectFacts) -> ProgressStep:
 def build_progress(facts: ProjectFacts) -> Progress:
     """Compute the five steps of a project; nothing here is stored."""
     return Progress(
-        case=version_step(facts.case_version),
+        case=case_step(facts.case_version, facts.case_missing),
         plant=version_step(facts.plant_version),
         study=study_step(facts.studies),
         results=results_step(facts.results),
