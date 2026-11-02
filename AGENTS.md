@@ -8,6 +8,8 @@ non-code tasks.
 
 ## Start here
 
+The app build is at Phase D: read [docs/app-build/handover.md](docs/app-build/handover.md) first.
+
 FastAPI backend for the geothermal digital twin. Routes and payloads follow
 `../docs/contracts.md`; change that file first, never a route on its own.
 
