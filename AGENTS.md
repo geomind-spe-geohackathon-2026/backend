@@ -37,8 +37,13 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   `details.problems`). gemini's format already holds dated parameters
   and bindings and is validated on load, so a second, split format would only have to
   follow it. Rows are never updated.
+- **OpenAPI:** `openapi.json` at the repo root is committed; the frontend generates its
+  types from it. After any route or schema change run
+  `.venv/bin/python scripts/to_openapi.py`; `tests/test_openapi.py` fails when it is stale.
 - **Stack:** `../infrastructure/compose.yml` runs everything:
-  `cd ../infrastructure && cp .env.example .env && docker compose up -d --build`.
+  `cd ../infrastructure && cp .env.example .env && docker compose up -d --build`. The
+  backend image also needs the build context `geomind: ../geomind` (the Dockerfile
+  copies it; `requirements.txt` has `-e ../geomind`).
 - **Tests:** `.venv/bin/python -m pytest -n auto`, including the import boundary test,
   `tests/test_no_comments.py` (docstrings only, no comments in code)
   and `tests/test_route_guard.py`, which every new route must pass. See
