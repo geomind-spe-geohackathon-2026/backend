@@ -1,6 +1,6 @@
 # Handover: Phase D of the app build
 
-Read this first, then `app-frontend-backend.md` sections 1 and 7 to 10. Phases A, B and C are done. Phase D has not started.
+Read this first, then `app-frontend-backend.md` sections 1 and 7 to 10. Phases A, B, C and the integration pass (D3) are done; see Phase D status.
 
 In a new clone the prompt's `../docs/` paths do not exist, because `docs/` was never a git repo. Their files are here: `contracts.md` (version 20, wins over the prompt), `ui-mockup.html`, `app-frontend-backend.md`, `plan.md` (gap decisions), `requests.md` (ready to paste), `inventories/`.
 
@@ -47,14 +47,22 @@ Backend tests need no services. `npm run dev` runs mock mode; sign in with `exam
 
 The code was built against eeb80d9 of origin main, which still calls the removed `gm.plants.validate`. An adaptation commit was announced that replaces it and adds `save_chat_artifact` / `load_chat_artifact`. Pull origin main, run `tests/api/v1/assistant` and `tests/core/assistant`, and record the commit used. The scripted FakeLLM run (`ASSISTANT_LLM=fake`) depends on `save_profile` asking for approval: recheck it.
 
-## What Phase D must do
+## Phase D status (D3)
 
-1. `.venv/bin/python scripts/to_openapi.py`, then `npm run gen:api`. Generated names differ from the placeholder. Delete the hand-written path and type blocks: `src/shared/sse/paths.ts`, `src/domains/identity/paths.ts`, `src/domains/workspace/paths.ts`, `src/shared/api/design.ts`, `src/shared/api/design-paths.d.ts`, the `declare module` blocks in `domains/design/{case,plant}/types.ts`, and types in `shared/sse/contract.ts` that the generated schema has. Fix `src/shared/api/types.ts`. Mocks then import generated types.
-2. Resolve the OpenAPI `Progress` clash between design/study and core/progress.
-3. Bring up the stack and run one Playwright golden path in real mode and in mock mode (section 7, item 2). Compare screens with the mockup screenshots: rerun the capture, because `frontend/.tmp` is not in git.
-4. Full fast suites, lint, types, no-comments and boundary tests.
-5. Leave the full stack running for the owner, seeded with one admin and one example project, and report the address, login, and stop and start commands.
-6. Final report, section 10 of the prompt.
+Verified on the real local stack (see README, "Local stack") with geomind 0.3.0 (989cb59) and gemini 0.5.0 (217625e):
+
+- Migrations 0001 to 0008 upgrade, downgrade and match the models on PostgreSQL 16 (`pytest -m postgres` with `POSTGRES_TEST_URL` on a scratch database).
+- geomind's `check_run_store` (including chat artifacts) and `check_workspace` (plants, case with file bytes, documents) pass against the adapters. A chat artifact is a `run_artifacts` row with a null `run_id`. `design/<name>` is write-once inside geomind (`Session.save_artifact`), so the store only has to round-trip.
+- Playwright golden path (`frontend/e2e/golden.spec.ts`), real and mock: sign in, import the seeded example as a project, overview, chat with the scripted run (it lists the project's plants, then asks approval), approve, runs and log, problem with one missing value, fill it, plant, study through Celery, results, report preview, Markdown and PDF, a project with a Persian name and its PDF, sign out.
+- Bugs found and fixed: `run.started` of the routing run has no `loop` (frontend rejected the stream); `POST /design/case/validate` ignored the saved files (now takes `project`); the study kind schema asked for keys the backend sets; nested forms in the New study dialog; `Workspace` still had `plant()`; a chat artifact hit the run foreign key; login rejected reserved domains with a 422 (now a plain 401); mock studies never started.
+- Not exercised: `read_case` from a real run (the scripted LLM only lists plants and saves a profile), a real LLM, `ASSISTANT_SANDBOX=docker` for module tests (the image `gemini-sandbox:0.5.0` builds and `DockerSandbox` runs in it).
+- Open, see `.tmp/build/screen-diff.md`: missing marks on optional nested fields, sidebar progress dots stale after a study, KPI tile layout for missing values, plant palette length.
+
+## What Phase D must still do
+
+1. Merge the requests lists into `.tmp/build/requests.md`.
+2. Fix the open items above.
+3. Push both repos.
 
 ## Known mismatches to check first
 
