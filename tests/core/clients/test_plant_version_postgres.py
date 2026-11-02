@@ -16,7 +16,7 @@ from src.core.clients.postgres.repositories.plant_version import (
 )
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.user import UserRepository
-from src.core.gemini.plant import dump_plant, example_plant, load_plant
+from tests.plants import changed_plant, example_plant
 
 pytestmark = pytest.mark.postgres
 
@@ -48,14 +48,8 @@ async def project(factory):
         return await ProjectRepository(session).create("Doublet", user.id)
 
 
-def changed_plant(stages: int) -> dict:
-    plant = load_plant(example_plant())
-    plant.update_params(**{"esp.no_stages": stages})
-    return dump_plant(plant)
-
-
 async def test_jsonb_round_trips_a_version_unchanged(factory, project) -> None:
-    content = changed_plant(12)
+    content = changed_plant(3)
     async with factory() as session:
         await PlantVersionRepository(session).save_version(
             project.id,

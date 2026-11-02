@@ -76,7 +76,6 @@ class ProjectRepository(BaseRepository):
             PlantVersion(
                 project_id=project.id,
                 number=version.number,
-                plant_type=version.content["plant_type"],
                 content=version.content,
                 digest=content_digest(version.content),
                 note=version.note,

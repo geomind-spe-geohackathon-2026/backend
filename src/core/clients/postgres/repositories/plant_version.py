@@ -97,7 +97,6 @@ class PlantVersionRepository(BaseRepository):
         version = PlantVersion(
             project_id=project_id,
             number=latest.number + 1 if latest else 1,
-            plant_type=content["plant_type"],
             content=content,
             digest=digest,
             note=note,

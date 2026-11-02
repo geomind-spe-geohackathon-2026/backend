@@ -9,13 +9,8 @@ from src.core.clients.postgres.repositories.plant_version import (
 )
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.errors import ConflictError
-from src.core.gemini.plant import dump_plant, example_plant, load_plant
-
-
-def changed_plant(stages: int) -> dict:
-    plant = load_plant(example_plant())
-    plant.update_params(**{"esp.no_stages": stages})
-    return dump_plant(plant)
+from src.core.gemini import plant as gemini_plant
+from tests.plants import changed_plant, example_plant
 
 
 @pytest.fixture
@@ -43,7 +38,6 @@ async def test_save_fills_every_column(repository, project, owner) -> None:
     version = await repository.save_version(project.id, content, "First", owner.id)
 
     assert version.number == 1
-    assert version.plant_type == content["plant_type"]
     assert version.digest == content_digest(content)
     assert version.note == "First"
     assert version.author_id == owner.id
@@ -56,14 +50,14 @@ async def test_stored_version_round_trips_unchanged(
     owner,
     session_factory,
 ) -> None:
-    content = changed_plant(12)
+    content = changed_plant(3)
     await repository.save_version(project.id, content, "Design", owner.id)
 
     async with session_factory() as other_session:
         stored = await PlantVersionRepository(other_session).latest_version(project.id)
 
     assert stored.content == content
-    assert dump_plant(load_plant(stored.content)) == content
+    assert gemini_plant.to_dict(gemini_plant.from_dict(stored.content)) == content
 
 
 async def test_numbers_rise_per_project(

@@ -5,8 +5,8 @@ from zipfile import ZipFile
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
-from src.core.gemini.plant import example_plant
 from tests.conftest import bearer
+from tests.plants import example_plant
 
 PROJECTS = "/api/v1/workspace/projects"
 

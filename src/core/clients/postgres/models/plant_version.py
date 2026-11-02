@@ -20,7 +20,6 @@ class PlantVersion(Base):
         ForeignKey("projects.id", ondelete="CASCADE"),
     )
     number: Mapped[int]
-    plant_type: Mapped[str] = mapped_column(Text)
     content: Mapped[dict[str, Any]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"),
     )

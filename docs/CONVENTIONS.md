@@ -76,7 +76,7 @@ src/
     ├── errors.py             # Application errors and error middleware
     ├── gemini/               # The only package that imports gemini
     │   ├── errors.py
-    │   └── plant.py          # load_plant, dump_plant, validate_content, example_plant
+    │   └── plant.py          # from_dict, to_dict, validate_content
     ├── logging/
     │   ├── logger.py         # Logger configuration
     │   └── middleware.py     # Request logging middleware
@@ -171,11 +171,11 @@ src/
   (`gm.<name>`, `gm.errors.<name>`). gemini's internal paths are moving; never use them.
 - Services never call gemini directly; they call `core/gemini`.
 - There are no physics formulas in the backend.
-- A plant is a class in `gm.plants`. `plant_type` from stored or uploaded JSON is
-  never imported: `resolve_plant_class` looks its class name up in `gm.plants.__all__`
-  and requires the `gemini` package. Comparing only those two means versions saved
-  before gemini moves a file still load.
-- Every gemini error becomes `422 plant_invalid` with gemini's message in `details`.
+- A plant is gemini's plant document (`gm.Plant.from_dict` / `to_dict`). The document
+  has a header (`format`, `kind`, `name`) and no class path; gemini checks it and
+  names every problem with a path. Older documents fail with `old_format`.
+- Every gemini validation error on a plant becomes `422 plant_invalid` with
+  `details.problems` (gemini's `path`, `code`, `message`) and a joined `details.message`.
 
 ## Plant versions
 
@@ -262,5 +262,210 @@ system + health                 -> /api/v1/system/health
 identity + authn + login        -> /api/v1/identity/authn/login
 identity + me                   -> /api/v1/identity/me
 ```
+
+## Project rules
+
+- No comments inside code; docstrings only. Tool directives (`# noqa`) are allowed.
+- Functions that read or write a format are `from_<format>` / `to_<format>`
+  (`from_csv`, `to_json`, `from_dict`, `to_dict`). Do not add new `load_x`, `parse_x`,
+  `export_x` or `serialize` for these; rename the old ones when their
+  code is next touched (done for the plant wrapper: `from_dict`, `to_dict`).
+- Folder names are one word, lower case, no underscores.
+- English only in code, docs, messages and commits.
+- Nesting at most 3 levels; functions about 40 lines; guard clauses.
+- No default values for engineering or economic inputs, in schemas, services,
+  settings or migrations. A missing value fails the request with a stable error.
+  Technical settings (page size, timeouts) may have defaults.
+- No competition-specific values (names, temperatures, prices, limits) in code,
+  defaults or migrations. They may appear only in test fixtures named as examples.
+
+## FastAPI
+
+Sources: FastAPI docs (lifespan, SSE) and `zhanymkanov/fastapi-best-practices`.
+
+- Use `lifespan` (`FastAPI(lifespan=...)`), never `on_event`. Passing `lifespan`
+  disables `startup`/`shutdown` handlers. Lifespan does not run for mounted sub-apps.
+- Shared state lives in clients opened by `open_clients` and reached through
+  dependencies, not module globals.
+- Declare dependencies with `Annotated` aliases and reuse them:
+
+```python
+CurrentUser = Annotated[User, Depends(current_user)]
+
+
+@router.get("/me", response_model=schemas.User)
+async def read_me(user: CurrentUser) -> schemas.User:
+    return schemas.User.model_validate(user)
+```
+
+- Chain small dependencies; FastAPI caches a dependency once per request, so
+  `AccessibleProject` may depend on `CurrentUser` without a second lookup.
+- Use `async def` routes and dependencies only with non-blocking I/O. Wrap a blocking
+  SDK call in `run_in_threadpool`. Never run CPU-bound work in a request.
+- Every route sets `response_model` (or a return annotation), a `status_code`, and
+  `responses` for documented errors. Hide the docs outside development.
+- Use RESTful paths and one path-variable name per resource (`project_id`) so
+  dependencies are reused across routers.
+- Work longer than one request, or work that must not be lost, goes to Celery, not
+  to `BackgroundTasks`. The request returns `202` with the job record.
+- Do joins and aggregation in SQL, not in Python loops over lazy relations.
+- Tests use an async `httpx` client with `ASGITransport` and `dependency_overrides`,
+  not monkeypatching internals.
+- Ruff is the only linter and formatter.
+
+## Pydantic v2
+
+- Use `model_config = ConfigDict(...)`, `field_validator`, `model_validator`,
+  `model_dump`, `model_validate`, and `from_attributes=True` for ORM objects. The v1
+  names (`Config`, `validator`, `dict()`, `orm_mode`, `parse_obj`) are banned.
+- Validate with types and constraints first (`Field(gt=0)`, `StrEnum`, `EmailStr`);
+  write a validator only for rules a type cannot say. Validators raise `ValueError`.
+- Request and response schemas are separate classes. Responses never reuse a model
+  that carries a password hash or token.
+- Engineering and economic fields are required (`float`, not `float = 0.0`). Use
+  `X | None` only when absent is a real state, never to hide a missing input.
+- Forbid unknown fields on requests: `ConfigDict(extra="forbid")`.
+- Settings use `pydantic-settings`; one small settings class per concern when
+  `settings.py` grows.
+
+## SQLAlchemy 2.0
+
+- Declarative models use `Mapped[...]` and `mapped_column()`. Nullability follows the
+  annotation (`Mapped[str | None]` is `NULL`); set `nullable=` only to override.
+
+```python
+class Project(Base):
+    """A user's project."""
+
+    __tablename__ = "project"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+```
+
+- Use the 2.0 query style: `select(...)` with `await session.scalars(...)`, never
+  `session.query`.
+- One `AsyncSession` per request, from a dependency that yields it and closes it.
+  Repositories receive the session; services never create one.
+- Set `expire_on_commit=False` on the async session maker, and load relations
+  explicitly (`selectinload`); lazy loading fails under asyncio.
+- Commit once per use-case, in the service or the unit-of-work dependency, not inside
+  repositories.
+- Give the metadata a naming convention for indexes and constraints, so Alembic can
+  drop and alter them by name.
+- Table names are lower_snake_case and singular unless a table is already plural
+  (`plant_versions`); time columns end in `_at` and are timezone-aware UTC.
+
+## Alembic migrations
+
+- One migration per change, named `NNNN_<slug>.py`, reversible (`downgrade` works).
+- Autogenerate is a draft. Review every script: it misses renames (shown as drop and
+  add), anonymous constraints, some enums, and sequences. Write renames by hand with
+  `op.alter_column` / `op.rename_table`.
+- Name every constraint and index.
+- Migrations are static: no imports of application models or services, no settings
+  reads, no data derived from engineering defaults or competition values.
+- Separate schema changes from data backfills. For a new `NOT NULL` column: add it
+  nullable, backfill, then set `NOT NULL`, in separate steps or migrations.
+- Never edit a migration that has been merged; add a new one.
+- Rows that are never updated (`plant_versions`) get no update paths in migrations.
+- CI runs `alembic upgrade head`, then `downgrade base`, then `upgrade head` on an
+  empty database.
+
+## Celery tasks
+
+Source: Celery docs, "Tasks".
+
+- A task is idempotent: running it twice with the same arguments leaves the same
+  result. Key it by a job id and check the job state first.
+- Pass ids and small values, never ORM objects or large payloads. The task loads what
+  it needs.
+- Use `acks_late=True` only for idempotent tasks; a crashed worker then redelivers.
+  Set `task_reject_on_worker_lost` deliberately, since a killed child is otherwise
+  acknowledged.
+- Retry only transient errors, with bounded backoff:
+
+```python
+@app.task(
+    bind=True,
+    autoretry_for=(ConnectionError,),
+    retry_backoff=True,
+    retry_backoff_max=300,
+    retry_jitter=True,
+    max_retries=5,
+)
+def run_job(self, job_id: str) -> None:
+    """Run one job; safe to repeat."""
+```
+
+- Never retry validation or `plant_invalid` errors; mark the job failed with the
+  stable error code.
+- Each task sets a time limit (`soft_time_limit`, `time_limit`).
+- Task state that the user sees lives in the job table, not in the Celery result
+  backend.
+- Task bodies call `services.py` functions; they hold no business logic. They open
+  their own session and never reuse a request session.
+- Tests run tasks eagerly or call the function directly; never a real broker.
+
+## Events over SSE with Redis pub/sub
+
+Sources: FastAPI "Server-Sent Events" (needs FastAPI 0.135 or later) and Redis
+"Pub/sub".
+
+- Workers publish progress to a Redis channel prefixed with the environment and the
+  job id (`<env>:job:<job_id>`); the SSE route subscribes and streams.
+- Redis pub/sub is at-most-once: a missed message is lost. So the job table is the
+  truth, every event carries an `id`, and a new or reconnecting stream first sends the
+  current state from the database, then live events. Use Redis Streams if replay is
+  ever needed.
+- SSE routes use `response_class=EventSourceResponse`, yield typed
+  `ServerSentEvent` items, and honour `Last-Event-ID`.
+
+```python
+@router.get("/{job_id}/events", response_class=EventSourceResponse)
+async def stream_events(job: AccessibleJob) -> AsyncIterable[ServerSentEvent]:
+    async for event in services.follow_job(job):
+        yield ServerSentEvent(data=event, event=event.kind, id=str(event.number))
+```
+
+- Keepalive pings, `Cache-Control: no-cache` and `X-Accel-Buffering: no` are built
+  in; do not add them again.
+- The stream ends with a terminal event (`done` or `failed`). Always unsubscribe and
+  close the pub/sub object in `finally`, also on client disconnect.
+- SSE routes depend on `CurrentUser` and the resource guard like any route.
+
+## Structured errors
+
+- Raise `AppError` subclasses with a stable `code`; the body is
+  `{"error": {"code", "message", "details"}}`. Do not raise `HTTPException`.
+- Codes are snake_case, never renamed, and listed in `../docs/contracts.md`.
+  Messages may change; clients switch on the code.
+- `details` is a JSON object, never a string. Validation uses
+  `{"fields": {"<field>": "<message>"}}`.
+- Errors in SSE streams are sent as a final `failed` event with the same
+  `{"code", "message", "details"}` shape.
+- A Celery task failure stores the code and details on the job.
+- Do not leak stack traces, SQL, or secrets in `message` or `details`; log them.
+
+## Checklist
+
+- [ ] Feature sits in `src/api/v1/<domain>/<feature>/`; the route set is in
+      `../docs/contracts.md` first.
+- [ ] Route has `response_model`, status code, `responses`, `CurrentUser`, and
+      `AccessibleProject` when it takes a project id.
+- [ ] One use-case per function in `services.py`; queries only in repositories.
+- [ ] Pydantic v2 names only; request and response schemas are separate.
+- [ ] No default for any engineering or economic input; no competition value.
+- [ ] Models use `Mapped` / `mapped_column`; one session per request; one commit per
+      use-case.
+- [ ] Migration reviewed by hand, named constraints, reversible, static.
+- [ ] Long work runs in a Celery task that is idempotent, bounded, and retries only
+      transient errors.
+- [ ] SSE sends current state first, uses event ids, and closes pub/sub in `finally`.
+- [ ] Errors are `AppError` with a stable code listed in the contracts.
+- [ ] No comments in code; `from_`/`to_` naming; one-word folders; English only;
+      nesting at most 3; functions about 40 lines.
+- [ ] Tests: boundary test, route guard test, failing test first for a bug fix.
 
 Code implementation rules live in [DEVELOPMENT.md](DEVELOPMENT.md). Read that file only for tasks that create, modify, review, or test code.

@@ -28,7 +28,9 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   `<thing>_not_found`, `validation_failed`, `conflict`, `plant_invalid`, `rate_limited`,
   `internal`.
 - **Plant versions:** one row per saved plant in `plant_versions`, `content` being
-  exactly gemini's `to_dict()` output. gemini's format already holds dated parameters
+  exactly gemini's `to_dict()` output (`src/core/gemini/plant.py`: `from_dict`,
+  `to_dict`, `validate_content`; a bad document is `plant_invalid` with
+  `details.problems`). gemini's format already holds dated parameters
   and bindings and is validated on load, so a second, split format would only have to
   follow it. Rows are never updated.
 - **Stack:** `../infrastructure/compose.yml` runs everything:

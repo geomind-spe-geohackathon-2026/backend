@@ -5,7 +5,6 @@ import pytest
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
-from src.core.gemini.plant import dump_plant, example_plant, load_plant
 from src.core.settings import settings
 from tests.api.v1.workspace.projects.archives import (
     PROJECT_FILE,
@@ -13,6 +12,7 @@ from tests.api.v1.workspace.projects.archives import (
     version_file,
 )
 from tests.conftest import bearer
+from tests.plants import changed_plant, example_plant
 
 PROJECTS = "/api/v1/workspace/projects"
 IMPORT = f"{PROJECTS}/import"
@@ -20,12 +20,6 @@ IMPORT = f"{PROJECTS}/import"
 
 def upload(data: bytes) -> dict:
     return {"file": ("project.zip", data, "application/zip")}
-
-
-def changed_plant(stages: int) -> dict:
-    plant = load_plant(example_plant())
-    plant.update_params(**{"esp.no_stages": stages})
-    return dump_plant(plant)
 
 
 async def project_count(client, headers: dict) -> int:
@@ -118,7 +112,7 @@ async def test_bad_version_refuses_the_import_and_writes_nothing(
         {
             "project.json": PROJECT_FILE,
             "plant/1.json": version_file(1),
-            "plant/2.json": version_file(2, {**example_plant(), "version": 9}),
+            "plant/2.json": version_file(2, {**example_plant(), "format": 9}),
         }
     )
     headers = bearer(user)
