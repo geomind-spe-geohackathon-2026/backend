@@ -1,6 +1,7 @@
+import mimetypes
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from src.api.v1.assistant.chat import schemas, services
 from src.core.assistant.access import (
     AccessibleChat,
@@ -18,6 +19,10 @@ from src.core.clients.postgres.repositories.message import (
     MessageRepository,
     get_message_repository,
 )
+from src.core.clients.postgres.repositories.run_artifact import (
+    RunArtifactRepository,
+    get_run_artifact_repository,
+)
 from src.core.pagination.page import Page, PageParams
 from src.core.security.access import CurrentUser, QueriedProject, require_project
 
@@ -26,6 +31,10 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 MessageRepositoryDependency = Annotated[
     MessageRepository,
     Depends(get_message_repository),
+]
+RunArtifactRepositoryDependency = Annotated[
+    RunArtifactRepository,
+    Depends(get_run_artifact_repository),
 ]
 ChatStateRepositoryDependency = Annotated[
     ChatStateRepository,
@@ -103,6 +112,17 @@ async def delete_chat(
     runs: RunRepositoryDependency,
 ) -> None:
     await services.delete_chat(chat, chats, runs)
+
+
+@router.get("/{chat_id}/files/{name:path}", response_class=Response)
+async def read_file(
+    name: str,
+    chat: AccessibleChat,
+    artifacts: RunArtifactRepositoryDependency,
+) -> Response:
+    data = await services.read_file(chat, name, artifacts)
+    media_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+    return Response(content=data, media_type=media_type)
 
 
 @router.get("/{chat_id}/state", response_model=schemas.ChatState)

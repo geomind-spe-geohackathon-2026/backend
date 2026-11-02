@@ -392,3 +392,24 @@ async def test_the_ledger_answers_on_the_loop_once_warmed(
     await ledger.warm(str(project.id))
 
     assert ledger.spent(str(project.id)).input_tokens == 10
+
+
+async def test_a_file_the_assistant_wrote_can_be_read_from_the_chat(
+    client, session_factory, make_user, make_project, make_chat
+) -> None:
+    owner = await make_user()
+    chat = await make_chat(await make_project(owner), owner)
+    async with session_factory() as session:
+        await RunArtifactRepository(session).save(
+            None, chat.id, "case/data/a.csv", b"time,a"
+        )
+
+    found = await client.get(
+        f"/api/v1/assistant/chat/{chat.id}/files/data/a.csv", headers=bearer(owner)
+    )
+    missing = await client.get(
+        f"/api/v1/assistant/chat/{chat.id}/files/data/b.csv", headers=bearer(owner)
+    )
+
+    assert found.content == b"time,a"
+    assert missing.status_code == 404

@@ -3982,6 +3982,51 @@
         ]
       }
     },
+    "/api/v1/assistant/chat/{chat_id}/files/{name}": {
+      "get": {
+        "operationId": "read_file_api_v1_assistant_chat__chat_id__files__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read File",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
     "/api/v1/assistant/chat/{chat_id}/messages": {
       "get": {
         "operationId": "list_messages_api_v1_assistant_chat__chat_id__messages_get",

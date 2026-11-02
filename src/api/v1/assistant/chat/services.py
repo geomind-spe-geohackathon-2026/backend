@@ -15,12 +15,18 @@ from src.core.clients.postgres.repositories.chat import ChatRepository
 from src.core.clients.postgres.repositories.chat_state import ChatStateRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.run import RunRepository
+from src.core.clients.postgres.repositories.run_artifact import (
+    RunArtifactRepository,
+)
 from src.core.errors import ConflictError
+from src.core.gemini.errors import CaseFileNotFoundError
 from src.core.pagination.page import Page, PageRequest, build_page, encode_cursor
 
 DEFAULT_TITLE = "New chat"
 START_TASK = "assistant.runs.start"
 TITLE_LENGTH = 60
+
+CASE_ARTIFACT = "case/"
 
 
 async def list_chats(
@@ -81,6 +87,14 @@ async def read_state(chat: Chat, states: ChatStateRepository) -> schemas.ChatSta
     if latest is None:
         return schemas.ChatState(version=0, state=None)
     return schemas.ChatState(version=latest.version, state=latest.state)
+
+
+async def read_file(chat: Chat, name: str, artifacts: RunArtifactRepository) -> bytes:
+    """Return a case file the assistant wrote in a chat."""
+    found = await artifacts.newest_for_chat(chat.id, f"{CASE_ARTIFACT}{name}")
+    if found is None or not isinstance(found.data, bytes):
+        raise CaseFileNotFoundError("File not found")
+    return found.data
 
 
 async def queue_run(run: Run, runs: RunRepository, enqueue: Enqueue) -> None:
