@@ -6,7 +6,8 @@ from typing import Any
 import gemini as gm
 from starlette import status
 
-from src.core.errors import AppError, CaseInvalidError, ValidationFailedError
+from src.core.errors import AppError, ValidationFailedError
+from src.core.gemini import case
 from src.core.gemini import plant as plant_document
 
 CASE_FILE = "case/case.json"
@@ -98,20 +99,6 @@ def from_dict(
         raise validation_failed(list(error.problems)) from error
 
 
-def case_missing(content: dict[str, Any], files: dict[str, bytes]) -> list[dict]:
-    """Return the values a case document lacks; other problems are case_invalid."""
-    try:
-        gm.Case.from_dict(content, files=files)
-    except gm.errors.ValidationError as error:
-        problems = list(error.problems)
-    else:
-        return []
-    others = [item for item in problems if item["code"] != MISSING_CODE]
-    if others:
-        raise CaseInvalidError(others)
-    return [{"path": item["path"], "message": item["message"]} for item in problems]
-
-
 def issues_of(study: gm.Study) -> list[dict[str, Any]]:
     """Return gemini's problems for a study whose files it can read."""
     return [issue.problem() for issue in study.check()]
@@ -133,7 +120,7 @@ def missing_inputs(
     files = files_of(plant_content, case_content, case_files)
     study = from_dict(kind, name, settings, files)
     plant_document.from_dict(plant_content)
-    lacking = case_missing(case_content, case_files)
+    lacking = case.missing_values(case_content, case_files)
     if lacking:
         return lacking
     problems = issues_of(study)

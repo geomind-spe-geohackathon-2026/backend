@@ -78,6 +78,22 @@ async def test_study_missing_case_files_is_blocked(
     assert body["missing"][0]["path"] == "demand.heating.power.file"
 
 
+async def test_study_without_case_files_never_reads_the_store(
+    client, make_user, make_project, save_inputs, queued, blobs, monkeypatch
+) -> None:
+    async def refuse(key: str) -> bytes:
+        raise AssertionError("the object store was read")
+
+    monkeypatch.setattr(blobs, "get", refuse)
+    user = await make_user()
+    project = await make_project(user)
+    await save_inputs(project, user, files=False)
+
+    response = await client.post(URL, json=study_body(project), headers=bearer(user))
+
+    assert response.status_code == 201
+
+
 async def test_blocked_study_starts_once_inputs_exist(
     client, make_user, make_project, save_inputs, queued
 ) -> None:
@@ -229,7 +245,7 @@ async def make_queued(
 
 
 async def test_worker_stores_the_result(
-    session_factory, session, make_user, make_project, save_inputs, minio, monkeypatch
+    session_factory, session, make_user, make_project, save_inputs, blobs, monkeypatch
 ) -> None:
     user = await make_user()
     project = await make_project(user)
@@ -242,7 +258,7 @@ async def test_worker_stores_the_result(
         await services.run_study(
             study.id,
             services.Stores.open(worker),
-            minio,
+            blobs,
             lambda *args: reported.append(args),
         )
 
@@ -259,7 +275,7 @@ async def test_worker_stores_the_result(
 
 
 async def test_worker_records_a_failed_study(
-    session_factory, session, make_user, make_project, save_inputs, minio, monkeypatch
+    session_factory, session, make_user, make_project, save_inputs, blobs, monkeypatch
 ) -> None:
     user = await make_user()
     project = await make_project(user)
@@ -273,7 +289,7 @@ async def test_worker_records_a_failed_study(
 
     async with session_factory() as worker:
         await services.run_study(
-            study.id, services.Stores.open(worker), minio, lambda *_: None
+            study.id, services.Stores.open(worker), blobs, lambda *_: None
         )
 
     stores = services.Stores.open(session)
@@ -284,7 +300,7 @@ async def test_worker_records_a_failed_study(
 
 
 async def test_worker_leaves_a_cancelled_study_alone(
-    session_factory, make_user, make_project, minio, monkeypatch
+    session_factory, make_user, make_project, blobs, monkeypatch
 ) -> None:
     user = await make_user()
     project = await make_project(user)
@@ -297,5 +313,5 @@ async def test_worker_leaves_a_cancelled_study_alone(
 
     async with session_factory() as worker:
         await services.run_study(
-            study.id, services.Stores.open(worker), minio, lambda *_: None
+            study.id, services.Stores.open(worker), blobs, lambda *_: None
         )

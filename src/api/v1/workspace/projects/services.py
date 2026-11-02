@@ -14,7 +14,6 @@ from pydantic import ValidationError
 from fastapi import UploadFile
 from src.api.v1.workspace.projects import schemas
 from src.core.clients.minio.blobs import BlobStore
-from src.core.clients.postgres.models.case_file import CaseFile
 from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
@@ -35,8 +34,9 @@ from src.core.clients.postgres.repositories.project import (
     ProjectRepository,
 )
 from src.core.errors import ValidationFailedError
-from src.core.gemini.errors import CaseFileNotFoundError, PlantInvalidError
+from src.core.gemini.errors import PlantInvalidError
 from src.core.gemini.plant import validate_content
+from src.core.gemini.stored import stored_files
 from src.core.pagination.page import Page, PageRequest, encode_cursor
 from src.core.progress.states import build_progress
 from src.core.settings import settings
@@ -169,19 +169,6 @@ def version_json(version: PlantVersion | CaseVersion) -> str:
     )
 
 
-async def read_case_files(
-    blobs: BlobStore,
-    files: list[CaseFile],
-) -> dict[str, bytes]:
-    data = {}
-    for file in files:
-        content = await blobs.get(file.object_key)
-        if content is None:
-            raise CaseFileNotFoundError(f"File {file.name} is missing from storage")
-        data[file.name] = content
-    return data
-
-
 async def export_project(
     project: Project,
     plants: PlantVersionRepository,
@@ -192,7 +179,7 @@ async def export_project(
     case_archives = []
     for version in await cases.all_versions(project.id):
         rows = await files.list_for_version(version.id)
-        data = await read_case_files(blobs, rows)
+        data = await stored_files(rows, blobs)
         case_archives.append(CaseArchive(version, data))
     versions = await plants.all_versions(project.id)
     return await asyncio.to_thread(write_archive, project, versions, case_archives)
