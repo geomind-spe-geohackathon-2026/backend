@@ -28,6 +28,10 @@ class Result(BaseModel):
     kpis: list[Kpi]
     checks: Checks
     created: datetime
+    role: Literal["design", "sensitivity", "uncertainty"]
+    doublets: float | None
+    depth: float | None
+    depth_unit: str | None
 
 
 class Capacity(BaseModel):
@@ -88,6 +92,7 @@ class TornadoRow(BaseModel):
 
 
 class SpreadRow(BaseModel):
+    name: str
     metric: str
     mean: float | None
     p5: float | None
@@ -111,6 +116,15 @@ class ResultDetail(Result):
     series: list[Any]
 
 
+class DesignSpread(BaseModel):
+    result: UUID
+    uncertainty: UUID
+    metric: str
+    p5: float | None
+    p95: float | None
+
+
 class ResultComparison(BaseModel):
     items: list[Result]
     pareto: list[UUID]
+    spreads: list[DesignSpread]

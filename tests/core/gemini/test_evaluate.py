@@ -250,3 +250,22 @@ def test_a_spread_has_its_percentiles_and_draws() -> None:
 def test_other_runs_have_neither() -> None:
     assert evaluate.tornado_of({}) is None
     assert evaluate.spread_of({"found": {}}) is None
+
+
+def test_a_result_says_what_it_is() -> None:
+    assert evaluate.role_of({"found": {"rows": []}}) == "sensitivity"
+    assert evaluate.role_of({"found": {"summary": {}}}) == "uncertainty"
+    assert evaluate.role_of({}) == "design"
+
+
+def test_a_design_states_its_doublets_and_depth() -> None:
+    design = {
+        "size": {"doublets": {"value": 2}},
+        "params": {"depth": {"value": 2500, "unit": "m"}},
+    }
+
+    assert evaluate.design_facts(design) == {
+        "doublets": 2,
+        "depth": 2500,
+        "depth_unit": "m",
+    }

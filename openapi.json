@@ -827,6 +827,55 @@
         "title": "Credentials",
         "type": "object"
       },
+      "DesignSpread": {
+        "properties": {
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "p5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P5"
+          },
+          "p95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95"
+          },
+          "result": {
+            "format": "uuid",
+            "title": "Result",
+            "type": "string"
+          },
+          "uncertainty": {
+            "format": "uuid",
+            "title": "Uncertainty",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result",
+          "uncertainty",
+          "metric",
+          "p5",
+          "p95"
+        ],
+        "title": "DesignSpread",
+        "type": "object"
+      },
       "Document": {
         "properties": {
           "created": {
@@ -2431,6 +2480,39 @@
             "title": "Created",
             "type": "string"
           },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "depth_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth Unit"
+          },
+          "doublets": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doublets"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2458,6 +2540,15 @@
             ],
             "title": "Plant Version"
           },
+          "role": {
+            "enum": [
+              "design",
+              "sensitivity",
+              "uncertainty"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
           "study": {
             "anyOf": [
               {
@@ -2479,7 +2570,11 @@
           "plant_version",
           "kpis",
           "checks",
-          "created"
+          "created",
+          "role",
+          "doublets",
+          "depth",
+          "depth_unit"
         ],
         "title": "Result",
         "type": "object"
@@ -2500,11 +2595,19 @@
             },
             "title": "Pareto",
             "type": "array"
+          },
+          "spreads": {
+            "items": {
+              "$ref": "#/components/schemas/DesignSpread"
+            },
+            "title": "Spreads",
+            "type": "array"
           }
         },
         "required": [
           "items",
-          "pareto"
+          "pareto",
+          "spreads"
         ],
         "title": "ResultComparison",
         "type": "object"
@@ -2554,6 +2657,39 @@
             "title": "Created",
             "type": "string"
           },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "depth_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth Unit"
+          },
+          "doublets": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doublets"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2580,6 +2716,15 @@
               }
             ],
             "title": "Plant Version"
+          },
+          "role": {
+            "enum": [
+              "design",
+              "sensitivity",
+              "uncertainty"
+            ],
+            "title": "Role",
+            "type": "string"
           },
           "series": {
             "items": {},
@@ -2643,6 +2788,10 @@
           "kpis",
           "checks",
           "created",
+          "role",
+          "doublets",
+          "depth",
+          "depth_unit",
           "capacities",
           "sizes",
           "tornado",
@@ -2902,6 +3051,10 @@
             "title": "Metric",
             "type": "string"
           },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
           "p5": {
             "anyOf": [
               {
@@ -2941,6 +3094,7 @@
           }
         },
         "required": [
+          "name",
           "metric",
           "mean",
           "p5",

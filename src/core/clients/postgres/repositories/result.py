@@ -42,6 +42,10 @@ class ResultRepository(BaseRepository):
         )
         return list(await self.session.scalars(statement))
 
+    async def all_for_project(self, project_id: UUID) -> list[Result]:
+        statement = select(Result).where(Result.project_id == project_id)
+        return list(await self.session.scalars(statement))
+
     async def list_page(self, project_id: UUID, page: PageRequest) -> list[Result]:
         statement = select(Result).where(Result.project_id == project_id)
         statement = paginate(statement, Result.created, Result.id, page)

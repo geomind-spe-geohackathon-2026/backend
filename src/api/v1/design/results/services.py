@@ -35,6 +35,8 @@ def to_summary(result: Result) -> dict[str, Any]:
         "kpis": gemini_evaluate.kpis_of(result.content["report"]),
         "checks": result.summary["checks"],
         "created": result.created,
+        "role": gemini_evaluate.role_of(result.content.get("run", {})),
+        **gemini_evaluate.design_facts(result.content.get("design") or {}),
     }
 
 
@@ -155,6 +157,29 @@ def check_kpi(name: str, field: str, found: list[Result]) -> None:
         raise ValidationFailedError({field: "Unknown figure of these results"})
 
 
+def design_spreads(
+    found: list[Result], everything: list[Result]
+) -> list[schemas.DesignSpread]:
+    """Return the spread of each uncertainty study run on one of the given designs."""
+    spreads = []
+    for design in found:
+        for other in everything:
+            run = other.content.get("run", {})
+            same = other.content.get("design") == design.content.get("design")
+            if other.id != design.id and same:
+                spreads += [
+                    schemas.DesignSpread(
+                        result=design.id,
+                        uncertainty=other.id,
+                        metric=row["name"],
+                        p5=row["p5"],
+                        p95=row["p95"],
+                    )
+                    for row in gemini_evaluate.spread_of(run) or []
+                ]
+    return spreads
+
+
 async def compare_results(
     project_id: UUID,
     ids: str,
@@ -178,4 +203,5 @@ async def compare_results(
     return schemas.ResultComparison(
         items=[to_summary(item) for item in found],
         pareto=[item.id for item, flag in zip(found, flags, strict=True) if flag],
+        spreads=design_spreads(found, await results.all_for_project(project.id)),
     )

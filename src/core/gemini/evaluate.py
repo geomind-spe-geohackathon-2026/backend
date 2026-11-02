@@ -17,6 +17,9 @@ FULL_DIGITS = 12
 METRIC_TITLES = {item["name"]: item["title"] for item in gm.evaluate.metrics()}
 KIND_MEANINGS = {"cooler": "heat rejected"}
 LENGTH_UNIT = "m"
+DESIGN_ROLE = "design"
+SENSITIVITY_ROLE = "sensitivity"
+UNCERTAINTY_ROLE = "uncertainty"
 CASE_PREFIX = "case."
 CLEAN_DIGITS = 6
 LIMIT_DIGITS = 4
@@ -318,6 +321,7 @@ def spread_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
         return None
     return [
         {
+            "name": name,
             "metric": title_of(name),
             "mean": item["mean"]["value"],
             "p5": item["p5"]["value"],
@@ -328,6 +332,26 @@ def spread_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
         }
         for name, item in found["summary"].items()
     ]
+
+
+def role_of(run: dict[str, Any]) -> str:
+    """Say what a result is: a design, or a test of one under varied inputs."""
+    found = run.get("found") or {}
+    if "rows" in found:
+        return SENSITIVITY_ROLE
+    return UNCERTAINTY_ROLE if "summary" in found else DESIGN_ROLE
+
+
+def design_facts(design: dict[str, Any]) -> dict[str, Any]:
+    """Return the doublet count and well depth a design states, when it states them."""
+    size = (design.get("size") or {}).get("doublets") or {}
+    params = design.get("params") or {}
+    depth = params.get("depth") or (params.get("d0") or {}).get("depth") or {}
+    return {
+        "doublets": size.get("value"),
+        "depth": depth.get("value"),
+        "depth_unit": depth.get("unit"),
+    }
 
 
 def summarise(
