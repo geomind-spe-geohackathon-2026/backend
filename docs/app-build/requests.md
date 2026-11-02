@@ -125,3 +125,7 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
   Today: no list on the run
   Wanted: dotted agent paths from `gd.runlog` summary
   Blocking: no (the column shows the loop)
+
+- gemini: give the range of an `out_of_bounds` problem as data
+  Today: the message holds `{'min': 0.0} (SI)`; the backend rewords it by matching the text
+  Needed by: Problem validation messages

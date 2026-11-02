@@ -2,11 +2,13 @@
 
 Read this first, then `app-frontend-backend.md` sections 1 and 7 to 10. Phases A, B, C and the integration pass (D3) are done; see Phase D status.
 
-In a new clone the prompt's `../docs/` paths do not exist, because `docs/` was never a git repo. Their files are here: `contracts.md` (version 20, wins over the prompt), `ui-mockup.html`, `app-frontend-backend.md`, `plan.md` (gap decisions), `requests.md` (ready to paste), `inventories/`.
+In a new clone the prompt's `../docs/` paths do not exist, because `docs/` was never a git repo. Their files are here: `contracts.md` (version 25, wins over the prompt), `ui-mockup.html`, `app-frontend-backend.md`, `plan.md` (gap decisions), `requests.md` (ready to paste), `inventories/`.
 
 ## New machine
 
 Tools: Python 3.12, Node 22 with npm, Docker with compose, git over SSH with access to the repos below.
+
+Current pins: gemini 4095ec6 (0.5.1), geomind 90f92d8 (0.4.0), image `gemini-sandbox:0.5.1` (`make -C ../gemini sandbox-image`). `stack-up.sh` builds the image from `../gemini` when it is absent. The local stack runs on Windows WSL2 with Docker Desktop; if the shell predates the `docker` group, run `sg docker -c "scripts/stack-up.sh"`. Do not copy `OPENROUTER_API_KEY` from `.env.example` into `.env`: its placeholder turns on the real LLM. Without root, Playwright's Chromium needs its libraries unpacked from `apt-get download` and named in `LD_LIBRARY_PATH`.
 
 Folder layout (siblings, because `requirements.txt` and compose use relative paths):
 
@@ -14,8 +16,8 @@ Folder layout (siblings, because `requirements.txt` and compose use relative pat
 geomind-spe-geohackathon-2026/
 ├── backend/          git@github.com:SahandNZ/backend.git
 ├── frontend/         git@github.com:geomind-spe-geohackathon-2026/frontend.git
-├── gemini/           git@github.com:geomind-spe-geohackathon-2026/gemini.git   branch dev, 0.5.0 or newer (b07b7ff)
-├── geomind/          git@github.com:crust-team/geomind.git                     branch main, read section "geomind" below
+├── gemini/           git@github.com:geomind-spe-geohackathon-2026/gemini.git   branch dev, 0.5.1 (4095ec6)
+├── geomind/          git@github.com:crust-team/geomind.git                     branch main, 0.4.0 (90f92d8)
 ├── infrastructure/   git@github.com:swarmax/infrastructure.git
 └── docs/             copy contracts.md and ui-mockup.html here so the prompt's paths work
 ```
@@ -45,7 +47,7 @@ Backend tests need no services. `npm run dev` runs mock mode; sign in with `exam
 
 ## geomind
 
-The code was built against eeb80d9 of origin main, which still calls the removed `gm.plants.validate`. An adaptation commit was announced that replaces it and adds `save_chat_artifact` / `load_chat_artifact`. Pull origin main, run `tests/api/v1/assistant` and `tests/core/assistant`, and record the commit used. The scripted FakeLLM run (`ASSISTANT_LLM=fake`) depends on `save_profile` asking for approval: recheck it.
+0.4.0 is in: readers skip unknown event types (`adapters/replay.py`), `study.recorded` adds a `done` study without a result (`StudyRecorder`), `DatabaseUsageLedger` sums finished runs, and `project.budget` adds `gd.hooks.ProjectBudget` only when a cap is set. FakeLLM runs no study tool, so the event and the budget stop are tested at adapter level only.
 
 ## Phase D status (D3)
 
@@ -57,6 +59,14 @@ Verified on the real local stack (see README, "Local stack") with geomind 0.3.0 
 - Bugs found and fixed: `run.started` of the routing run has no `loop` (frontend rejected the stream); `POST /design/case/validate` ignored the saved files (now takes `project`); the study kind schema asked for keys the backend sets; nested forms in the New study dialog; `Workspace` still had `plant()`; a chat artifact hit the run foreign key; login rejected reserved domains with a 422 (now a plain 401); mock studies never started.
 - Not exercised: `read_case` from a real run (the scripted LLM only lists plants and saves a profile), a real LLM, `ASSISTANT_SANDBOX=docker` for module tests (the image `gemini-sandbox:0.5.0` builds and `DockerSandbox` runs in it).
 - Open, see `.tmp/build/screen-diff.md`: missing marks on optional nested fields, sidebar progress dots stale after a study, KPI tile layout for missing values, plant palette length.
+
+## State after the WSL move (2026-11-02)
+
+- Verified: backend 453 tests, migrations 0001 to 0009 on PostgreSQL 16, Playwright real and mock.
+- `size` is a study kind (method `run`, `prepare: ["size"]`); the example project seeds `HeatingFullCoolingPlant` (`tests/fixtures/hackathon/seed_plant.json`), feasible once the case is complete.
+- `src/core/problems.py:readable` rewords gemini's range text; gemini should give bounds as data, see the request in `requests.md`.
+- Waiting on gemini: public metric list (`study.py:metric_names` still reads the private `gm.evaluate._utils.display.METRICS`), `kind` const in the Case schema, daily coverage, study progress, `case.missing`, per-kind study schema and ranges.
+- Could not reproduce on this machine: mock golden-path failure, empty Overview after creating a project.
 
 ## What Phase D must still do
 
