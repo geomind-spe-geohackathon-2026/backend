@@ -43,6 +43,9 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
 - **Jobs:** Celery tasks extend `src/core/jobs/task.py:BaseTask` (progress and cancel flag
   in Redis, bounded retries); studies are cancelled with `jobs.control.terminate`. See
   the Background tasks section of `docs/CONVENTIONS.md`.
+- **SSE:** `src/core/sse/` (`publish_event`, `follow`, `last_event_id`): subscribe to
+  Redis first, replay stored events after `Last-Event-ID`, then live, with heartbeat
+  comments. Details in the Events over SSE section of `docs/CONVENTIONS.md`.
 - **Stack:** `../infrastructure/compose.yml` runs everything:
   `cd ../infrastructure && cp .env.example .env && docker compose up -d --build`. The
   backend image also needs the build context `geomind: ../geomind` (the Dockerfile

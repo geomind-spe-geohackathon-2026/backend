@@ -482,10 +482,20 @@ async def stream_events(job: AccessibleJob) -> AsyncIterable[ServerSentEvent]:
         yield ServerSentEvent(data=event, event=event.kind, id=str(event.number))
 ```
 
-- Keepalive pings, `Cache-Control: no-cache` and `X-Accel-Buffering: no` are built
-  in; do not add them again.
+- `Cache-Control: no-cache` and `X-Accel-Buffering: no` are built in; do not add them
+  again. FastAPI's own keepalive fires only after 15 s of silence; `core/sse` sends its own
+  heartbeat comment every `SSE_HEARTBEAT_SECONDS` (10), so the built-in one never fires.
 - The stream ends with a terminal event (`done` or `failed`). Always unsubscribe and
   close the pub/sub object in `finally`, also on client disconnect.
+- Use `core/sse` for every stream: workers publish `StreamEvent`s with `publish_event`
+  (store first, then publish); a route yields `follow(redis, channel_name(kind, id),
+  replay, after, final_types)` with `after` from the `last_event_id` dependency. `follow`
+  subscribes to Redis first, yields `replay(after)` (the stored events with
+  `sequence > after`; `after` is `-1` for a new stream), then live events, dropping
+  any already sent by sequence, and ends after a final type (`run.finished`). An event
+  without a sequence (`text.delta`) is live only and carries no `id`. The browser
+  `EventSource` cannot send the bearer header; the frontend uses `fetch` with
+  `Authorization` (`@microsoft/fetch-event-source`), which sends `Last-Event-ID` on retry.
 - SSE routes depend on `CurrentUser` and the resource guard like any route.
 
 ## Structured errors
