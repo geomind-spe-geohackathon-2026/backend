@@ -168,7 +168,7 @@ async def copy_case_into(
 ) -> schemas.Project:
     """Give a project without a case a copy of another project's latest case."""
     if await cases.latest_version(project.id) is not None:
-        raise ConflictError("The project already has a problem")
+        raise ConflictError("The project already has a case")
     source = await require_project(payload.case_from, user, repository)
     copied = await copy_case(source, cases, files, blobs)
     stored = await store_cases(blobs, project.id, [copied])
