@@ -81,8 +81,9 @@ docker tag ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:<gemini version>
 
 geomind looks for the sandbox under the local name.
 
-To bump gemini: change the URL in `requirements.txt` and `GEMINI_VERSION` in
-`tests/test_versions.py`, run `pip install -r requirements-dev.txt`, run the tests, fix what the
+To bump gemini: take the wheel's URL from its GitHub Release and its hash from
+`curl -sL <url> | sha256sum`, write both in `requirements.txt` as `<url>#sha256=<hash>`, change
+`GEMINI_VERSION` in `tests/test_versions.py`, run `pip install -r requirements-dev.txt`, run the tests, fix what the
 new version changes, and commit. A new version also needs its sandbox image: `stack-up.sh` pulls
 and tags it when it is missing.
 

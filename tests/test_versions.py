@@ -5,6 +5,7 @@ REQUIREMENTS = Path(__file__).parents[1] / "requirements.txt"
 GEMINI = "gemini-geothermal-suite-open"
 GEMINI_VERSION = "0.5.5"
 GEOMIND_NEEDED = (0, 4, 1)
+DIGEST_LENGTH = 64
 
 
 def requirement_lines() -> list[str]:
@@ -23,7 +24,9 @@ def parts(version: str) -> tuple[int, ...]:
 
 def test_gemini_is_the_released_wheel_pinned() -> None:
     assert f"/v{GEMINI_VERSION}/" in gemini_line()
-    assert gemini_line().endswith(f"-{GEMINI_VERSION}-py3-none-any.whl")
+    wheel, _, digest = gemini_line().partition("#sha256=")
+    assert wheel.endswith(f"-{GEMINI_VERSION}-py3-none-any.whl")
+    assert len(digest) == DIGEST_LENGTH
     assert metadata.version(GEMINI) == GEMINI_VERSION
 
 
