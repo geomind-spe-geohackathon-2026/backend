@@ -18,3 +18,7 @@ Only what a UI feature needs that the public API cannot give, and real calculati
   Today: `W/K` is not listed, so a heat exchanger's rating stays in W/K and the backend scales it to MW/K itself (`evaluate.readable`).
   Wanted: a display unit for it.
 
+- A format for the dates of a case
+  Today: `time.start` and `time.end` are plain strings in the schema, so a form cannot know they are dates. The backend adds `x-date` to them.
+  Wanted: `format: date` or the like in the schema.
+

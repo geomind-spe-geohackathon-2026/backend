@@ -1,7 +1,7 @@
 import pytest
 
 from src.core.errors import CaseInvalidError, MissingInputsError
-from src.core.gemini import case
+from src.core.gemini import case, header
 from tests.cases import DEMAND_CSV, DEMAND_FILE, broken_case, example_case
 
 FILES = {DEMAND_FILE: DEMAND_CSV}
@@ -97,3 +97,11 @@ def test_a_new_case_lists_everything_in_time_not_just_time() -> None:
     missing, _ = case.validate({"format": 1, "kind": "case", "name": "c"}, {})
 
     assert {"time.start", "time.end", "time.step"} <= {item["path"] for item in missing}
+
+
+def test_the_case_schema_marks_the_ends_of_time_as_dates() -> None:
+    time = header.case_schema()["properties"]["time"]["properties"]
+
+    assert time["start"]["x-date"] is True
+    assert time["end"]["x-date"] is True
+    assert "x-date" not in time["step"]

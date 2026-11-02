@@ -7,13 +7,18 @@ import gemini as gm
 from src.core.gemini import case
 
 DURATION = "duration"
+DATE_FIELDS = ("start", "end")
 
 
 def case_schema() -> dict[str, Any]:
     """Return gemini's case schema with the kind a case document must carry."""
     schema = case.schema()
     kind = {**schema["properties"]["kind"], "const": gm.Case.__name__.lower()}
-    properties = {**schema["properties"], "kind": kind}
+    properties = {
+        **schema["properties"],
+        "kind": kind,
+        "time": with_dates(schema["properties"]["time"]),
+    }
     items = schema["properties"]["requirements"]["items"]
     requirements = {
         **schema["properties"]["requirements"],
@@ -24,6 +29,14 @@ def case_schema() -> dict[str, Any]:
         },
     }
     return {**schema, "properties": {**properties, "requirements": requirements}}
+
+
+def with_dates(time: dict[str, Any]) -> dict[str, Any]:
+    """Mark the ends of a case's time as dates, which gemini's schema gives as text."""
+    marked = {
+        name: {**time["properties"][name], "x-date": True} for name in DATE_FIELDS
+    }
+    return {**time, "properties": {**time["properties"], **marked}}
 
 
 def time_units() -> list[str]:
