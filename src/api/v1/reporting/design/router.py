@@ -6,6 +6,9 @@ from fastapi import APIRouter, Depends, Response
 from src.api.v1.reporting.design import schemas, services
 from src.core.clients.postgres.client import get_db
 from src.core.clients.postgres.repositories.activity import ActivityRepository
+from src.core.clients.postgres.repositories.case_version import (
+    CaseVersionRepository,
+)
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.clients.postgres.repositories.run import RunRepository
@@ -24,6 +27,7 @@ def get_repositories(
         StudyRepository(session),
         RunRepository(session),
         ActivityRepository(session),
+        CaseVersionRepository(session),
     )
 
 

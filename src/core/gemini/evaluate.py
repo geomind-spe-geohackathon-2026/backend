@@ -27,6 +27,7 @@ KIND_MEANINGS = {"cooler": "heat rejected"}
 LENGTH_UNIT = "m"
 CASE_PREFIX = "case."
 CLEAN_DIGITS = 6
+LIMIT_DIGITS = 4
 PERCENT = 100
 PERCENT_UNIT = "%"
 FRACTION_UNITS = ("-", "")
@@ -169,15 +170,17 @@ def sides_of(
 
 def limit_text(low: float | None, high: float | None, unit: str, fallback: Any) -> str:
     """Write the bounds with their direction; without them the limit gemini reported."""
-    if low is not None and high is not None and low != high:
-        return f"{number(low)} to {number(high)}{unit_text(unit)}"
-    if low is not None and high is not None:
-        return f"= {number(low)}{unit_text(unit)}"
-    if low is not None:
-        return f"≥ {number(low)}{unit_text(unit)}"
-    if high is not None:
-        return f"≤ {number(high)}{unit_text(unit)}"
-    return amount(fallback)
+    suffix = unit_text(unit)
+    lower = None if low is None else number(low, LIMIT_DIGITS)
+    upper = None if high is None else number(high, LIMIT_DIGITS)
+    if lower is not None and upper is not None:
+        same = low == high
+        return f"= {lower}{suffix}" if same else f"{lower} to {upper}{suffix}"
+    if lower is not None:
+        return f"≥ {lower}{suffix}"
+    if upper is not None:
+        return f"≤ {upper}{suffix}"
+    return amount(fallback, LIMIT_DIGITS)
 
 
 def margin_of(
@@ -206,10 +209,13 @@ def checked(item: dict[str, Any], limits: dict[str, dict[str, Any]]) -> dict[str
     shown = PERCENT_UNIT if scale == PERCENT else unit
     scaled = [None if side is None else side * scale for side in (value, low, high)]
     margin, near = margin_of(*scaled)
+    reported = item.get("limit") or {}
+    if scale == PERCENT and reported.get("value") is not None:
+        reported = {"value": reported["value"] * scale, "unit": shown}
     return {
         "value": None if scaled[0] is None else clean(scaled[0]),
         "unit": shown,
-        "limit": limit_text(scaled[1], scaled[2], shown, item.get("limit")),
+        "limit": limit_text(scaled[1], scaled[2], shown, reported or None),
         "margin": margin,
         "near": near,
     }

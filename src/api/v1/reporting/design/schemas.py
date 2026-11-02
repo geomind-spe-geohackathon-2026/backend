@@ -3,7 +3,17 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-SectionKey = Literal["capacities", "design", "checks", "costs", "agentlog"]
+SectionKey = Literal[
+    "summary",
+    "design",
+    "capacities",
+    "coverage",
+    "checks",
+    "costs",
+    "findings",
+    "agentlog",
+    "appendix",
+]
 
 
 class ReportRequest(BaseModel):

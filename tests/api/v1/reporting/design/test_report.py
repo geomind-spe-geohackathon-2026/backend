@@ -17,7 +17,17 @@ from tests.routes import route_exists
 
 PREVIEW = "/api/v1/reporting/design/preview"
 EXPORT = "/api/v1/reporting/design/export"
-INCLUDE = ["capacities", "design", "checks", "costs", "agentlog"]
+INCLUDE = [
+    "summary",
+    "capacities",
+    "design",
+    "coverage",
+    "checks",
+    "costs",
+    "findings",
+    "agentlog",
+    "appendix",
+]
 
 
 @pytest.fixture
@@ -85,7 +95,7 @@ async def test_costs_show_source_and_missing(
 
     sections = {item["key"]: item["markdown"] for item in response.json()["sections"]}
     assert "case version 3, plant version 4" in sections["costs"]
-    assert "| opex | missing: no price | missing |" in sections["costs"]
+    assert "| OPEX | missing: no price |" in sections["costs"]
     assert "No assistant run was chosen." in sections["agentlog"]
     assert "Plant: HeatingPlant" in sections["design"]
     assert "13 passed" in sections["checks"]
@@ -103,8 +113,8 @@ async def test_costs_list_the_figures_of_the_report_not_a_fixed_list(
     )
 
     costs = response.json()["sections"][0]["markdown"]
-    assert "| heat_delivered |" in costs
-    assert "| co2 |" in costs
+    assert "| Heat delivered |" in costs
+    assert "| CO2 |" in costs
 
 
 async def test_design_is_a_table_with_the_columns_of_the_summary(
@@ -115,7 +125,7 @@ async def test_design_is_a_table_with_the_columns_of_the_summary(
     result = await make_result(project)
 
     response = await client.post(
-        PREVIEW, json=body(project, result, include=["design"]), headers=bearer(user)
+        PREVIEW, json=body(project, result, include=["appendix"]), headers=bearer(user)
     )
 
     design = response.json()["sections"][0]["markdown"]
@@ -136,7 +146,7 @@ async def test_checks_read_cleanly(
     )
 
     checks = response.json()["sections"][0]["markdown"]
-    assert "| Pump efficiency (d0) | pass | 0.7 against the limit 0.7 |" in checks
+    assert "| Pump efficiency (d0) | pass | 70 % | 70 % |" in checks
     assert "Doublet count |" in checks
     assert "T00:00" not in checks
 
@@ -192,7 +202,7 @@ async def test_export_markdown_records_a_report_activity(
 
     assert response.headers["content-type"].startswith("text/markdown")
     assert "attachment" in response.headers["content-disposition"]
-    assert response.text.startswith("# Doublet: Base\n\n## Capacities")
+    assert response.text.startswith("# Doublet: Base\n\n## Summary")
     rows = await ActivityRepository(session).latest(project.id, 1)
     assert (rows[0].link_route, rows[0].link_id) == ("design/report", None)
     assert route_exists(rows[0].link_route, rows[0].link_id)
@@ -220,9 +230,13 @@ async def test_parts_list_the_sections_with_their_titles_in_order(
 
     assert response.status_code == 200
     assert response.json() == [
+        {"key": "summary", "title": "Summary"},
+        {"key": "design", "title": "Plant"},
         {"key": "capacities", "title": "Capacities"},
-        {"key": "design", "title": "Design"},
+        {"key": "coverage", "title": "Days covered"},
         {"key": "checks", "title": "Constraint checks"},
-        {"key": "costs", "title": "Costs and sources"},
+        {"key": "costs", "title": "Costs"},
+        {"key": "findings", "title": "Uncertainty and sensitivity"},
         {"key": "agentlog", "title": "Agent log and tokens"},
+        {"key": "appendix", "title": "Appendix: modules and connections"},
     ]
