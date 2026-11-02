@@ -20,6 +20,7 @@ from src.core.pagination.page import Page, PageRequest, build_page, encode_curso
 
 DEFAULT_TITLE = "New chat"
 START_TASK = "assistant.runs.start"
+TITLE_LENGTH = 60
 
 
 async def list_chats(
@@ -95,6 +96,15 @@ async def queue_run(run: Run, runs: RunRepository, enqueue: Enqueue) -> None:
         raise
 
 
+def title_of(content: str) -> str:
+    """Return the first line of a message, shortened at a word to the title length."""
+    line = " ".join(content.split())
+    if len(line) <= TITLE_LENGTH:
+        return line
+    cut = line[: TITLE_LENGTH - 1].rsplit(" ", 1)[0]
+    return cut + "\u2026"
+
+
 async def send_message(
     chat: Chat,
     payload: schemas.MessageCreate,
@@ -109,6 +119,8 @@ async def send_message(
         raise ConflictError("The chat has a run that is not finished")
     run = await runs.create(uuid4(), chat.id, chat.project_id, user.id)
     message = await messages.add(chat.id, "user", payload.content, run.id)
+    if chat.title == DEFAULT_TITLE:
+        await chats.rename(chat, title_of(payload.content))
     await chats.touch(chat)
     await queue_run(run, runs, enqueue)
     return schemas.MessageSent(

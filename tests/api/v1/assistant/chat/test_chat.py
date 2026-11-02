@@ -186,3 +186,46 @@ async def test_usage_totals_the_runs(
         "output_tokens": 10,
         "cost": 1.0,
     }
+
+
+async def test_first_message_titles_a_chat_that_has_the_technical_title(
+    client, make_user, make_project, queue
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    headers = bearer(owner)
+    created = await client.post(
+        CHAT, json={"project": str(project.id)}, headers=headers
+    )
+    chat_id = created.json()["id"]
+    text = "Please size a heating plant for the example district " + "x" * 80
+
+    await client.post(
+        f"{CHAT}/{chat_id}/messages", json={"content": text}, headers=headers
+    )
+
+    listed = await client.get(f"{CHAT}?project={project.id}", headers=headers)
+    title = listed.json()["items"][0]["title"]
+    assert title.startswith("Please size a heating plant")
+    assert len(title) <= 60
+    assert title.endswith("\u2026")
+
+
+async def test_a_named_chat_keeps_its_title(
+    client, make_user, make_project, queue
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    headers = bearer(owner)
+    created = await client.post(
+        CHAT, json={"project": str(project.id), "title": "Sizing"}, headers=headers
+    )
+
+    await client.post(
+        f"{CHAT}/{created.json()['id']}/messages",
+        json={"content": "Hello"},
+        headers=headers,
+    )
+
+    listed = await client.get(f"{CHAT}?project={project.id}", headers=headers)
+    assert listed.json()["items"][0]["title"] == "Sizing"
