@@ -8,8 +8,8 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | 84f8e2c | see `git log` |
-| frontend | cfb31c1 | d527d63 |
+| backend | 1afdcde | see `git log` |
+| frontend | 8969b86 | 8a67892 |
 | gemini | a3b1471 (0.5.4) | wheel 0.5.5 |
 | geomind | c9a5c1c (0.4.1) | |
 | sandbox image | `gemini-sandbox:0.5.4` | `gemini-sandbox:0.5.5`, pulled from ghcr |
