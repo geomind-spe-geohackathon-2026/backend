@@ -27,8 +27,8 @@ python -m src.main --fastapi
 python -m src.main --celery
 ```
 
-`requirements.txt` installs gemini from `../gemini` in editable mode, so that repository
-must sit next to this one.
+`requirements.txt` pins gemini to its released wheel by URL, so `../gemini` is not needed.
+geomind has no release yet and installs from `../geomind`, which must sit next to this folder.
 
 Configure the placeholder values in `.env` before starting the services.
 
@@ -39,7 +39,7 @@ use `GET /api/v1/system/health`.
 
 `compose.dev.yml` runs only the services (PostgreSQL 16, Redis 7, MinIO, bound to 127.0.0.1,
 compose project `geomind-dev`, named volumes). The API, the Celery worker and the frontend run
-on the host from `.venv`, so the sibling `../gemini` and `../geomind` installs are the ones used.
+on the host from `.venv`, so the versions pinned in `requirements.txt` are the ones used.
 
 ```sh
 scripts/stack-up.sh           # create .env.dev if missing, services, migrate, seed, API, worker, frontend
@@ -71,11 +71,20 @@ alembic revision --autogenerate -m "describe change"
 ## Docker
 
 This folder deploys the API and the worker from its own `compose.yml` and `.env.production`. The
-image needs `../gemini` and `../geomind`, which compose passes as extra build contexts:
+image installs gemini from its released wheel and takes `../geomind` as an extra build context:
 
 ```sh
-docker build --build-context gemini=../gemini --build-context geomind=../geomind -t geomind-backend .
+docker build --build-context geomind=../geomind -t geomind-backend .
+docker pull ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:<gemini version>
+docker tag ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:<gemini version> gemini-sandbox:<gemini version>
 ```
+
+geomind looks for the sandbox under the local name.
+
+To bump gemini: change the URL in `requirements.txt` and `GEMINI_VERSION` in
+`tests/test_versions.py`, run `pip install -r requirements-dev.txt`, run the tests, fix what the
+new version changes, and commit. A new version also needs its sandbox image: `stack-up.sh` pulls
+and tags it when it is missing.
 
 PostgreSQL, Redis, MinIO, ChromaDB and InfluxDB come from `../infrastructure`, which
 also runs Traefik. Create the external `geomind` and `traefik` networks, start those

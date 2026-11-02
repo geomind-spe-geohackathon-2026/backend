@@ -48,16 +48,12 @@ export ASSISTANT_LLM
 
 GEMINI_VERSION="$("$PYTHON" -c 'import gemini; print(gemini.__version__)')"
 SANDBOX_IMAGE="gemini-sandbox:$GEMINI_VERSION"
-GEMINI_SOURCE="${GEMINI_SOURCE:-$BACKEND/../gemini}"
+SANDBOX_SOURCE="ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:$GEMINI_VERSION"
 
 prepare_sandbox() {
   if docker image inspect "$SANDBOX_IMAGE" >/dev/null 2>&1; then return 0; fi
-  if [ -f "$GEMINI_SOURCE/docker/sandbox.Dockerfile" ]; then
-    echo "building $SANDBOX_IMAGE from $GEMINI_SOURCE"
-    docker build -q -f "$GEMINI_SOURCE/docker/sandbox.Dockerfile" -t "$SANDBOX_IMAGE" "$GEMINI_SOURCE" >/dev/null
-    return 0
-  fi
-  return 1
+  echo "pulling $SANDBOX_SOURCE"
+  docker pull -q "$SANDBOX_SOURCE" >/dev/null && docker tag "$SANDBOX_SOURCE" "$SANDBOX_IMAGE"
 }
 
 if [ -z "${ASSISTANT_SANDBOX:-}" ]; then

@@ -1,4 +1,4 @@
--e ../gemini
+gemini-geothermal-suite-open @ https://github.com/geomind-spe-geohackathon-2026/gemini/releases/download/v0.5.5/gemini_geothermal_suite_open-0.5.5-py3-none-any.whl
 -e ../geomind
 alembic>=1.13,<2
 asyncpg>=0.29,<1

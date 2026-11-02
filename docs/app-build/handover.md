@@ -10,9 +10,9 @@ In a new clone the prompt's `../docs/` paths do not exist, because `docs/` was n
 
 Tools: Python 3.12, Node 22 with npm, Docker with compose, git over SSH with access to the repos below.
 
-Current pins: gemini a3b1471 (0.5.4), geomind c9a5c1c (0.4.1), image `gemini-sandbox:0.5.4` (`make -C ../gemini sandbox-image`). `stack-up.sh` builds the image from `../gemini` when it is absent. The local stack runs on Windows WSL2 with Docker Desktop; if the shell predates the `docker` group, run `sg docker -c "scripts/stack-up.sh"`. Do not copy `OPENROUTER_API_KEY` from `.env.example` into `.env`: its placeholder turns on the real LLM. Without root, Playwright's Chromium needs its libraries unpacked from `apt-get download` and named in `LD_LIBRARY_PATH`.
+gemini is the released wheel pinned by URL in `requirements.txt`, never `-e`: 0.5.5. It releases from gemini's `dev`. geomind is still `-e ../geomind` at c9a5c1c (0.4.1) until it has a release, so `../geomind` must sit next to this folder; `../gemini` is not needed. See README, "Docker", for bumping a pin. `stack-up.sh` pulls `ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:<version>` and tags it `gemini-sandbox:<version>`, the name geomind expects, when it is absent. The local stack runs on Windows WSL2 with Docker Desktop; if the shell predates the `docker` group, run `sg docker -c "scripts/stack-up.sh"`. Do not copy `OPENROUTER_API_KEY` from `.env.example` into `.env`: its placeholder turns on the real LLM. Without root, Playwright's Chromium needs its libraries unpacked from `apt-get download` and named in `LD_LIBRARY_PATH`.
 
-Folder layout (siblings, because `requirements.txt` and compose use relative paths):
+Folder layout (geomind must sit next to the backend; gemini is only needed as a checkout to read it):
 
 ```
 geomind-spe-geohackathon-2026/
@@ -65,7 +65,7 @@ Verified on the real local stack (see README, "Local stack") with geomind 0.3.0 
 ## State after the WSL move (2026-11-02)
 
 - Verified: backend 504 tests, frontend 957 tests, Playwright real. Migrations 0001 to 0009 on PostgreSQL 16 were last run on 0.5.1.
-- `tests/test_versions.py` states the engine versions; the image copies the sibling checkouts, so nothing else pins them.
+- `tests/test_versions.py` checks that the installed engines are the versions pinned in `requirements.txt` and that nothing is editable.
 - `backend/.env` is for tests, `.env.dev` for the local stack, `.env.production` for deploys. Compose: `compose.dev.yml` and `compose.yml`.
 - Requests: `gemini-requests.md` for gemini, `requests.md` for geomind.
 - `size` is a study kind (method `run`, `prepare: ["size"]`); the example project seeds `HeatingFullCoolingPlant` (`tests/fixtures/hackathon/seed_plant.json`), feasible once the case is complete.

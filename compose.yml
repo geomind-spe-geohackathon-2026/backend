@@ -4,7 +4,6 @@ x-service: &service
   build:
     context: .
     additional_contexts:
-      gemini: ../gemini
       geomind: ../geomind
   image: geomind-backend:latest
   restart: unless-stopped

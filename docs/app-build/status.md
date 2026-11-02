@@ -10,9 +10,9 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 | --- | --- | --- |
 | backend | 84f8e2c | see `git log` |
 | frontend | cfb31c1 | d527d63 |
-| gemini | a3b1471 (0.5.4) | |
+| gemini | a3b1471 (0.5.4) | wheel 0.5.5 |
 | geomind | c9a5c1c (0.4.1) | |
-| sandbox image | `gemini-sandbox:0.5.4` | |
+| sandbox image | `gemini-sandbox:0.5.4` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
 Contract version 42. Latest migration 0009.
 
@@ -25,6 +25,7 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 - Modules merge in the diagram only when type, connections and settings are equal.
 - Failed chat: readable stop, and the studies the run recorded. A chat on an incomplete case says so.
 - gemini 0.5.4: all numbers of the competition studies equal 0.5.3 (3,020 compared), `hackathon.py` output identical.
+- gemini 0.5.5: all numbers of the competition studies equal 0.5.4 (18,121 compared, coverage included).
 - Phone width: no page scrolls sideways on 13 routes, wide tables scroll in their card with a fade.
 - Compare: designs only, labels clear of each other, check text says all passed only when all were assessed.
 - Range hints in the parameter form, for every module of a class.
@@ -43,7 +44,7 @@ Results, summary and report read gemini's display units through `report.to_dict(
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
 - Compare labels are tested, not checked by eye on a real chart of many designs.
 - A run shows `done` when its last tool failed; the chat shows the failure and the panel shows the count.
-- Branch `registry-packages` installs the engines from a registry, never `-e`. It waits for the registry URL and first versions.
+- geomind still installs with `-e ../geomind` until it has a release.
 - Whether Fatemeh Chitsaz's commit identity should also apply to the `ux/frontend` clone.
 - Budget caps are not retested on DeepSeek, and the two live checks were skipped under the no-token order.
 
