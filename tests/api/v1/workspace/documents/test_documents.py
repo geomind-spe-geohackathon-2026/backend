@@ -162,3 +162,16 @@ async def test_extraction_marks_an_unreadable_file_failed(
 
 async def test_extraction_of_a_deleted_document_does_nothing(session, blobs) -> None:
     await services.extract_document(uuid4(), DocumentRepository(session), blobs)
+
+
+async def test_upload_refuses_a_type_that_cannot_be_read(
+    client, make_user, make_project
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+
+    response, enqueue = await upload(client, owner, project, name="bad.exe", data=b"MZ")
+
+    assert response.status_code == 422
+    assert ".pdf" in response.json()["error"]["details"]["fields"]["file"]
+    enqueue.assert_not_called()
