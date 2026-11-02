@@ -76,6 +76,27 @@ class Coverage(BaseModel):
     cooling: list[CoverageDay] = []
 
 
+class TornadoRow(BaseModel):
+    parameter: str
+    metric: str
+    low: str
+    high: str
+    at_low: float | None
+    at_high: float | None
+    effect: float | None
+    unit: str
+
+
+class SpreadRow(BaseModel):
+    metric: str
+    mean: float | None
+    p5: float | None
+    p50: float | None
+    p95: float | None
+    unit: str
+    draws: int
+
+
 class AdoptedDesign(BaseModel):
     plant_version: int
 
@@ -83,6 +104,8 @@ class AdoptedDesign(BaseModel):
 class ResultDetail(Result):
     capacities: list[Capacity]
     sizes: list[Capacity]
+    tornado: list[TornadoRow] | None
+    spread: list[SpreadRow] | None
     coverage: Coverage | None
     constraints: list[Constraint]
     series: list[Any]

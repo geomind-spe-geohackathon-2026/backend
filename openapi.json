@@ -2541,6 +2541,20 @@
             "title": "Sizes",
             "type": "array"
           },
+          "spread": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SpreadRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spread"
+          },
           "study": {
             "anyOf": [
               {
@@ -2552,6 +2566,20 @@
               }
             ],
             "title": "Study"
+          },
+          "tornado": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TornadoRow"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tornado"
           }
         },
         "required": [
@@ -2565,6 +2593,8 @@
           "created",
           "capacities",
           "sizes",
+          "tornado",
+          "spread",
           "coverage",
           "constraints",
           "series"
@@ -2797,6 +2827,77 @@
           "problems"
         ],
         "title": "SpecProblems",
+        "type": "object"
+      },
+      "SpreadRow": {
+        "properties": {
+          "draws": {
+            "title": "Draws",
+            "type": "integer"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "p5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P5"
+          },
+          "p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P50"
+          },
+          "p95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metric",
+          "mean",
+          "p5",
+          "p50",
+          "p95",
+          "unit",
+          "draws"
+        ],
+        "title": "SpreadRow",
         "type": "object"
       },
       "StartedBy": {
@@ -3178,6 +3279,75 @@
           "cost"
         ],
         "title": "Tokens",
+        "type": "object"
+      },
+      "TornadoRow": {
+        "properties": {
+          "at_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At High"
+          },
+          "at_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At Low"
+          },
+          "effect": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effect"
+          },
+          "high": {
+            "title": "High",
+            "type": "string"
+          },
+          "low": {
+            "title": "Low",
+            "type": "string"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "parameter": {
+            "title": "Parameter",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parameter",
+          "metric",
+          "low",
+          "high",
+          "at_low",
+          "at_high",
+          "effect",
+          "unit"
+        ],
+        "title": "TornadoRow",
         "type": "object"
       },
       "Usage": {

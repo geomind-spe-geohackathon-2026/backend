@@ -48,6 +48,8 @@ def to_detail(
         **to_summary(result),
         capacities=parts["capacities"],
         sizes=parts["sizes"],
+        tornado=gemini_evaluate.tornado_of(content.get("run", {})),
+        spread=gemini_evaluate.spread_of(content.get("run", {})),
         coverage=content.get("coverage"),
         constraints=parts["constraints"],
         series=content["series"],

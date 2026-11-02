@@ -25,6 +25,7 @@ ABBREVIATIONS = {
 }
 KIND_MEANINGS = {"cooler": "heat rejected"}
 LENGTH_UNIT = "m"
+CASE_PREFIX = "case."
 CLEAN_DIGITS = 6
 PERCENT = 100
 PERCENT_UNIT = "%"
@@ -290,6 +291,46 @@ def sizes_of(report: dict[str, Any]) -> list[dict[str, Any]]:
         rating_of(path, item)
         for path, item in report["capacities"].items()
         if item["capacity"]["unit"] == LENGTH_UNIT
+    ]
+
+
+def tornado_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
+    """Return the rows of a sensitivity study, the largest effect first."""
+    found = run.get("found") or {}
+    if "rows" not in found:
+        return None
+    rows = [
+        {
+            "parameter": item["parameter"].removeprefix(CASE_PREFIX),
+            "metric": title_of(item["metric"]),
+            "low": amount(item["low"]),
+            "high": amount(item["high"]),
+            "at_low": item["at_low"]["value"],
+            "at_high": item["at_high"]["value"],
+            "effect": item["effect"]["value"],
+            "unit": item["effect"]["unit"],
+        }
+        for item in found["rows"]
+    ]
+    return sorted(rows, key=lambda row: abs(row["effect"] or 0), reverse=True)
+
+
+def spread_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
+    """Return the spread of each metric over the draws of an uncertainty study."""
+    found = run.get("found") or {}
+    if "summary" not in found:
+        return None
+    return [
+        {
+            "metric": title_of(name),
+            "mean": item["mean"]["value"],
+            "p5": item["p5"]["value"],
+            "p50": item["p50"]["value"],
+            "p95": item["p95"]["value"],
+            "unit": item["mean"]["unit"],
+            "draws": len(found.get("samples", [])),
+        }
+        for name, item in found["summary"].items()
     ]
 
 

@@ -215,3 +215,38 @@ def test_a_share_of_one_reads_as_a_percentage_without_noise() -> None:
 
     assert (found["value"], found["unit"]) == (70.0, "%")
     assert found["limit"] == "= 70 %"
+
+
+def test_a_tornado_lists_the_largest_effect_first() -> None:
+    def row(name: str, effect: float) -> dict:
+        figure = {"value": 1.0, "unit": "K"}
+        result = {"value": effect, "unit": "EUR/MWh"}
+        return {
+            "parameter": f"case.{name}",
+            "metric": "lcts",
+            "low": figure,
+            "high": figure,
+            "at_low": result,
+            "at_high": result,
+            "effect": result,
+        }
+
+    rows = evaluate.tornado_of({"found": {"rows": [row("a", 1), row("b", 3)]}})
+
+    assert [item["parameter"] for item in rows] == ["b", "a"]
+    assert rows[0]["metric"] == "LCTS"
+
+
+def test_a_spread_has_its_percentiles_and_draws() -> None:
+    figure = {"value": 2.0, "unit": "kt"}
+    summary = {"co2": {"mean": figure, "p5": figure, "p50": figure, "p95": figure}}
+
+    rows = evaluate.spread_of({"found": {"summary": summary, "samples": [1, 2]}})
+
+    assert rows[0]["draws"] == 2
+    assert rows[0]["p95"] == 2.0
+
+
+def test_other_runs_have_neither() -> None:
+    assert evaluate.tornado_of({}) is None
+    assert evaluate.spread_of({"found": {}}) is None
