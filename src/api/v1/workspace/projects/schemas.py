@@ -14,6 +14,7 @@ ProjectName = Annotated[
 
 class ProjectCreate(BaseModel):
     name: ProjectName
+    case_from: UUID | None = None
 
 
 class ProjectUpdate(BaseModel):

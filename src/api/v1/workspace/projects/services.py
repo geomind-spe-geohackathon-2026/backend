@@ -36,13 +36,15 @@ from src.core.clients.postgres.repositories.project import (
 )
 from src.core.errors import CaseInvalidError, ValidationFailedError
 from src.core.gemini import case as case_document
-from src.core.gemini.errors import PlantInvalidError
+from src.core.gemini.errors import CaseNotFoundError, PlantInvalidError
 from src.core.gemini.plant import validate_content
 from src.core.gemini.stored import stored_files
 from src.core.pagination.page import Page, PageRequest, encode_cursor
 from src.core.progress.reader import ProgressReader
 from src.core.progress.states import build_progress
+from src.core.security.access import require_project
 from src.core.settings import settings
+from src.core.versioning import latest_version
 
 EXPORT_FORMAT = 1
 PROJECT_FILE = "project.json"
@@ -107,13 +109,43 @@ async def list_projects(
     )
 
 
+async def copy_case(
+    source: Project,
+    cases: CaseVersionRepository,
+    files: CaseFileRepository,
+    blobs: BlobStore,
+) -> ParsedCase:
+    """Read the source's latest case and the files it holds as a new version 1."""
+    latest = await latest_version(cases, source.id, CaseNotFoundError)
+    data = await stored_files(await files.list_for_version(latest.id), blobs)
+    note = f"Copied from {source.name}"
+    return ParsedCase(1, note, datetime.now(UTC), latest.content, data)
+
+
 async def create_project(
     payload: schemas.ProjectCreate,
     user: User,
     repository: ProjectRepository,
     progress: ProgressReader,
+    cases: CaseVersionRepository,
+    files: CaseFileRepository,
+    blobs: BlobStore,
 ) -> schemas.Project:
-    project = await repository.create(payload.name, user.id)
+    """Create a project, empty or with a copy of another project's latest case."""
+    if payload.case_from is None:
+        project = await repository.create(payload.name, user.id)
+        return await describe_one(project, progress)
+    source = await require_project(payload.case_from, user, repository)
+    copied = await copy_case(source, cases, files, blobs)
+    project_id = uuid4()
+    stored = await store_cases(blobs, project_id, [copied])
+    try:
+        project = await repository.create_with_versions(
+            project_id, payload.name, user.id, [], stored
+        )
+    except Exception:
+        await remove_cases(blobs, stored)
+        raise
     return await describe_one(project, progress)
 
 

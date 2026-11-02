@@ -72,8 +72,13 @@ async def create_project(
     user: CurrentUser,
     repository: ProjectRepositoryDependency,
     progress: ProgressReaderDependency,
+    cases: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    blobs: BlobStoreDependency,
 ) -> schemas.Project:
-    return await services.create_project(payload, user, repository, progress)
+    return await services.create_project(
+        payload, user, repository, progress, cases, files, blobs
+    )
 
 
 @router.post(

@@ -1779,6 +1779,18 @@
       },
       "ProjectCreate": {
         "properties": {
+          "case_from": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case From"
+          },
           "name": {
             "maxLength": 255,
             "minLength": 1,
