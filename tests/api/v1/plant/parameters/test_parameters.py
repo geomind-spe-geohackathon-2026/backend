@@ -1,11 +1,19 @@
+import json
+from pathlib import Path
+
 import gemini as gm
 
 from tests.api.v1.plant.helpers import PARAMETERS, save_plant
 from tests.conftest import bearer
 from tests.plants import example_plant
 
+EXAMPLE = Path(__file__).parents[4] / "fixtures" / "hackathon"
 MODULE = "heat_exchanger"
 QUANTITY = {"thermal_conductance": {"value": 5, "unit": "W/K"}}
+
+
+def changed_range_plant() -> dict:
+    return json.loads((EXAMPLE / "seed_plant.json").read_text())
 
 
 def project_query(project, **extra) -> dict:
@@ -226,3 +234,60 @@ async def test_fill_is_not_implemented_until_the_catalogue_exists(
 
 def test_saved_spec_keeps_what_gemini_wrote() -> None:
     assert gm.Plant.from_dict(example_plant()).to_dict() == example_plant()
+
+
+async def test_a_range_is_saved_shown_and_removed(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    headers = bearer(owner)
+    spec = changed_range_plant()
+    await save_plant(client, headers, project, spec=spec)
+    query = {"project": str(project.id), "module": "d0"}
+
+    async def save(base: int, limits: dict) -> None:
+        body = {
+            "project": str(project.id),
+            "base": base,
+            "module": "d0",
+            "params": {},
+            "ranges": {"nominal_flow": limits},
+            "note": "range",
+        }
+        response = await client.post(PARAMETERS, json=body, headers=headers)
+        assert response.status_code == 201, response.text
+
+    await save(1, {"min": 60, "max": 200})
+    shown = (await client.get(PARAMETERS, params=query, headers=headers)).json()
+    assert "nominal_flow" in shown["ranges"]
+    assert shown["search"]["nominal_flow"]["min"] == 60
+    assert shown["search"]["nominal_flow"]["max"] == 200
+
+    await save(2, {"min": None, "max": None})
+    shown = (await client.get(PARAMETERS, params=query, headers=headers)).json()
+    assert shown["search"]["nominal_flow"]["min"] is None
+
+
+async def test_gemini_words_a_range_it_refuses(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    await save_plant(client, bearer(owner), project, spec=changed_range_plant())
+
+    response = await client.post(
+        PARAMETERS,
+        json={
+            "project": str(project.id),
+            "base": 1,
+            "module": "d0",
+            "params": {},
+            "ranges": {"nominal_flow": {"min": 300, "max": 50}},
+            "note": "range",
+        },
+        headers=bearer(owner),
+    )
+
+    assert response.status_code == 422
+    assert "above max" in response.text

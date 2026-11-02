@@ -49,7 +49,10 @@ async def save_parameters(
     latest = await latest_version(repository, project.id, PlantNotFoundError)
     check_base(latest, payload.base)
     built = plant.from_dict(latest.content)
-    plant.set_parameters(built, payload.module, payload.params, payload.valid_from)
+    if payload.params:
+        plant.set_parameters(built, payload.module, payload.params, payload.valid_from)
+    limits = {name: item.model_dump() for name, item in payload.ranges.items()}
+    plant.set_ranges(built, payload.module, limits)
     version = await repository.save_version(
         project.id, plant.to_dict(built), payload.note, user.id
     )

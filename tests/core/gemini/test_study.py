@@ -1,7 +1,8 @@
+import gemini as gm
 import pytest
 
 from src.core.errors import CaseInvalidError, ValidationFailedError
-from src.core.gemini import study
+from src.core.gemini import plant, study
 from src.core.gemini.errors import PlantInvalidError
 from tests import design_inputs as inputs
 
@@ -197,3 +198,18 @@ def test_prepare_says_what_it_does_and_keeps_gemini_choices() -> None:
 
     assert prepare["description"]
     assert prepare["items"]["enum"] == ["size"]
+
+
+def test_optimise_searches_a_range_edited_in_the_plant() -> None:
+    edited = plant.from_dict(inputs.plant_content())
+    plant.set_ranges(edited, "d0", {"nominal_flow": {"min": 120.0, "max": 130.0}})
+    settings = {"objective": "lcts", "evaluations": 15, "seed": 1}
+    documents = (plant.to_dict(edited), inputs.case_content(), inputs.case_files())
+
+    found = study.run(
+        "minimize", "o", settings, documents, lambda *_: None, lambda: False
+    )
+
+    best = found["design"]["params"]["d0"]["nominal_flow"]
+    flow = gm.units.Quantity(best["value"], best["unit"]).to("m3/h").value
+    assert 120.0 <= flow <= 130.0

@@ -1852,6 +1852,13 @@
             "title": "Schema",
             "type": "object"
           },
+          "search": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SearchRange"
+            },
+            "title": "Search",
+            "type": "object"
+          },
           "type": {
             "title": "Type",
             "type": "string"
@@ -1869,6 +1876,7 @@
           "values",
           "missing",
           "ranges",
+          "search",
           "history"
         ],
         "title": "Parameters",
@@ -1959,6 +1967,14 @@
             "format": "uuid",
             "title": "Project",
             "type": "string"
+          },
+          "ranges": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RangeUpdate"
+            },
+            "default": {},
+            "title": "Ranges",
+            "type": "object"
           },
           "valid_from": {
             "anyOf": [
@@ -2215,6 +2231,34 @@
           }
         },
         "title": "ProjectUpdate",
+        "type": "object"
+      },
+      "RangeUpdate": {
+        "properties": {
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          }
+        },
+        "title": "RangeUpdate",
         "type": "object"
       },
       "RefreshRequest": {
@@ -2954,6 +2998,50 @@
           "answer"
         ],
         "title": "RunAnswer",
+        "type": "object"
+      },
+      "SearchRange": {
+        "properties": {
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "min",
+          "max",
+          "unit"
+        ],
+        "title": "SearchRange",
         "type": "object"
       },
       "Series": {

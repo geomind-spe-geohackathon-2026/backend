@@ -9,6 +9,17 @@ class ParameterHistory(BaseModel):
     params: dict[str, Any]
 
 
+class SearchRange(BaseModel):
+    min: float | None
+    max: float | None
+    unit: str | None
+
+
+class RangeUpdate(BaseModel):
+    min: float | None = None
+    max: float | None = None
+
+
 class Parameters(BaseModel):
     module: str
     type: str
@@ -16,6 +27,7 @@ class Parameters(BaseModel):
     values: dict[str, Any]
     missing: list[str]
     ranges: list[str]
+    search: dict[str, SearchRange]
     history: list[ParameterHistory]
 
 
@@ -24,6 +36,7 @@ class ParametersUpdate(BaseModel):
     base: int | None
     module: str = Field(min_length=1)
     params: dict[str, Any]
+    ranges: dict[str, RangeUpdate] = {}
     valid_from: AwareDatetime | None = None
     note: str
 

@@ -162,3 +162,54 @@ def test_a_group_inside_a_later_module_lists_its_names() -> None:
 def test_template_text_has_no_code_marks() -> None:
     for name in plant.template_names():
         assert "``" not in plant.describe_template(name)["description"]
+
+
+def seeded() -> gm.Plant:
+    content = json.loads((EXAMPLE / "seed_plant.json").read_text())
+    content["size"]["doublets"]["value"] = 2
+    return from_dict(content)
+
+
+def test_a_range_is_set_shown_and_kept_in_the_plant_file() -> None:
+    built = seeded()
+
+    plant.set_ranges(built, "d1", {"nominal_flow": {"min": 60.0, "max": 200.0}})
+
+    shown = plant.parameters(built, "d1", None, None)["search"]["nominal_flow"]
+    assert shown == {"min": 60.0, "max": 200.0, "unit": shown["unit"]}
+    written = from_dict(plant.to_dict(built))
+    assert "d1.nominal_flow" in written.ranges
+
+
+def test_both_ends_empty_removes_a_range() -> None:
+    built = seeded()
+    assert "d0.nominal_flow" in built.ranges
+
+    plant.set_ranges(built, "d0", {"nominal_flow": {"min": None, "max": None}})
+
+    assert "d0.nominal_flow" not in built.ranges
+
+
+def test_gemini_refuses_a_range_upside_down_in_its_own_words() -> None:
+    error = pytest.raises(
+        PlantInvalidError,
+        plant.set_ranges,
+        seeded(),
+        "d0",
+        {"nominal_flow": {"min": 300.0, "max": 50.0}},
+    ).value
+
+    assert "above max" in str(error.details)
+
+
+def test_a_value_no_study_can_search_is_refused() -> None:
+    with pytest.raises(PlantInvalidError):
+        plant.set_ranges(seeded(), "d0", {"no_such_value": {"min": 1.0, "max": 2.0}})
+
+
+def test_a_range_on_a_value_without_units_is_kept() -> None:
+    built = seeded()
+
+    plant.set_ranges(built, "d0", {"pump_efficiency": {"min": 0.6, "max": 0.8}})
+
+    assert "d0.pump_efficiency" in built.ranges

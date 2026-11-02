@@ -307,6 +307,54 @@ def range_names(plant: gm.Plant, module: str) -> list[str]:
     return list(dict.fromkeys(names))
 
 
+def leaf_at(params: dict[str, Any], path: str) -> dict[str, Any] | None:
+    """Return the leaf of the plant file at a dotted path, or None without a value."""
+    found: Any = params
+    for part in path.split("."):
+        found = found.get(part) if isinstance(found, dict) else None
+    return found if isinstance(found, dict) and "value" in found else None
+
+
+def search_of(plant: gm.Plant, module: str) -> dict[str, dict[str, Any]]:
+    """Return the search range and unit of what a study can search under a module."""
+    params = plant.to_dict()["params"]
+    found = {}
+    for name in range_names(plant, module):
+        leaf = leaf_at(params, f"{module}.{name}")
+        if leaf is not None:
+            limits = leaf.get("range") or {}
+            found[name] = {
+                "min": limits.get("min"),
+                "max": limits.get("max"),
+                "unit": leaf.get("unit"),
+            }
+    return found
+
+
+def bound_of(value: float | None, unit: str | None) -> Any:
+    """Return one end of a range as gemini takes it: a quantity, or a plain number."""
+    if value is None or unit is None:
+        return value
+    return gm.units.Quantity(value, unit)
+
+
+def set_ranges(
+    plant: gm.Plant, module: str, ranges: dict[str, dict[str, float | None]]
+) -> None:
+    """Set the search ranges of a module; both ends empty removes one."""
+    search = search_of(plant, module)
+    for name, limits in ranges.items():
+        if name not in search:
+            message = f"{module}.{name}: a study cannot search this value yet"
+            raise plant_invalid([], message)
+        unit = search[name]["unit"]
+        low, high = bound_of(limits["min"], unit), bound_of(limits["max"], unit)
+        try:
+            plant.set_range(f"{module}.{name}", low, high)
+        except gm.errors.ValidationError as error:
+            raise plant_invalid(list(error.problems), str(error)) from error
+
+
 def parameters(
     plant: gm.Plant,
     module: str,
@@ -322,5 +370,6 @@ def parameters(
         "values": plant.params_at(module, at),
         "missing": missing_parameters(plant, module, case),
         "ranges": range_names(plant, module),
+        "search": search_of(plant, module),
         "history": plant.param_history(module),
     }
