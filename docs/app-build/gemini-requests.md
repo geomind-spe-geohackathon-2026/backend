@@ -14,3 +14,7 @@ Only what a UI feature needs that the public API cannot give, and real calculati
   Today: `params.d0.*` is listed and `params.d1.*` is not, though a `range` on `d1` is accepted. The backend maps the paths to every module of the same class.
   Wanted: ranges by module class, or a statement that they apply to every copy.
 
+- Thermal conductance in `DISPLAY_UNITS`
+  Today: `W/K` is not listed, so a heat exchanger's rating stays in W/K and the backend scales it to MW/K itself (`evaluate.readable`).
+  Wanted: a display unit for it.
+

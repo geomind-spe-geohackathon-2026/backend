@@ -1,5 +1,7 @@
 # Handover: Phase D of the app build
 
+Current state, production pins and open work: `status.md`.
+
 Read this first, then `app-frontend-backend.md` sections 1 and 7 to 10. Phases A, B, C and the integration pass (D3) are done; see Phase D status.
 
 In a new clone the prompt's `../docs/` paths do not exist, because `docs/` was never a git repo. Their files are here: `contracts.md` (version 41, wins over the prompt), `ui-mockup.html`, `app-frontend-backend.md`, `plan.md` (gap decisions), `requests.md` (ready to paste), `inventories/`.
@@ -78,7 +80,7 @@ Verified on the real local stack (see README, "Local stack") with geomind 0.3.0 
 - `python -m src.scripts.projects export --project <id> --out bundle.tar` and `import bundle.tar --owner <email>` move whole projects: rows and objects, ids kept, users remapped to one owner, refused if an id exists. A new table with no rule in `rows_of_table` stops the tool.
 - The report draws a process diagram (`frontend/src/shared/plant/flowsheet-sheet.ts`, `flowsheet-layout.ts`) and, in the appendix, the full flowsheet on a landscape PDF page. Modules merge only when type, connections and settings are equal.
 - A failed chat run names an internal error and links the studies it recorded; the raw message stays in the run log. Any `stop_reason` of `error` reads this way, a model provider failure included.
-- Open: a green scripted `save_profile` was not shown; plant range hints from `capabilities()` are not wired; `units="display"` is not used. Branch `registry-packages` installs the engines from a registry, waiting for its URL and versions. geomind requests are in `requests.md`, among them the crash at `loops/design.py:293`.
+- Branch `registry-packages` installs the engines from a registry, waiting for its URL and versions. geomind requests are in `requests.md`, among them the crash at `loops/design.py:293`.
 
 ## What Phase D must still do
 
