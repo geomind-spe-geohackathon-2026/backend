@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import geomind as gd
 import geomind.types as gd_types
@@ -7,6 +8,8 @@ MODEL = "scripted/model"
 USAGE = gd_types.Usage(input_tokens=120, output_tokens=40, cost=0.001)
 ROUTE = '{"kind": "loop", "loop": "tool", "agent": "analyst"}'
 ANSWER = "The scripted assistant finished after your approval."
+FAILED_ANSWER = "The scripted assistant could not finish: the last step failed."
+ERROR_MARK = "error"
 SCENARIO = "demand profile"
 SCENARIO_DAYS = 365
 SCENARIO_START = "2027-01-01T00:00:00Z"
@@ -48,6 +51,23 @@ def asks_to_save() -> gd_types.Completion:
     )
 
 
+def last_step_failed(messages: list[Any]) -> bool:
+    """Tell whether the newest tool result holds an error."""
+    results = [item for item in messages if item.role == "tool"]
+    if not results:
+        return False
+    return str(results[-1].content).lstrip("[{'\" ").startswith(ERROR_MARK)
+
+
+class ResumedLLM(gd.providers.FakeLLM):
+    """Ends a resumed scenario with a sentence that fits how its last step went."""
+
+    async def complete(self, messages: Any, tools: Any, **options: Any) -> Any:
+        failed = last_step_failed(messages)
+        self.completions = [says(FAILED_ANSWER if failed else ANSWER)]
+        return await super().complete(messages, tools, **options)
+
+
 def scripted_llm(resumed: bool, message: str) -> gd.providers.FakeLLM:
     """Return the test LLM: a plain reply, or the scenario of a message that asks it.
 
@@ -56,7 +76,7 @@ def scripted_llm(resumed: bool, message: str) -> gd.providers.FakeLLM:
     plain reply. Only ``ASSISTANT_LLM=fake`` selects it.
     """
     if resumed:
-        return gd.providers.FakeLLM([says(ANSWER)])
+        return ResumedLLM([])
     if SCENARIO in message.lower():
         return gd.providers.FakeLLM([says(ROUTE), asks_to_list(), asks_to_save()])
     reply = json.dumps({"kind": "answer", "answer": DEMO_ANSWER})
