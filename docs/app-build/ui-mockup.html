@@ -1,0 +1,835 @@
+<title>Geomind App Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: three levels. 1) sign in (no chrome). 2) projects home (top bar only). 3) inside a project (top bar + project sidebar + view). */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --sunken:#e7ebef; --border:#d3dae1; --fg:#17212b; --muted:#5b6977;
+  --accent:#0f6e84; --accent-soft:#dbecf0; --on-accent:#ffffff;
+  --ok:#2f7d4a; --warn:#a46700; --bad:#b3362c; --ok-soft:#e0f0e5; --warn-soft:#f7ebd2; --bad-soft:#f6dfdc;
+  --hot:#d0542b; --heat:#e0912f; --cold:#2f74c9; --power:#7a5bc0; --gas:#7c8a96;
+  --note:#fff6d8; --note-fg:#5a4910; --shadow:0 10px 30px rgba(20,30,40,.18);
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --surface:#17202a; --sunken:#0c1116; --border:#293643; --fg:#e2e8ee; --muted:#91a0ae;
+  --accent:#4fb3c9; --accent-soft:#15343d; --on-accent:#0c1116;
+  --ok:#5cbf7d; --warn:#e2a742; --bad:#ec7a6f; --ok-soft:#163125; --warn-soft:#392c11; --bad-soft:#3c1b18;
+  --hot:#ee7a50; --heat:#f0ab55; --cold:#6aa6ec; --power:#a78be6; --gas:#9aa8b4;
+  --note:#2e2916; --note-fg:#ebdba2; --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#17202a; --sunken:#0c1116; --border:#293643; --fg:#e2e8ee; --muted:#91a0ae;
+  --accent:#4fb3c9; --accent-soft:#15343d; --on-accent:#0c1116;
+  --ok:#5cbf7d; --warn:#e2a742; --bad:#ec7a6f; --ok-soft:#163125; --warn-soft:#392c11; --bad-soft:#3c1b18;
+  --hot:#ee7a50; --heat:#f0ab55; --cold:#6aa6ec; --power:#a78be6; --gas:#9aa8b4;
+  --note:#2e2916; --note-fg:#ebdba2; --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600}
+h1{font-size:20px} h2{font-size:16px} h3{font-size:13px}
+p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:12.5px}
+.muted{color:var(--muted)}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.hide{display:none!important}
+
+.page-head{max-width:1280px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.page-head p{color:var(--muted);max-width:75ch}
+.flow{max-width:1280px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.flow b{color:var(--fg);font-weight:500}
+.flow .arr{opacity:.6}
+
+.frame{max-width:1280px;margin:0 auto;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);min-height:740px;display:flex;flex-direction:column;position:relative}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);min-height:50px}
+.brand{font-weight:600;font-size:15px;display:flex;gap:8px;align-items:center;border:0;background:none;cursor:pointer;padding:0}
+.logo{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,var(--heat),var(--hot) 60%,transparent 62%),var(--cold);flex:none}
+.crumbs{display:flex;gap:6px;align-items:center;color:var(--muted);flex-wrap:wrap;min-width:0}
+.crumbs button{border:0;background:none;cursor:pointer;padding:2px 4px;border-radius:5px;color:var(--muted)}
+.crumbs button:hover{background:var(--sunken);color:var(--fg)}
+.crumbs .here{color:var(--fg);font-weight:500}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:2px 9px;border-radius:99px;border:1px solid var(--border);color:var(--muted);white-space:nowrap;background:var(--surface);cursor:pointer}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-size:11px;font-weight:600;border:0;cursor:pointer}
+.menu{position:absolute;right:12px;top:48px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:6px;min-width:210px;z-index:5;display:flex;flex-direction:column}
+.menu .who{padding:6px 10px 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.menu button{border:0;background:none;text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer}
+.menu button:hover{background:var(--sunken)}
+.note{background:var(--note);color:var(--note-fg);padding:8px 16px;font-size:13px;border-bottom:1px solid var(--border)}
+.body{display:flex;flex:1;min-height:0}
+.side{width:210px;flex:none;background:var(--sunken);border-right:1px solid var(--border);padding:12px 10px;display:flex;flex-direction:column;gap:12px}
+.projhead{display:flex;flex-direction:column;gap:2px;padding:4px 8px 10px;border-bottom:1px solid var(--border)}
+.projhead b{font-size:14px}
+.group{display:flex;flex-direction:column;gap:1px}
+.group .label{padding:0 8px 4px}
+.nav{display:flex;gap:8px;align-items:center;text-align:left;border:0;background:none;padding:6px 8px;border-radius:6px;cursor:pointer;color:var(--fg);width:100%}
+.nav:hover{background:var(--surface)}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.nav[disabled]{color:var(--muted);cursor:not-allowed;opacity:.7}
+.nav[disabled]:hover{background:none}
+.nav .st{margin-left:auto}
+.stepn{width:18px;height:18px;border-radius:50%;border:1px solid currentColor;display:grid;place-items:center;font-size:10.5px;flex:none}
+.tag{font-size:10px;padding:1px 6px;border-radius:99px;background:var(--surface);color:var(--muted);border:1px solid var(--border);white-space:nowrap;margin-left:auto}
+.sdot{width:8px;height:8px;border-radius:50%;margin-left:auto;flex:none}
+.content{flex:1;min-width:0;display:flex;flex-direction:column}
+.view{padding:18px;display:none;min-width:0;flex:1}
+.view.on{display:block}
+.vhead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.vhead p{color:var(--muted);margin-top:2px;max-width:70ch}
+
+.btn{border:1px solid var(--border);background:var(--surface);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.link{border:0;background:none;color:var(--accent);padding:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.card{border:1px solid var(--border);border-radius:8px;background:var(--surface);min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.card-b{padding:12px}
+.grid{display:grid;gap:12px}
+.two{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.chip{font-size:11.5px;padding:1px 8px;border-radius:99px;font-weight:500;white-space:nowrap;display:inline-block}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.info{background:var(--accent-soft);color:var(--accent)} .chip.off{background:var(--sunken);color:var(--muted)}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;vertical-align:middle}
+th{font-weight:500;color:var(--muted);font-size:12px}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--sunken)}
+.scroll{overflow-x:auto}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-variant-numeric:tabular-nums}
+.missing{color:var(--warn);font-weight:500}
+.field{display:flex;flex-direction:column;gap:4px}
+.field span{color:var(--muted);font-size:12.5px}
+.input{border:1px solid var(--border);background:var(--surface);border-radius:6px;padding:7px 10px;width:100%}
+.input.warnb{border-color:var(--warn)}
+.unit{display:flex}
+.unit .input{border-radius:6px 0 0 6px}
+.unit em{font-style:normal;border:1px solid var(--border);border-left:0;border-radius:0 6px 6px 0;padding:7px 10px;background:var(--sunken);color:var(--muted);white-space:nowrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.tab{border:1px solid var(--border);background:var(--surface);border-radius:99px;padding:4px 12px;font-size:12.5px;cursor:pointer}
+.tab.on{background:var(--fg);color:var(--surface);border-color:var(--fg)}
+.pane{display:none} .pane.on{display:block}
+.toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:var(--fg);color:var(--surface);padding:8px 14px;border-radius:8px;font-size:13px;box-shadow:var(--shadow);z-index:9}
+.modal{position:absolute;inset:0;background:rgba(10,16,22,.45);display:grid;place-items:center;z-index:8;padding:16px}
+.dialog{background:var(--surface);border-radius:10px;box-shadow:var(--shadow);width:min(460px,100%);padding:18px;display:flex;flex-direction:column;gap:12px}
+.choice{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer}
+.choice:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.choice small{display:block;color:var(--muted)}
+
+/* sign in */
+.view.signin.on{display:grid}
+.signin{flex:1;place-items:center;padding:24px;background:linear-gradient(180deg,var(--sunken),var(--surface))}
+.signbox{width:min(380px,100%);display:flex;flex-direction:column;gap:14px}
+.signbox .brand{font-size:20px;cursor:default}
+
+/* home */
+.home{padding:22px;max-width:1040px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.pcard{border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;background:var(--surface);text-align:left}
+.pcard:hover{border-color:var(--accent)}
+.pcard .prog{display:flex;gap:3px}
+.pcard .prog i{flex:1;height:4px;border-radius:2px;background:var(--sunken)}
+.pcard .prog i.d{background:var(--ok)} .pcard .prog i.w{background:var(--warn)}
+.pcard.new{border-style:dashed;align-items:center;justify-content:center;color:var(--accent);min-height:150px}
+
+/* overview */
+.stepper{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.stepcard{border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer;background:var(--surface);text-align:left}
+.stepcard:hover{border-color:var(--accent)}
+.stepcard .top2{display:flex;justify-content:space-between;align-items:center}
+.ask{display:flex;gap:8px;border:1px solid var(--accent);border-radius:10px;padding:8px;background:var(--accent-soft)}
+.ask input{flex:1;border:0;background:transparent;padding:6px}
+.ask input:focus{outline:none}
+.activity{display:flex;flex-direction:column}
+.activity div{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.activity div:last-child{border-bottom:0}
+.activity time{color:var(--muted);width:54px;flex:none}
+
+/* chat */
+.chat{display:grid;grid-template-columns:190px minmax(0,1fr) 250px;gap:14px;min-height:610px}
+.chats{display:flex;flex-direction:column;gap:3px}
+.chatitem{padding:7px 9px;border-radius:6px;cursor:pointer;border:0;background:none;text-align:left}
+.chatitem:hover{background:var(--sunken)}
+.chatitem.on{background:var(--sunken);font-weight:500}
+.chatitem small{display:block;color:var(--muted);font-weight:400}
+.conv{display:flex;flex-direction:column;gap:12px;min-width:0}
+.msgs{display:flex;flex-direction:column;gap:12px}
+.msg{max-width:72ch}
+.msg.user{align-self:flex-end;background:var(--accent-soft);padding:8px 12px;border-radius:10px 10px 2px 10px}
+.who{font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.tool{display:flex;gap:8px;align-items:center;border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:12.5px;margin:4px 0;flex-wrap:wrap;background:var(--surface)}
+.tool .grow{flex:1;color:var(--muted);min-width:120px}
+.agentgrp{border-left:2px solid var(--border);padding-left:10px;margin:6px 0}
+.request{border:1px solid var(--warn);background:var(--warn-soft);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.inputbar{margin-top:auto;display:flex;gap:8px;border:1px solid var(--border);border-radius:8px;padding:6px}
+.inputbar input{flex:1;border:0;background:transparent;padding:6px}
+.inputbar input:focus{outline:none}
+.runpanel{display:flex;flex-direction:column;gap:12px}
+.tree{font-family:var(--mono);font-size:12px;line-height:1.7}
+.stat{display:flex;justify-content:space-between;gap:8px}
+
+/* run log */
+.log{display:grid;grid-template-columns:240px minmax(0,1fr);gap:12px}
+.step{padding:6px 8px;border-radius:6px;font-size:13px;display:flex;justify-content:space-between;gap:6px;border:0;background:none;cursor:pointer;text-align:left;width:100%}
+.step:hover{background:var(--sunken)}
+.step.on{background:var(--accent-soft);color:var(--accent)}
+.step.sub{padding-left:22px}
+pre{margin:0;background:var(--sunken);border:1px solid var(--border);border-radius:6px;padding:10px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.5;white-space:pre-wrap}
+
+/* design */
+.kpi .v{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi .u{font-size:12px;color:var(--muted);margin-left:3px}
+svg text{fill:var(--muted);font-family:var(--sans);font-size:11px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.coverage{display:grid;grid-template-columns:repeat(73,1fr);gap:1px}
+.coverage span{height:14px;border-radius:1px}
+.palette{display:flex;flex-direction:column;gap:6px}
+.palette .pi{border:1px dashed var(--border);border-radius:6px;padding:5px 8px;font-size:12.5px;display:flex;gap:6px;align-items:center;cursor:grab;background:var(--surface)}
+.sw{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+.mod{cursor:pointer}
+.mod rect{fill:var(--surface)}
+.mod.on rect{stroke-width:3;fill:var(--accent-soft)}
+.bar{height:6px;background:var(--sunken);border-radius:99px;overflow:hidden;margin-bottom:3px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.placeholder{border:1px dashed var(--border);border-radius:8px;padding:14px;color:var(--muted)}
+.blocker{display:flex;gap:10px;align-items:center;border:1px solid var(--warn);background:var(--warn-soft);border-radius:8px;padding:9px 12px;margin-bottom:14px;flex-wrap:wrap}
+.blocker span{flex:1;min-width:200px}
+
+@media (max-width:1000px){
+  .chat{grid-template-columns:minmax(0,1fr)} .chats{flex-direction:row;overflow-x:auto}
+  .two,.three,.log{grid-template-columns:minmax(0,1fr)} .four{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stepper{grid-template-columns:repeat(2,minmax(0,1fr))} .plantgrid{grid-template-columns:minmax(0,1fr)!important}
+}
+@media (max-width:720px){
+  .body{flex-direction:column}
+  .side{width:auto;border-right:0;border-bottom:1px solid var(--border);flex-direction:row;overflow-x:auto;gap:4px;padding:8px}
+  .group{flex-direction:row;align-items:center} .group .label,.projhead{display:none}
+  .nav{width:auto;white-space:nowrap}
+}
+</style>
+
+<div class="page-head">
+  <h1>Geomind app · clickable mockup</h1>
+  <label class="row muted"><input type="checkbox" id="shownotes" checked> Show the yellow notes</label>
+</div>
+<div class="flow" aria-label="User flow">
+  <b>Sign in</b><span class="arr">→</span><b>Projects</b><span class="arr">→</span><b>Overview</b><span class="arr">→</span>
+  <span>ask the Assistant</span><span>or</span><span>work through Design:</span>
+  <b>1 Problem</b><span class="arr">→</span><b>2 Plant</b><span class="arr">→</span><b>3 Study</b><span class="arr">→</span><b>4 Results</b><span class="arr">→</span><b>Report</b>
+  <span class="muted">· numbers are examples, the demand curves are the official 2027 inputs</span>
+</div>
+
+<div class="frame" id="frame">
+
+  <!-- ============ SIGN IN ============ -->
+  <section class="view signin" id="v-signin" data-note="<b>Sign in.</b> No public sign up: an admin creates users. Already built in the backend (login, refresh, logout).">
+    <form class="signbox" id="signform">
+      <div class="brand"><span class="logo"></span>Geomind</div>
+      <p class="muted">Design and operate geothermal heating and cooling plants with an AI assistant.</p>
+      <label class="field"><span>Email</span><input class="input" id="email" type="email" value="fatemeh@team.example" autocomplete="username"></label>
+      <label class="field"><span>Password</span><input class="input" id="password" type="password" value="example-password" autocomplete="current-password"></label>
+      <button class="btn primary" type="submit">Sign in</button>
+      <span class="muted" style="font-size:12.5px">Forgot your password? Ask an admin to reset it.</span>
+    </form>
+  </section>
+
+  <!-- ============ TOP BAR (all levels except sign in) ============ -->
+  <header class="top hide" id="top">
+    <button class="brand" id="home"><span class="logo"></span>Geomind</button>
+    <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+    <span class="spacer"></span>
+    <button class="pill hide" id="runpill" title="Open the active run"><span class="dot"></span>1 run active · 02:14</button>
+    <button class="avatar" id="avatar" aria-haspopup="true" aria-expanded="false">FN</button>
+  </header>
+  <div class="menu hide" id="menu" role="menu">
+    <div class="who"><b>Fatemeh N.</b><br><span class="muted">admin · fatemeh@team.example</span></div>
+    <button data-go="account">Account and password</button>
+    <button data-go="users">Users (admin)</button>
+    <button id="themebtn">Theme: system</button>
+    <button id="signout">Sign out</button>
+  </div>
+  <div class="note hide" id="note"></div>
+
+  <div class="body">
+    <!-- ============ PROJECT SIDEBAR (only inside a project) ============ -->
+    <nav class="side hide" id="side" aria-label="Project">
+      <div class="projhead"><span class="label">Project</span><b id="projname">Delft heating + cooling</b><button class="btn link" data-go="projects" style="text-align:left">Switch project</button></div>
+      <div class="group">
+        <button class="nav" data-go="overview">Overview</button>
+      </div>
+      <div class="group">
+        <div class="label">Assistant</div>
+        <button class="nav" data-go="chat">Chat</button>
+        <button class="nav" data-go="runs">Runs and logs</button>
+      </div>
+      <div class="group">
+        <div class="label">Design</div>
+        <button class="nav" data-go="problem"><span class="stepn">1</span>Problem<span class="sdot" style="background:var(--warn)" title="2 values missing"></span></button>
+        <button class="nav" data-go="plant"><span class="stepn">2</span>Plant<span class="sdot" style="background:var(--ok)" title="valid"></span></button>
+        <button class="nav" data-go="study"><span class="stepn">3</span>Study<span class="sdot" style="background:var(--accent)" title="running"></span></button>
+        <button class="nav" data-go="results"><span class="stepn">4</span>Results<span class="sdot" style="background:var(--ok)" title="ready"></span></button>
+        <button class="nav" data-go="report">Report</button>
+      </div>
+      <div class="group">
+        <div class="label">Operation</div>
+        <button class="nav" disabled>Time series<span class="tag">later</span></button>
+        <button class="nav" disabled>Well performance<span class="tag">later</span></button>
+        <button class="nav" disabled>Integrity<span class="tag">later</span></button>
+      </div>
+      <div class="spacer"></div>
+      <div class="group">
+        <button class="nav" data-go="documents">Documents</button>
+        <button class="nav" data-go="settings">Project settings</button>
+      </div>
+    </nav>
+
+    <main class="content">
+
+      <!-- ============ PROJECTS HOME ============ -->
+      <section class="view" id="v-projects" data-note="<b>Projects.</b> The landing page after sign in. Nothing else is shown until a project is opened, because chats, designs and runs all belong to one project. Each card shows how far its design has come.">
+        <div class="home">
+          <div class="vhead"><div><h1>Your projects</h1><p>Open a project to chat with the assistant or work on its design.</p></div>
+            <div class="row"><input class="input" id="psearch" placeholder="Search projects" style="width:200px"><button class="btn">Import zip</button></div></div>
+          <div class="pcards" id="pcards">
+            <button class="pcard new" id="newproj">+ New project</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ACCOUNT ============ -->
+      <section class="view" id="v-account" data-note="<b>Account.</b> Profile and password. Changing the password signs out every session (built in the backend).">
+        <div class="home" style="max-width:560px">
+          <h1>Account</h1>
+          <div class="card card-b"><dl class="kv"><dt>Name</dt><dd>Fatemeh N.</dd><dt>Email</dt><dd>fatemeh@team.example</dd><dt>Role</dt><dd>admin</dd></dl></div>
+          <form class="card card-b grid" id="pwform">
+            <h2>Change password</h2>
+            <label class="field"><span>Current password</span><input class="input" id="pw0" type="password" autocomplete="current-password"></label>
+            <label class="field"><span>New password</span><input class="input" id="pw1" type="password" autocomplete="new-password"></label>
+            <div class="row"><button class="btn primary" type="submit">Change password</button><span class="muted" style="font-size:12.5px">You will be signed out everywhere.</span></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============ USERS (admin) ============ -->
+      <section class="view" id="v-users" data-note="<b>Users (admin only).</b> Create users, change roles, deactivate. Users are never deleted. Built in the backend.">
+        <div class="home">
+          <div class="vhead"><h1>Users</h1><button class="btn primary" id="adduser">Add user</button></div>
+          <div class="card scroll"><table id="usertable">
+            <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
+            <tr><td>Sahand N.</td><td>sahand@team.example</td><td><select class="input" id="role1"><option>admin</option><option>member</option></select></td><td><span class="chip ok">active</span></td><td><button class="btn" data-deact>Deactivate</button></td></tr>
+            <tr><td>Fatemeh N.</td><td>fatemeh@team.example</td><td><select class="input" id="role2"><option>admin</option><option>member</option></select></td><td><span class="chip ok">active</span></td><td></td></tr>
+            <tr><td>Guest reviewer</td><td>review@team.example</td><td><select class="input" id="role3"><option>member</option><option>admin</option></select></td><td><span class="chip ok">active</span></td><td><button class="btn" data-deact>Deactivate</button></td></tr>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ============ OVERVIEW ============ -->
+      <section class="view" id="v-overview" data-note="<b>Project overview.</b> The first page inside a project. It answers 'where am I?': the design steps with their state, a box to ask the assistant, what is running, and what changed. Every card opens its page.">
+        <div class="vhead"><div><h1>Delft heating + cooling</h1><p>Deep geothermal heating at 100 °C and cooling at 20 °C for a district, 365 days a year.</p></div></div>
+        <form class="ask" id="askform" style="margin-bottom:16px"><input id="askinput" placeholder="Ask the assistant, e.g. “Design a plant that covers all 365 days at the lowest cost”"><button class="btn primary" type="submit">Ask</button></form>
+        <div class="label" style="margin-bottom:8px">Design progress</div>
+        <div class="stepper" style="margin-bottom:16px">
+          <button class="stepcard" data-go="problem"><div class="top2"><span class="stepn">1</span><span class="chip warn">2 missing</span></div><b>Problem</b><span class="muted">Demand, site, constraints, prices</span></button>
+          <button class="stepcard" data-go="plant"><div class="top2"><span class="stepn">2</span><span class="chip ok">valid · v7</span></div><b>Plant</b><span class="muted">Flowsheet and equipment</span></button>
+          <button class="stepcard" data-go="study"><div class="top2"><span class="stepn">3</span><span class="chip info">1 running</span></div><b>Study</b><span class="muted">Size, optimise, uncertainty</span></button>
+          <button class="stepcard" data-go="results"><div class="top2"><span class="stepn">4</span><span class="chip ok">3 designs</span></div><b>Results</b><span class="muted">Capacities, checks, compare</span></button>
+          <button class="stepcard" data-go="report"><div class="top2"><span class="stepn">✓</span><span class="chip off">draft</span></div><b>Report</b><span class="muted">Deliverable from a design</span></button>
+        </div>
+        <div class="grid two">
+          <div class="card"><div class="card-h"><h3>Recent chats</h3><button class="btn link" data-go="chat">All chats</button></div><div class="card-b activity">
+            <div><time>09:41</time><button class="btn link" data-go="chat">Design heating + cooling</button><span class="chip info" style="margin-left:auto">running</span></div>
+            <div><time>Yesterday</time><button class="btn link" data-go="chat">Why two doublets?</button></div>
+            <div><time>Oct 31</time><button class="btn link" data-go="chat">Gas price sensitivity</button></div>
+          </div></div>
+          <div class="card"><div class="card-h"><h3>Activity</h3></div><div class="card-b activity">
+            <div><time>09:44</time><span>Designer agent started study “Min LCOH, 1–3 doublets”</span></div>
+            <div><time>09:40</time><span>Sahand saved plant v7: “bigger chiller”</span></div>
+            <div><time>Nov 1</time><span>Case v4: cooling demand file replaced</span></div>
+          </div></div>
+        </div>
+      </section>
+
+      <!-- ============ CHAT ============ -->
+      <section class="view" id="v-chat" data-note="<b>Assistant · Chat.</b> Left: this project's chats. Middle: the conversation; every tool call and every delegated agent is visible, and the agent asks before expensive steps. Right: the live run panel. Try typing a message or pressing Approve.">
+        <div class="chat">
+          <div class="chats">
+            <button class="btn primary" id="newchat">+ New chat</button>
+            <button class="chatitem on">Design heating + cooling<small>running · 09:41</small></button>
+            <button class="chatitem">Why two doublets?<small>yesterday</small></button>
+            <button class="chatitem">Gas price sensitivity<small>Oct 31</small></button>
+          </div>
+          <div class="conv">
+            <div class="msgs" id="msgs">
+              <div class="msg user">Design a geothermal system for this project's heating and cooling demand. Supply 100 °C heating and 20 °C cooling on all 365 days.</div>
+              <div class="msg">
+                <div class="who">coordinator</div>
+                <div class="tool"><span class="chip ok">done</span><span class="mono">read_case</span><span class="grow">demand 2027, reservoir, 6 constraints</span><span class="muted num">0.2 s</span></div>
+                <div class="agentgrp">
+                  <div class="who">designer · delegated</div>
+                  <div class="tool"><span class="chip ok">done</span><span class="mono">size_plant</span><span class="grow">2 doublets · 2500 m · heat pump · absorption chiller</span><span class="muted num">3.1 s</span></div>
+                  <div class="tool"><span class="chip ok">done</span><span class="mono">simulate</span><span class="grow">365 days, daily step</span><span class="muted num">4.8 s</span></div>
+                  <div class="tool"><span class="chip info">running</span><span class="mono">optimize</span><span class="grow">minimise LCOH · 3 variables · 120 evaluations</span><span class="muted num">38/120</span></div>
+                </div>
+                <p style="margin-top:8px">The first design covers heating on all 365 days. Cooling falls short on 12 summer days while one doublet is in maintenance, so I am trying a larger chiller and a buffer tank. <button class="btn link" data-go="results">See it in Results</button></p>
+              </div>
+              <div class="request" id="request">
+                <b>Approval needed</b>
+                <span>Run an uncertainty study: 200 simulations, about 3 minutes, about $0.30.</span>
+                <div class="row"><button class="btn primary" id="approve">Approve</button><button class="btn" id="deny">Deny</button></div>
+              </div>
+            </div>
+            <form class="inputbar" id="chatform"><input id="chatinput" placeholder="Ask about the design…"><button class="btn primary" type="submit">Send</button><button class="btn" type="button" id="cancelrun">Cancel run</button></form>
+          </div>
+          <aside class="runpanel">
+            <div class="card"><div class="card-b grid" style="gap:6px">
+              <div class="stat"><span class="label">Run #32</span><span class="chip info" id="runstate">running</span></div>
+              <div class="stat"><span class="muted">Tokens</span><span class="num">41.2k in · 3.1k out</span></div>
+              <div class="stat"><span class="muted">Cost</span><span class="num">$0.18</span></div>
+            </div></div>
+            <div class="card"><div class="card-h"><h3>Agents</h3></div><div class="card-b tree">coordinator<br>└ designer<br>&nbsp;&nbsp;└ optimize …<br>verifier · waiting<br>economist · waiting</div></div>
+            <div class="card"><div class="card-h"><h3>What it knows</h3><button class="btn link" data-go="problem">Edit</button></div><div class="card-b"><dl class="kv">
+              <dt>Peak heat</dt><dd>30.0 MW</dd><dt>Peak cool</dt><dd>10.0 MW</dd><dt>Source</dt><dd>330 d/yr</dd><dt>Gas price</dt><dd class="missing">not set</dd></dl></div></div>
+            <button class="btn" data-go="runlog">Open full log →</button>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============ RUNS ============ -->
+      <section class="view" id="v-runs" data-note="<b>Assistant · Runs.</b> Every agent run in this project, with cost. Opening one shows its full log (the Challenge 2 'agent log' deliverable).">
+        <div class="vhead"><div><h1>Runs and logs</h1><p>Every answer the assistant gave in this project, with tokens and cost.</p></div><span class="muted num">Project total: 31 runs · 2.1M tokens · $6.40</span></div>
+        <div class="card scroll"><table>
+          <tr><th>Run</th><th>Chat</th><th>Agents</th><th>Status</th><th>Tokens</th><th>Cost</th><th>Started</th></tr>
+          <tr class="click" data-go="runlog"><td>#32</td><td>Design heating + cooling</td><td>coordinator, designer</td><td><span class="chip info">running</span></td><td class="num">44k</td><td class="num">$0.18</td><td>09:41</td></tr>
+          <tr class="click" data-go="runlog"><td>#31</td><td>Design heating + cooling</td><td>5 agents</td><td><span class="chip ok">done</span></td><td class="num">196k</td><td class="num">$0.71</td><td>09:12</td></tr>
+          <tr class="click" data-go="runlog"><td>#30</td><td>Why two doublets?</td><td>analyst</td><td><span class="chip ok">done</span></td><td class="num">18k</td><td class="num">$0.05</td><td>yesterday</td></tr>
+          <tr class="click" data-go="runlog"><td>#29</td><td>Gas price sensitivity</td><td>economist</td><td><span class="chip bad">stopped</span></td><td class="num">9k</td><td class="num">$0.03</td><td>Oct 31</td></tr>
+        </table></div>
+      </section>
+
+      <!-- ============ RUN LOG ============ -->
+      <section class="view" id="v-runlog" data-note="<b>Run log.</b> Each step of each agent: the exact prompt, the answer, tool inputs and outputs, tokens and cost. Click a step on the left. Exports as JSON and Markdown for the deliverable.">
+        <div class="vhead"><div><button class="btn link" data-go="runs">← All runs</button><h1>Run #31 · Design heating + cooling</h1><p class="num">done · 6 m 12 s · 184k in · 12.4k out · $0.71</p></div>
+          <div class="row"><button class="btn" data-toast="Exported run-31.json">Export JSON</button><button class="btn" data-toast="Exported run-31.md">Export Markdown</button></div></div>
+        <div class="log">
+          <div class="card card-b" style="display:flex;flex-direction:column;gap:2px" id="steps"></div>
+          <div class="grid" style="min-width:0;align-content:start">
+            <div class="card"><div class="card-h"><h3 id="sd-title"></h3><span class="muted num mono" id="sd-meta"></span></div>
+              <div class="card-b grid" style="gap:8px">
+                <details><summary class="muted">System prompt and history</summary><pre id="sd-prompt"></pre></details>
+                <div class="label">Answer</div><pre id="sd-answer"></pre>
+              </div></div>
+            <div class="card"><div class="card-h"><h3 id="sd-tool"></h3><span class="chip ok" id="sd-toolst"></span></div>
+              <div class="card-b grid two"><div style="min-width:0"><div class="label">Input</div><pre id="sd-in"></pre></div><div style="min-width:0"><div class="label">Output</div><pre id="sd-out"></pre></div></div></div>
+            <div class="card scroll"><table>
+              <tr><th>Agent</th><th>Steps</th><th>Tokens in</th><th>Tokens out</th><th>Cost</th></tr>
+              <tr><td>coordinator</td><td>2</td><td>4.3k</td><td>0.6k</td><td>$0.02</td></tr>
+              <tr><td>designer</td><td>9</td><td>121k</td><td>7.9k</td><td>$0.48</td></tr>
+              <tr><td>verifier, economist, explainer</td><td>5</td><td>58k</td><td>3.9k</td><td>$0.21</td></tr>
+            </table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 1 PROBLEM ============ -->
+      <section class="view" id="v-problem" data-note="<b>Design · 1 Problem.</b> Everything that is not the plant: demand, site and reservoir, constraints, economics (gemini's Case). There are no defaults: missing values are marked and block only the runs that need them.">
+        <div class="vhead"><div><h1>1 · Problem</h1><p>What the plant must deliver, where, and under which limits.</p></div><div class="row"><span class="muted">Case v4</span><button class="btn" data-toast="Case v5 saved">Save version</button></div></div>
+        <div class="blocker"><span><b>2 values missing</b> · gas price and discount rate. Cost results and the gas sensitivity study cannot run without them.</span><button class="btn" data-tabgo="economics">Fill them in</button></div>
+        <div class="tabs" data-tabs="problem"><button class="tab on" data-tab="demand">Demand</button><button class="tab" data-tab="site">Site and reservoir</button><button class="tab" data-tab="limits">Constraints</button><button class="tab" data-tab="economics">Economics</button></div>
+        <div class="pane on" data-pane="demand">
+          <div class="grid two">
+            <div class="card"><div class="card-h"><h3>Daily demand 2027</h3><div class="legend"><span><i style="background:var(--heat)"></i>Heating · 111.7 GWh · peak 30.0 MW</span><span><i style="background:var(--cold)"></i>Cooling · 23.7 GWh · peak 10.0 MW</span></div></div>
+              <div class="card-b"><svg id="demand" viewBox="0 0 640 220" width="100%" role="img" aria-label="Daily heating and cooling demand for 2027"></svg></div></div>
+            <div class="card card-b grid" style="align-content:start">
+              <h3>Files</h3>
+              <div class="row"><span class="chip ok">loaded</span><span class="mono">heating_demand_daily_2027.csv</span></div>
+              <div class="row"><span class="chip ok">loaded</span><span class="mono">cooling_demand_daily_2027.csv</span></div>
+              <button class="btn">Replace a file</button>
+              <label class="field"><span>Heating supply temperature</span><div class="unit"><input class="input" id="ts1" value="100"><em>°C</em></div></label>
+              <label class="field"><span>Cooling supply temperature</span><div class="unit"><input class="input" id="ts2" value="20"><em>°C</em></div></label>
+              <label class="field"><span>Network return temperatures</span><select class="input" id="ret"><option>Design choice (let the study pick)</option><option>Fixed values</option></select></label>
+            </div>
+          </div>
+        </div>
+        <div class="pane" data-pane="site"><div class="grid three">
+          <label class="field"><span>Reservoir pressure</span><div class="unit"><input class="input" id="s1" value="245"><em>bar</em></div></label>
+          <label class="field"><span>Geothermal gradient</span><div class="unit"><input class="input" id="s2" value="31"><em>K/km</em></div></label>
+          <label class="field"><span>Surface temperature</span><div class="unit"><input class="input" id="s3" value="10"><em>°C</em></div></label>
+          <label class="field"><span>Well depth</span><select class="input" id="s4"><option>Design choice (study picks)</option><option>Fixed</option></select></label>
+          <label class="field"><span>Brine salinity</span><div class="unit"><input class="input" id="s5" value="120"><em>g/L</em></div></label>
+          <label class="field"><span>Gas in brine</span><div class="unit"><input class="input" id="s6" value="0.6"><em>Nm³/m³</em></div></label>
+        </div></div>
+        <div class="pane" data-pane="limits"><div class="card scroll"><table>
+          <tr><th>Constraint</th><th>Limit</th><th>Applies to</th></tr>
+          <tr><td>Flow rate per doublet</td><td class="num">50 – 300 m³/h</td><td>wells</td></tr>
+          <tr><td>Brine cooling</td><td class="num">at most 40 K</td><td>heat exchanger</td></tr>
+          <tr><td>Geothermal source available</td><td class="num">330 days/yr</td><td>doublets</td></tr>
+          <tr><td>Demand covered</td><td class="num">365 days/yr</td><td>whole plant</td></tr>
+          <tr><td>Injection volume balance</td><td class="num">± 0 %</td><td>wells</td></tr>
+          <tr><td>Pump efficiency</td><td class="num">from case</td><td>ESP</td></tr>
+        </table></div><button class="btn" style="margin-top:10px">Add constraint</button></div>
+        <div class="pane" data-pane="economics"><div class="grid three">
+          <label class="field"><span>Electricity price</span><div class="unit"><input class="input" id="e1" value="0.11"><em>€/kWh</em></div><small class="muted">Source: CBS 2025</small></label>
+          <label class="field"><span>Gas price <b class="missing">missing</b></span><div class="unit"><input class="input warnb" id="e2" placeholder="required"><em>€/MWh</em></div><small class="muted">Add a value and its source</small></label>
+          <label class="field"><span>Discount rate <b class="missing">missing</b></span><div class="unit"><input class="input warnb" id="e3" placeholder="required"><em>%</em></div><small class="muted">Add a value and its source</small></label>
+          <label class="field"><span>Lifetime</span><div class="unit"><input class="input" id="e4" value="30"><em>years</em></div></label>
+          <label class="field"><span>CO₂ price</span><div class="unit"><input class="input" id="e5" value="85"><em>€/t</em></div><small class="muted">Source: EU ETS 2025 average</small></label>
+          <label class="field"><span>Price year</span><input class="input" id="e6" value="2025"></label>
+        </div></div>
+      </section>
+
+      <!-- ============ 2 PLANT ============ -->
+      <section class="view" id="v-plant" data-note="<b>Design · 2 Plant.</b> gemini's plant spec drawn as a flowsheet. Drag modules from the palette, connect ports (coloured by stream), and gemini validates live. Click a module to edit it. Designs the agent builds open here too.">
+        <div class="vhead"><div><h1>2 · Plant</h1><p>The equipment and how it is connected.</p></div><div class="row"><span class="chip ok">valid</span><span class="muted">v7 · saved by Sahand 09:40</span><button class="btn">Start from template</button><button class="btn primary" data-toast="Plant v8 saved">Save version</button></div></div>
+        <div class="tabs" data-tabs="plant"><button class="tab on" data-tab="sheet">Flowsheet</button><button class="tab" data-tab="hist">History</button></div>
+        <div class="pane on" data-pane="sheet">
+          <div class="grid plantgrid" style="grid-template-columns:150px minmax(0,1fr) 230px">
+            <div class="palette">
+              <div class="label">Palette</div>
+              <div class="pi"><span class="sw" style="background:var(--hot)"></span>Doublet</div>
+              <div class="pi"><span class="sw" style="background:var(--hot)"></span>ESP pump</div>
+              <div class="pi"><span class="sw" style="background:var(--heat)"></span>Heat exchanger</div>
+              <div class="pi"><span class="sw" style="background:var(--heat)"></span>Heat pump</div>
+              <div class="pi"><span class="sw" style="background:var(--cold)"></span>Absorption chiller</div>
+              <div class="pi"><span class="sw" style="background:var(--heat)"></span>Storage tank</div>
+              <div class="pi"><span class="sw" style="background:var(--gas)"></span>Gas boiler</div>
+              <div class="pi"><span class="sw" style="background:var(--border)"></span>Demand</div>
+            </div>
+            <div class="card scroll" style="background:var(--sunken)">
+              <svg viewBox="0 0 640 330" style="min-width:560px;width:100%" role="img" aria-label="Plant flowsheet" id="sheet">
+                <g fill="none" stroke-width="2.5">
+                  <path d="M110 165H160" stroke="var(--hot)"/><path d="M240 165H290" stroke="var(--hot)"/>
+                  <path d="M330 140V90H380" stroke="var(--heat)"/><path d="M330 190V240H380" stroke="var(--heat)"/>
+                  <path d="M460 90H520" stroke="var(--heat)"/><path d="M460 240H520" stroke="var(--cold)"/>
+                  <path d="M290 190L240 270H110" stroke="var(--hot)" stroke-dasharray="5 4"/>
+                  <path d="M420 30V65" stroke="var(--gas)"/><path d="M420 290V265" stroke="var(--power)"/>
+                </g>
+                <g class="mod" data-mod="doublets"><rect x="20" y="140" width="90" height="50" rx="6" stroke="var(--hot)" stroke-width="1.5"/><text x="32" y="162" style="fill:var(--fg);font-weight:600">doublets</text><text x="32" y="178">2 × 2500 m</text></g>
+                <g class="mod" data-mod="injection"><rect x="20" y="250" width="90" height="40" rx="6" stroke="var(--hot)" stroke-width="1.5"/><text x="32" y="274" style="fill:var(--fg)">injection</text></g>
+                <g class="mod" data-mod="esp"><rect x="160" y="140" width="80" height="50" rx="6" stroke="var(--hot)" stroke-width="1.5"/><text x="172" y="162" style="fill:var(--fg);font-weight:600">esp</text><text x="172" y="178">180 m³/h</text></g>
+                <g class="mod on" data-mod="hx"><rect x="290" y="140" width="80" height="50" rx="6" stroke="var(--heat)" stroke-width="1.5"/><text x="302" y="162" style="fill:var(--fg);font-weight:600">hx</text><text x="302" y="178">22 MW</text></g>
+                <g class="mod" data-mod="heatpump"><rect x="380" y="65" width="80" height="50" rx="6" stroke="var(--heat)" stroke-width="1.5"/><text x="392" y="87" style="fill:var(--fg);font-weight:600">heatpump</text><text x="392" y="103">COP 3.4</text></g>
+                <g class="mod" data-mod="chiller"><rect x="380" y="215" width="80" height="50" rx="6" stroke="var(--cold)" stroke-width="1.5"/><text x="392" y="237" style="fill:var(--fg);font-weight:600">chiller</text><text x="392" y="253">10 MW</text></g>
+                <g class="mod" data-mod="backup"><rect x="385" y="6" width="70" height="24" rx="6" stroke="var(--gas)"/><text x="398" y="22">backup</text></g>
+                <g class="mod" data-mod="grid"><rect x="385" y="290" width="70" height="24" rx="6" stroke="var(--power)"/><text x="400" y="306">grid</text></g>
+                <g class="mod" data-mod="heatnet"><rect x="520" y="65" width="100" height="50" rx="6" stroke="var(--border)" stroke-width="1.5"/><text x="532" y="87" style="fill:var(--fg);font-weight:600">heating net</text><text x="532" y="103">100 °C</text></g>
+                <g class="mod" data-mod="coolnet"><rect x="520" y="215" width="100" height="50" rx="6" stroke="var(--border)" stroke-width="1.5"/><text x="532" y="237" style="fill:var(--fg);font-weight:600">cooling net</text><text x="532" y="253">20 °C</text></g>
+              </svg>
+            </div>
+            <div class="card"><div class="card-h"><h3 id="modtitle"></h3></div><div class="card-b grid" style="gap:10px" id="modform"></div></div>
+          </div>
+          <div class="legend" style="margin-top:10px"><span><i style="background:var(--hot)"></i>Brine</span><span><i style="background:var(--heat)"></i>Heating water</span><span><i style="background:var(--cold)"></i>Chilled water</span><span><i style="background:var(--gas)"></i>Gas</span><span><i style="background:var(--power)"></i>Power</span></div>
+        </div>
+        <div class="pane" data-pane="hist"><div class="card scroll"><table>
+          <tr><th>Version</th><th>Note</th><th>By</th><th>When</th><th></th></tr>
+          <tr><td>v7</td><td>Bigger chiller</td><td>Sahand</td><td>09:40</td><td><span class="chip info">current</span></td></tr>
+          <tr><td>v6</td><td>Design B from run #31</td><td>designer agent</td><td>09:18</td><td><button class="btn">Restore</button></td></tr>
+          <tr><td>v5</td><td>Added backup boiler</td><td>Fatemeh</td><td>Nov 1</td><td><button class="btn">Restore</button></td></tr>
+        </table></div></div>
+      </section>
+
+      <!-- ============ 3 STUDY ============ -->
+      <section class="view" id="v-study" data-note="<b>Design · 3 Study.</b> The heavy calculations as background jobs. Started by a person or by an agent; both show here with progress. A study that needs a missing value says which one.">
+        <div class="vhead"><div><h1>3 · Study</h1><p>Size, optimise and test the plant against the problem.</p></div><button class="btn primary" id="newstudy">New study</button></div>
+        <div class="card scroll"><table id="studytable">
+          <tr><th>Study</th><th>Kind</th><th>Started by</th><th style="min-width:130px">Progress</th><th>Status</th><th>Result</th></tr>
+          <tr><td>Min LCOH, 1–3 doublets</td><td>optimise</td><td>designer agent</td><td><div class="bar"><i style="width:32%"></i></div><span class="muted num">38 / 120</span></td><td><span class="chip info">running</span></td><td class="num">best 41.8 €/MWh</td></tr>
+          <tr id="uncrow"><td>Reservoir uncertainty</td><td>uncertainty</td><td>designer agent</td><td><div class="bar"><i style="width:0"></i></div><span class="muted">waiting for approval in chat</span></td><td><span class="chip warn">waiting</span></td><td>–</td></tr>
+          <tr><td>Two doublets, 2500 m</td><td>size</td><td>designer agent</td><td><div class="bar"><i style="width:100%"></i></div><span class="muted num">3 s</span></td><td><span class="chip ok">done</span></td><td><button class="btn link" data-go="results">31.2 MW heat →</button></td></tr>
+          <tr><td>Gas price ± 40 %</td><td>sensitivity</td><td>economist agent</td><td><div class="bar"><i style="width:0"></i></div><span class="muted">not started</span></td><td><span class="chip bad">blocked</span></td><td><button class="btn link" data-go="problem">gas price missing →</button></td></tr>
+        </table></div>
+      </section>
+
+      <!-- ============ 4 RESULTS ============ -->
+      <section class="view" id="v-results" data-note="<b>Design · 4 Results.</b> What Challenge 2 is judged on: capacities, whether every day of the year is covered (including the 35 shutdown days), which constraints pass, and how the alternatives compare.">
+        <div class="vhead"><div><h1>4 · Results</h1><p>Each design the studies produced, and how they compare.</p></div><button class="btn primary" data-go="report">Make report from Design B</button></div>
+        <div class="tabs" data-tabs="results"><button class="tab on" data-tab="b">Design B · 2 doublets + chiller</button><button class="tab" data-tab="a">Design A · 1 doublet + boiler</button><button class="tab" data-tab="cmp">Compare</button></div>
+        <div class="pane on" data-pane="b">
+          <div class="grid four" style="margin-bottom:12px">
+            <div class="card card-b kpi"><div class="label">Heat capacity</div><span class="v">31.2</span><span class="u">MW</span></div>
+            <div class="card card-b kpi"><div class="label">Cooling capacity</div><span class="v">10.4</span><span class="u">MW</span></div>
+            <div class="card card-b kpi"><div class="label">LCOH</div><span class="v">41.8</span><span class="u">€/MWh</span></div>
+            <div class="card card-b kpi"><div class="label">CO₂</div><span class="v">19.6</span><span class="u">kt/yr</span></div>
+          </div>
+          <div class="grid two">
+            <div class="card"><div class="card-h"><h3>Days covered, 2027</h3><div class="legend"><span><i style="background:var(--ok)"></i>Geothermal</span><span><i style="background:var(--gas)"></i>Backup during shutdown</span></div></div>
+              <div class="card-b"><div class="coverage" id="coverage" aria-label="Coverage per day"></div><p class="muted" style="font-size:12px;margin-top:6px">Each cell is one day. Grey cells are the 35 days the source is down; the backup covers them.</p></div></div>
+            <div class="card"><div class="card-h"><h3>Constraints</h3><span class="chip ok">5 of 6 pass</span></div><div class="card-b scroll"><table>
+              <tr><td>Flow rate 50 – 300 m³/h</td><td><span class="chip ok">pass</span></td></tr>
+              <tr><td>Brine cooled at most 40 K</td><td><span class="chip ok">pass</span></td></tr>
+              <tr><td>Heating at 100 °C, 365 days</td><td><span class="chip ok">pass</span></td></tr>
+              <tr><td>Cooling at 20 °C, 365 days</td><td><span class="chip ok">pass</span></td></tr>
+              <tr><td>Injection volume balance</td><td><span class="chip ok">pass</span></td></tr>
+              <tr><td>Pump efficiency</td><td><span class="chip warn">not assessed</span></td></tr>
+            </table></div></div>
+          </div>
+        </div>
+        <div class="pane" data-pane="a"><div class="grid four">
+          <div class="card card-b kpi"><div class="label">Heat capacity</div><span class="v">18.0</span><span class="u">MW geo</span></div>
+          <div class="card card-b kpi"><div class="label">Boiler</div><span class="v">14.0</span><span class="u">MW</span></div>
+          <div class="card card-b kpi"><div class="label">LCOH</div><span class="v">38.9</span><span class="u">€/MWh</span></div>
+          <div class="card card-b kpi"><div class="label">CO₂</div><span class="v">27.4</span><span class="u">kt/yr</span></div>
+        </div></div>
+        <div class="pane" data-pane="cmp"><div class="grid two">
+          <div class="card"><div class="card-h"><h3>Cost against CO₂</h3><span class="muted">dashed line = best trade-offs</span></div><div class="card-b"><svg id="pareto" viewBox="0 0 420 200" width="100%" role="img" aria-label="Cost against CO2 for the three designs"></svg></div></div>
+          <div class="card scroll"><table>
+            <tr><th>Design</th><th>LCOH</th><th>CO₂</th><th>Checks</th></tr>
+            <tr><td>A · 1 doublet + boiler</td><td class="num">38.9</td><td class="num">27.4</td><td><span class="chip ok">6/6</span></td></tr>
+            <tr><td><b>B · 2 doublets + chiller</b></td><td class="num">41.8</td><td class="num">19.6</td><td><span class="chip warn">5/6</span></td></tr>
+            <tr><td>C · 3 doublets</td><td class="num">49.5</td><td class="num">15.1</td><td><span class="chip ok">6/6</span></td></tr>
+          </table></div>
+        </div></div>
+      </section>
+
+      <!-- ============ REPORT ============ -->
+      <section class="view" id="v-report" data-note="<b>Design · Report.</b> Turns a chosen design and its run log into the deliverable: capacities, design, checks, costs with sources, and the agent log with token usage.">
+        <div class="vhead"><div><h1>Report</h1><p>Draft from Design B and run #31.</p></div></div>
+        <div class="grid two">
+          <div class="card card-b grid" style="gap:10px;max-width:72ch">
+            <h2>Integrated deep geothermal heating and cooling, Delft</h2>
+            <div class="label">1 · Capacities</div><p>Two doublets at 2500 m deliver 31.2 MW heat; an absorption chiller delivers 10.4 MW cooling. A gas boiler covers the 35 shutdown days.</p>
+            <div class="label">2 · Design</div><div class="placeholder">Flowsheet of plant v7</div>
+            <div class="label">3 · Checks</div><p>5 of 6 constraints pass; pump efficiency is not assessed.</p>
+            <div class="label">4 · Agent log</div><p class="num">16 LLM calls, 184k tokens in, 12.4k out, $0.71.</p>
+          </div>
+          <div class="card card-b grid" style="gap:8px;align-content:start">
+            <label class="field"><span>Design</span><select class="input" id="rdesign"><option>Design B · 2 doublets + chiller</option><option>Design A</option><option>Design C</option></select></label>
+            <label class="field"><span>Agent log from</span><select class="input" id="rrun"><option>Run #31</option><option>Run #32</option></select></label>
+            <div class="label" style="margin-top:4px">Include</div>
+            <label><input type="checkbox" id="r1" checked> Capacities and design</label>
+            <label><input type="checkbox" id="r2" checked> Constraint checks</label>
+            <label><input type="checkbox" id="r3" checked> Costs and sources</label>
+            <label><input type="checkbox" id="r4" checked> Agent log and tokens</label>
+            <button class="btn primary" data-toast="report-design-b.pdf exported">Export PDF</button><button class="btn" data-toast="report-design-b.md exported">Export Markdown</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ DOCUMENTS ============ -->
+      <section class="view" id="v-documents" data-note="<b>Documents.</b> Files for this project (reports, datasheets, the challenge PDF). The assistant can search them and cites them in answers.">
+        <div class="vhead"><div><h1>Documents</h1><p>The assistant searches these and cites them.</p></div><button class="btn primary">Upload</button></div>
+        <div class="card scroll"><table>
+          <tr><th>File</th><th>Size</th><th>Searchable</th><th>Added</th></tr>
+          <tr><td>Hackathon challenge requirements.pdf</td><td>156 KB</td><td><span class="chip ok">yes</span></td><td>Oct 29</td></tr>
+          <tr><td>Absorption chiller datasheet.pdf</td><td>2.1 MB</td><td><span class="chip info">indexing</span></td><td>09:30</td></tr>
+        </table></div>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section class="view" id="v-settings" data-note="<b>Project settings.</b> Name, export and delete. Only the owner or an admin can change a project (built in the backend). Sharing with members comes later.">
+        <div class="home" style="max-width:600px;padding:0">
+          <h1>Project settings</h1>
+          <label class="field"><span>Name</span><input class="input" id="pn" value="Delft heating + cooling"></label>
+          <div class="card card-b row" style="justify-content:space-between"><span>Export the project with every plant and case version</span><button class="btn" data-toast="delft-heating-cooling.zip exported">Export zip</button></div>
+          <div class="card card-b row" style="justify-content:space-between;border-color:var(--bad)"><span>Delete this project and its chats and runs</span><button class="btn danger" id="delproj">Delete project</button></div>
+          <div class="hide row" id="delconfirm"><span class="missing">This cannot be undone.</span><button class="btn danger" data-go="projects" data-toast="Project deleted">Yes, delete</button><button class="btn" id="delcancel">Keep it</button></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ NEW PROJECT DIALOG ============ -->
+  <div class="modal hide" id="newmodal">
+    <form class="dialog" id="newform">
+      <h2>New project</h2>
+      <label class="field"><span>Name</span><input class="input" id="newname" value="Utrecht campus"></label>
+      <div class="label">Start from</div>
+      <label class="choice"><input type="radio" name="start" id="st1" checked><span>An empty problem<small>Enter demand, site and limits yourself, or let the assistant ask you.</small></span></label>
+      <label class="choice"><input type="radio" name="start" id="st2"><span>A copy of another project's problem<small>Same demand and limits, new plant.</small></span></label>
+      <label class="choice"><input type="radio" name="start" id="st3"><span>A project zip<small>Import an exported project.</small></span></label>
+      <div class="row" style="justify-content:flex-end"><button class="btn" type="button" id="newcancel">Cancel</button><button class="btn primary" type="submit">Create</button></div>
+    </form>
+  </div>
+  <div class="toast hide" id="toast"></div>
+</div>
+
+<script>
+const DATA = {"h": [24.3, 23.0, 23.2, 26.2, 26.2, 26.5, 26.5, 26.6, 24.8, 23.9, 25.0, 24.0, 24.7, 24.7, 26.0, 24.7, 24.4, 26.2, 26.5, 26.3, 26.4, 26.8, 26.5, 26.3, 27.3, 28.2, 29.0, 30.0, 29.7, 27.3, 26.3, 27.2, 25.9, 24.7, 22.9, 23.1, 22.8, 24.1, 24.7, 24.9, 24.6, 24.5, 24.4, 22.5, 21.9, 23.4, 23.0, 22.8, 23.1, 22.0, 20.1, 20.1, 22.0, 22.1, 22.1, 20.2, 19.2, 18.3, 17.6, 19.3, 19.5, 19.7, 19.0, 18.9, 17.3, 17.4, 19.1, 17.6, 17.9, 19.0, 19.5, 17.6, 17.3, 17.5, 17.2, 17.4, 16.8, 17.3, 15.4, 16.3, 17.4, 17.3, 16.2, 15.3, 15.8, 15.4, 14.3, 14.7, 14.4, 14.8, 14.1, 14.5, 13.9, 14.1, 14.9, 15.3, 14.5, 13.5, 13.5, 12.2, 12.3, 12.6, 12.7, 12.2, 11.6, 11.4, 9.8, 10.8, 11.0, 11.5, 11.3, 10.6, 10.0, 9.0, 9.0, 8.2, 9.2, 8.6, 9.0, 9.1, 9.3, 9.3, 9.4, 8.8, 8.5, 7.8, 6.9, 5.4, 5.9, 6.1, 5.2, 5.7, 5.1, 4.9, 4.8, 4.8, 4.7, 3.8, 3.9, 4.4, 5.1, 5.0, 4.9, 4.6, 3.9, 4.0, 4.3, 4.5, 4.0, 3.0, 3.5, 2.7, 3.3, 2.7, 2.7, 3.0, 2.7, 3.6, 4.1, 4.3, 4.9, 5.6, 5.3, 4.5, 3.6, 4.5, 4.2, 3.6, 3.4, 3.6, 3.2, 4.1, 4.1, 5.2, 4.7, 4.6, 3.4, 2.7, 2.7, 3.7, 4.6, 4.9, 5.8, 5.2, 5.1, 5.3, 5.7, 5.9, 4.7, 3.5, 3.2, 3.4, 3.2, 2.8, 3.2, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.7, 2.8, 2.7, 2.7, 2.9, 2.7, 2.9, 3.3, 3.9, 3.6, 3.5, 2.9, 2.9, 2.7, 3.8, 3.6, 3.1, 3.9, 3.8, 2.8, 2.8, 2.7, 2.7, 2.7, 2.7, 2.7, 3.0, 2.7, 2.7, 3.8, 3.4, 4.1, 4.3, 4.3, 5.0, 5.6, 5.7, 5.5, 5.0, 5.5, 6.7, 5.8, 7.2, 7.6, 6.3, 5.7, 6.5, 6.7, 6.2, 7.8, 8.5, 8.3, 7.6, 7.4, 8.4, 8.5, 8.1, 10.3, 9.1, 9.4, 9.6, 9.4, 9.4, 10.1, 11.0, 10.5, 10.6, 11.0, 12.1, 11.8, 12.0, 12.3, 11.6, 11.4, 11.9, 11.8, 11.1, 12.5, 12.6, 13.3, 13.9, 13.7, 13.3, 13.4, 15.4, 15.6, 15.1, 16.0, 16.5, 16.0, 17.4, 15.9, 16.7, 16.0, 16.1, 17.3, 16.8, 17.0, 18.3, 18.9, 16.8, 17.7, 17.2, 18.7, 19.1, 19.6, 18.8, 18.0, 17.6, 18.4, 18.7, 18.5, 20.4, 20.8, 19.0, 19.4, 21.0, 22.0, 22.7, 23.0, 22.7, 22.2, 22.0, 24.3, 25.2, 25.0, 25.0, 24.5, 23.9, 23.5, 24.5, 23.6, 24.2, 22.6, 23.6, 22.3, 23.1, 25.1, 25.9, 26.0, 25.7, 25.9, 24.5, 24.1, 25.5, 24.5, 23.8, 22.9, 23.2], "c": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.1, 0.2, 0.0, 0.0, 0.1, 0.3, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.2, 0.0, 0.4, 0.9, 1.0, 0.7, 0.4, 0.8, 0.8, 0.4, 0.7, 0.8, 0.9, 1.0, 0.6, 0.4, 0.4, 0.3, 0.7, 1.4, 2.1, 2.0, 1.9, 1.8, 2.1, 1.6, 2.1, 3.1, 3.2, 2.8, 2.7, 2.6, 2.6, 2.6, 2.2, 2.9, 3.1, 3.0, 3.0, 3.1, 3.5, 3.5, 4.1, 3.8, 4.0, 4.3, 3.9, 3.9, 4.6, 4.9, 4.9, 5.3, 4.4, 4.7, 4.7, 4.8, 4.6, 5.3, 5.4, 5.9, 5.4, 5.5, 5.9, 5.8, 5.9, 5.9, 6.1, 5.9, 6.1, 6.7, 6.7, 6.7, 7.5, 8.6, 8.2, 8.0, 7.8, 8.1, 7.7, 7.7, 7.4, 6.9, 6.7, 7.4, 6.5, 6.6, 6.9, 7.3, 6.6, 7.4, 7.8, 8.0, 7.9, 8.0, 8.0, 7.4, 7.7, 8.4, 8.6, 8.2, 8.8, 9.4, 9.3, 8.9, 10.0, 9.3, 9.2, 9.7, 9.9, 9.1, 8.9, 9.3, 8.8, 8.3, 8.4, 8.1, 7.4, 7.3, 7.2, 7.2, 7.6, 7.7, 7.6, 6.6, 6.4, 6.8, 7.3, 7.0, 6.7, 6.9, 6.9, 7.0, 7.5, 7.4, 7.2, 7.8, 8.1, 8.2, 7.7, 7.7, 7.3, 7.4, 6.6, 6.2, 5.6, 5.6, 5.3, 5.0, 5.3, 5.2, 5.2, 5.2, 5.6, 5.6, 6.1, 6.0, 5.2, 5.9, 5.6, 5.7, 5.8, 5.6, 5.6, 5.6, 5.1, 4.8, 4.7, 3.8, 3.1, 3.1, 2.7, 3.1, 2.4, 2.9, 2.7, 3.3, 3.5, 2.9, 3.1, 2.8, 2.5, 2.4, 2.4, 1.8, 2.1, 2.5, 1.7, 2.2, 1.7, 1.5, 1.0, 1.0, 0.8, 0.8, 1.4, 1.4, 1.4, 0.8, 1.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.7, 0.3, 0.0, 0.0, 0.7, 0.5, 0.5, 0.0, 0.0, 0.1, 0.2, 0.1, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]};
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const LEVEL = {signin:0, projects:1, account:1, users:1};
+const TITLES = {projects:"Projects", account:"Account", users:"Users", overview:"Overview", chat:"Chat", runs:"Runs and logs", runlog:"Run #31",
+  problem:"1 Problem", plant:"2 Plant", study:"3 Study", results:"4 Results", report:"Report", documents:"Documents", settings:"Settings"};
+const SECTION = {chat:"Assistant", runs:"Assistant", runlog:"Assistant", problem:"Design", plant:"Design", study:"Design", results:"Design", report:"Design"};
+const state = {signed:false, project:null};
+let projects = [
+  {name:"Delft heating + cooling", owner:"Sahand", when:"today", prog:"ddwdd".split(""), info:"3 chats · 32 runs · 1 running"},
+  {name:"Example doublet", owner:"Fatemeh", when:"Oct 31", prog:"dd...".split(""), info:"1 chat · 4 runs"},
+  {name:"Rotterdam district heat", owner:"Sahand", when:"Oct 28", prog:"w....".split(""), info:"problem incomplete"}
+];
+
+function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.remove("hide"); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.add("hide"),1800); }
+
+function go(view){ if(location.hash === "#"+view) route(); else location.hash = view; }
+function route(){
+  let v = location.hash.slice(1) || "signin";
+  if(!$("#v-"+v)) v = "signin";
+  if(!state.signed && v !== "signin") v = "signin";
+  if(state.signed && v === "signin") v = "projects";
+  const level = v in LEVEL ? LEVEL[v] : 2;
+  if(level === 2 && !state.project) v = "projects";
+  render(v, v in LEVEL ? LEVEL[v] : 2);
+}
+function render(v, level){
+  $$(".view").forEach(s => s.classList.toggle("on", s.id === "v-"+v));
+  $("#top").classList.toggle("hide", level === 0);
+  $("#side").classList.toggle("hide", level !== 2);
+  $(".body").classList.toggle("hide", level === 0);
+  $("#runpill").classList.toggle("hide", level !== 2 || state.project !== projects[0].name);
+  $("#menu").classList.add("hide");
+  $$(".nav[data-go]").forEach(n => n.classList.toggle("on", n.dataset.go === v || (v==="runlog" && n.dataset.go==="runs")));
+  const crumbs = [];
+  if(level >= 1) crumbs.push(level === 1 && v === "projects" ? `<span class="here">Projects</span>` : `<button data-go="projects">Projects</button>`);
+  if(level === 1 && v !== "projects") crumbs.push(`<span class="here">${TITLES[v]}</span>`);
+  if(level === 2){
+    crumbs.push(v === "overview" ? `<span class="here">${state.project}</span>` : `<button data-go="overview">${state.project}</button>`);
+    if(SECTION[v]) crumbs.push(`<span>${SECTION[v]}</span>`);
+    if(v !== "overview") crumbs.push(`<span class="here">${TITLES[v]}</span>`);
+  }
+  $("#crumbs").innerHTML = crumbs.join(`<span class="muted">/</span>`);
+  $("#projname").textContent = state.project || "";
+  const note = $("#v-"+v).dataset.note, show = $("#shownotes").checked;
+  $("#note").innerHTML = note; $("#note").classList.toggle("hide", !show || !note);
+}
+
+function drawProjects(filter=""){
+  const html = projects.filter(p => p.name.toLowerCase().includes(filter.toLowerCase())).map((p,i) => `
+    <button class="pcard" data-open="${p.name}"><b>${p.name}</b><span class="muted">Owner ${p.owner} · updated ${p.when}</span>
+    <div class="prog" title="Problem, Plant, Study, Results, Report">${p.prog.map(s => `<i class="${s==="d"?"d":s==="w"?"w":""}"></i>`).join("")}</div>
+    <span class="muted num">${p.info}</span></button>`).join("");
+  $("#pcards").innerHTML = html + `<button class="pcard new" id="newproj">+ New project</button>`;
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-go],[data-open],[data-toast],[data-tab],[data-tabgo],.mod,.step,.chatitem,[data-deact]");
+  if(!t) { if(!e.target.closest("#avatar,#menu")) $("#menu").classList.add("hide"); return; }
+  if(t.dataset.toast) toast(t.dataset.toast);
+  if(t.dataset.open){ state.project = t.dataset.open; go("overview"); }
+  if(t.dataset.go) go(t.dataset.go);
+  if(t.dataset.tab) setTab(t.closest(".view"), t.dataset.tab);
+  if(t.dataset.tabgo) setTab(t.closest(".view"), t.dataset.tabgo);
+  if(t.classList.contains("mod")) selectMod(t.dataset.mod);
+  if(t.classList.contains("step")) selectStep(+t.dataset.i);
+  if(t.classList.contains("chatitem")){ $$(".chatitem").forEach(c => c.classList.toggle("on", c === t)); }
+  if(t.hasAttribute("data-deact")){ const c = t.closest("tr").querySelector(".chip"); c.className="chip off"; c.textContent="inactive"; t.textContent="Activate"; }
+});
+function setTab(view, name){
+  view.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  view.querySelectorAll("[data-pane]").forEach(p => p.classList.toggle("on", p.dataset.pane === name));
+}
+
+$("#signform").addEventListener("submit", e => { e.preventDefault(); state.signed = true; go("projects"); });
+$("#signout").addEventListener("click", () => { state.signed = false; state.project = null; go("signin"); });
+$("#home").addEventListener("click", () => go("projects"));
+$("#avatar").addEventListener("click", e => { e.stopPropagation(); const m=$("#menu"); m.classList.toggle("hide"); $("#avatar").setAttribute("aria-expanded", !m.classList.contains("hide")); });
+$("#runpill").addEventListener("click", () => go("chat"));
+$("#shownotes").addEventListener("change", route);
+const themes = ["system","light","dark"]; let th = 0;
+$("#themebtn").addEventListener("click", () => { th=(th+1)%3; const t=themes[th]; if(t==="system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme=t; $("#themebtn").textContent="Theme: "+t; });
+$("#pwform").addEventListener("submit", e => { e.preventDefault(); toast("Password changed. Please sign in again."); setTimeout(()=>{ state.signed=false; state.project=null; go("signin"); }, 1200); });
+$("#adduser").addEventListener("click", () => { const r=$("#usertable").insertRow(-1); r.innerHTML=`<td><input class="input" placeholder="Name"></td><td><input class="input" placeholder="Email"></td><td><select class="input"><option>member</option><option>admin</option></select></td><td><span class="chip info">new</span></td><td><button class="btn primary" data-toast="User created">Create</button></td>`; });
+$("#psearch").addEventListener("input", e => drawProjects(e.target.value));
+document.addEventListener("click", e => { if(e.target.id === "newproj") $("#newmodal").classList.remove("hide"); });
+$("#newcancel").addEventListener("click", () => $("#newmodal").classList.add("hide"));
+$("#newform").addEventListener("submit", e => { e.preventDefault(); const n=$("#newname").value.trim() || "Untitled project";
+  projects.unshift({name:n, owner:"Fatemeh", when:"just now", prog:".....".split(""), info:"empty · start with the problem"}); drawProjects();
+  $("#newmodal").classList.add("hide"); state.project = n; toast("Project created"); go("overview"); });
+$("#askform").addEventListener("submit", e => { e.preventDefault(); const q=$("#askinput").value.trim(); if(q) addUser(q); $("#askinput").value=""; go("chat"); });
+$("#chatform").addEventListener("submit", e => { e.preventDefault(); const q=$("#chatinput").value.trim(); if(!q) return; addUser(q); $("#chatinput").value=""; });
+function addUser(q){
+  const m=$("#msgs"); const u=document.createElement("div"); u.className="msg user"; u.textContent=q; m.appendChild(u);
+  setTimeout(() => { const a=document.createElement("div"); a.className="msg";
+    a.innerHTML=`<div class="who">analyst</div><div class="tool"><span class="chip ok">done</span><span class="mono">read_result</span><span class="grow">Design B, plant v7</span><span class="muted num">0.3 s</span></div><p>In the real app the agent answers here, streaming word by word. This mockup only plays a fixed reply.</p>`;
+    m.appendChild(a); }, 700);
+}
+$("#approve").addEventListener("click", () => { $("#request").outerHTML = `<div class="tool"><span class="chip ok">approved</span><span class="grow">Uncertainty study approved by Fatemeh · 200 simulations started</span></div>`;
+  $("#uncrow").cells[3].innerHTML = `<div class="bar"><i style="width:4%"></i></div><span class="muted num">8 / 200</span>`; $("#uncrow").cells[4].innerHTML = `<span class="chip info">running</span>`; toast("Study started"); });
+$("#deny").addEventListener("click", () => { $("#request").outerHTML = `<div class="tool"><span class="chip off">denied</span><span class="grow">Uncertainty study denied; the designer continues without it</span></div>`; });
+$("#cancelrun").addEventListener("click", () => { $("#runstate").className="chip off"; $("#runstate").textContent="cancelled"; toast("Run cancelled"); });
+$("#newchat").addEventListener("click", () => { $("#msgs").innerHTML = `<p class="muted">New chat. Ask anything about this project.</p>`; toast("New chat"); });
+$("#newstudy").addEventListener("click", () => toast("Pick a kind: size, optimise, uncertainty or sensitivity"));
+$("#delproj").addEventListener("click", () => $("#delconfirm").classList.remove("hide"));
+$("#delcancel").addEventListener("click", () => $("#delconfirm").classList.add("hide"));
+
+const MODS = {
+  doublets:["Doublets",[["Count","2",""],["Depth","2500","m"],["Design choice","depth and count",""]]],
+  injection:["Injection well",[["Injection temperature","from hx",""],["Max wellhead pressure","40","bar"]]],
+  esp:["ESP pump",[["Flow rate","180","m³/h"],["Efficiency","","%"],["Setting depth","450","m"]]],
+  hx:["Heat exchanger",[["Duty","22","MW"],["Approach temperature","5","K"],["Cost per kW","","€/kW"]]],
+  heatpump:["Heat pump",[["Heating capacity","9","MW"],["Supply temperature","100","°C"],["COP","3.4",""]]],
+  chiller:["Absorption chiller",[["Cooling capacity","10","MW"],["Supply temperature","20","°C"],["COP","0.7",""]]],
+  backup:["Gas boiler (backup)",[["Capacity","32","MW"],["Efficiency","92","%"]]],
+  grid:["Electricity grid",[["Price","from problem",""]]],
+  heatnet:["Heating network",[["Supply","100","°C"],["Return","design choice",""]]],
+  coolnet:["Cooling network",[["Supply","20","°C"],["Return","design choice",""]]]
+};
+function selectMod(id){
+  $$(".mod").forEach(m => m.classList.toggle("on", m.dataset.mod === id));
+  const [title, fields] = MODS[id];
+  $("#modtitle").textContent = id + " · " + title;
+  $("#modform").innerHTML = fields.map(([l,v,u],i) => `<label class="field"><span>${l}${v===""?' <b class="missing">missing</b>':""}</span>
+    <div class="unit"><input class="input${v===""?" warnb":""}" id="mf${i}" value="${v}" placeholder="${v===""?"required":""}">${u?`<em>${u}</em>`:""}</div></label>`).join("")
+    + `<span class="muted" style="font-size:12px">Form built from the gemini module schema, with units.</span>`;
+}
+
+const STEPS = [
+  ["coordinator · step 1",false,"2.1k","model-x · 2.1k in · 140 out · $0.01 · 1.1 s","Route the request.","The user wants a full design. Delegating to the designer.\n→ delegate(\"designer\")","delegate","{\"agent\": \"designer\"}","{\"run\": \"31.1\"}"],
+  ["designer · step 1",true,"8.4k","model-x · 8.4k in · 610 out · $0.03 · 3.2 s","You are the designer. Use the tools to size a plant that meets the case…","I will size two doublets at 2500 m first, then check the 35 maintenance days.\n→ size_plant(...)","size_plant","{\"doublets\": 2,\n \"depth\": {\"value\": 2500, \"unit\": \"m\"}}","{\"heat_capacity\": {\"value\": 31.2, \"unit\": \"MW\"},\n \"cool_capacity\": {\"value\": 9.1, \"unit\": \"MW\"},\n \"violations\": [\"cooling_short_12_days\"]}"],
+  ["designer · step 2",true,"9.0k","model-x · 9.0k in · 420 out · $0.03 · 2.8 s","(history + size_plant result)","Cooling is short on 12 days. Increase chiller to 10.4 MW and simulate.\n→ simulate(...)","simulate","{\"plant\": \"v6\", \"days\": 365}","{\"days_covered\": 365, \"backup_days\": 35}"],
+  ["verifier · step 1",false,"6.3k","model-x · 6.3k in · 380 out · $0.02 · 2.0 s","You are the verifier. Check every constraint…","5 of 6 constraints pass. Pump efficiency is not assessed: the case has no pump curve.\n→ evaluate(...)","evaluate","{\"plant\": \"v6\"}","{\"passed\": 5, \"not_assessed\": [\"pump_efficiency\"]}"],
+  ["economist · step 1",false,"5.8k","model-x · 5.8k in · 300 out · $0.02 · 1.9 s","You are the economist…","LCOH 41.8 €/MWh with the given prices. Gas price is missing, so backup fuel cost is excluded and flagged.","economics","{\"plant\": \"v6\"}","{\"lcoh\": {\"value\": 41.8, \"unit\": \"EUR/MWh\"}, \"missing\": [\"gas_price\"]}"]
+];
+function selectStep(i){
+  $$("#steps .step").forEach((s,k) => s.classList.toggle("on", k === i));
+  const s = STEPS[i];
+  $("#sd-title").textContent = "LLM call · " + s[0]; $("#sd-meta").textContent = s[3];
+  $("#sd-prompt").textContent = s[4]; $("#sd-answer").textContent = s[5];
+  $("#sd-tool").textContent = "Tool call · " + s[6]; $("#sd-toolst").textContent = "ok";
+  $("#sd-in").textContent = s[7]; $("#sd-out").textContent = s[8];
+}
+$("#steps").innerHTML = STEPS.map((s,i) => `<button class="step${s[1]?" sub":""}" data-i="${i}">${s[0]}<span class="muted num">${s[2]}</span></button>`).join("");
+
+(function demand(){
+  const svg = $("#demand"), W=640, H=220, L=34, B=22, T=8, R=6;
+  const x = i => L + i * (W - L - R) / 364, y = v => H - B - v * (H - B - T) / 30;
+  const path = a => a.map((v,i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join("");
+  let s = "";
+  [0,10,20,30].forEach(v => s += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`);
+  ["Jan","Apr","Jul","Oct"].forEach((m,k) => s += `<text x="${x(k*91)}" y="${H-6}">${m}</text>`);
+  s += `<text x="${L+4}" y="${T+10}">MW</text>`;
+  s += `<path d="${path(DATA.h)}" fill="none" stroke="var(--heat)" stroke-width="1.5"/><path d="${path(DATA.c)}" fill="none" stroke="var(--cold)" stroke-width="1.5"/>`;
+  svg.innerHTML = s;
+})();
+(function coverage(){
+  let s = "";
+  for(let d = 0; d < 365; d++){ const down = (d >= 120 && d < 137) || (d >= 280 && d < 298);
+    s += `<span style="background:var(${down ? "--gas" : "--ok"});opacity:.8" title="day ${d+1}"></span>`; }
+  $("#coverage").innerHTML = s;
+})();
+(function pareto(){
+  const pts = [["A",38.9,27.4],["B",41.8,19.6],["C",49.5,15.1]];
+  const x = v => 40 + (v - 35) * 360 / 20, y = v => 175 - (v - 10) * 160 / 20;
+  let s = `<line x1="40" x2="400" y1="175" y2="175" stroke="var(--border)"/><line x1="40" x2="40" y1="10" y2="175" stroke="var(--border)"/>`;
+  s += `<text x="400" y="194" text-anchor="end">LCOH €/MWh →</text><text x="44" y="20">CO₂ kt/yr</text>`;
+  [35,45,55].forEach(v => s += `<text x="${x(v)}" y="190" text-anchor="middle">${v}</text>`);
+  [10,20,30].forEach(v => s += `<text x="34" y="${y(v)+4}" text-anchor="end">${v}</text>`);
+  s += `<path d="M${pts.map(p => x(p[1]) + " " + y(p[2])).join("L")}" fill="none" stroke="var(--accent)" stroke-dasharray="4 3"/>`;
+  pts.forEach(p => s += `<circle cx="${x(p[1])}" cy="${y(p[2])}" r="${p[0]==="B"?7:5}" fill="${p[0]==="B"?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="2"/><text x="${x(p[1])+10}" y="${y(p[2])-8}" style="fill:var(--fg)">${p[0]}</text>`);
+  $("#pareto").innerHTML = s;
+})();
+
+drawProjects(); selectMod("hx"); selectStep(1);
+window.addEventListener("hashchange", route);
+route();
+</script>
