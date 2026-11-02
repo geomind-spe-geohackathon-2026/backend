@@ -1,10 +1,25 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, UploadFile, status
+from minio import Minio
+
+from fastapi import APIRouter, Depends, Query, Response, UploadFile, status
 from src.api.v1.workspace.projects import schemas, services
+from src.core.clients.minio.client import get_minio
+from src.core.clients.postgres.repositories.case_file import (
+    CaseFileRepository,
+    get_case_file_repository,
+)
+from src.core.clients.postgres.repositories.case_version import (
+    CaseVersionRepository,
+    get_case_version_repository,
+)
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
     get_plant_version_repository,
+)
+from src.core.clients.postgres.repositories.progress import (
+    ProgressRepository,
+    get_progress_repository,
 )
 from src.core.clients.postgres.repositories.project import (
     ProjectRepository,
@@ -15,9 +30,22 @@ from src.core.security.access import AccessibleProject, CurrentUser
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
+CaseFileRepositoryDependency = Annotated[
+    CaseFileRepository,
+    Depends(get_case_file_repository),
+]
+CaseVersionRepositoryDependency = Annotated[
+    CaseVersionRepository,
+    Depends(get_case_version_repository),
+]
+MinioDependency = Annotated[Minio, Depends(get_minio)]
 PlantVersionRepositoryDependency = Annotated[
     PlantVersionRepository,
     Depends(get_plant_version_repository),
+]
+ProgressRepositoryDependency = Annotated[
+    ProgressRepository,
+    Depends(get_progress_repository),
 ]
 ProjectRepositoryDependency = Annotated[
     ProjectRepository,
@@ -25,44 +53,62 @@ ProjectRepositoryDependency = Annotated[
 ]
 
 
-@router.get("", response_model=Page[schemas.ProjectResponse])
+@router.get("", response_model=Page[schemas.Project])
 async def list_projects(
     user: CurrentUser,
     page: PageParams,
     repository: ProjectRepositoryDependency,
+    progress: ProgressRepositoryDependency,
+    search: Annotated[str | None, Query()] = None,
 ) -> Page:
-    return await services.list_projects(user, page, repository)
+    return await services.list_projects(user, page, search, repository, progress)
 
 
 @router.post(
     "",
-    response_model=schemas.ProjectResponse,
+    response_model=schemas.Project,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_project(
     payload: schemas.ProjectCreate,
     user: CurrentUser,
     repository: ProjectRepositoryDependency,
-) -> schemas.ProjectResponse:
-    return await services.create_project(payload, user, repository)
+    progress: ProgressRepositoryDependency,
+) -> schemas.Project:
+    return await services.create_project(payload, user, repository, progress)
 
 
 @router.post(
     "/import",
-    response_model=schemas.ProjectResponse,
+    response_model=schemas.Project,
     status_code=status.HTTP_201_CREATED,
 )
 async def import_project(
     file: UploadFile,
     user: CurrentUser,
     repository: ProjectRepositoryDependency,
-) -> schemas.ProjectResponse:
-    return await services.import_project(file, user, repository)
+    progress: ProgressRepositoryDependency,
+    minio: MinioDependency,
+) -> schemas.Project:
+    return await services.import_project(file, user, repository, progress, minio)
 
 
-@router.get("/{project_id}", response_model=schemas.ProjectResponse)
-async def get_project(project: AccessibleProject) -> schemas.ProjectResponse:
-    return project
+@router.get("/{project_id}", response_model=schemas.Project)
+async def get_project(
+    project: AccessibleProject,
+    progress: ProgressRepositoryDependency,
+) -> schemas.Project:
+    return await services.get_project(project, progress)
+
+
+@router.patch("/{project_id}", response_model=schemas.Project)
+async def rename_project(
+    payload: schemas.ProjectUpdate,
+    project: AccessibleProject,
+    repository: ProjectRepositoryDependency,
+    progress: ProgressRepositoryDependency,
+) -> schemas.Project:
+    return await services.rename_project(project, payload, repository, progress)
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -80,9 +126,12 @@ async def delete_project(
 )
 async def export_project(
     project: AccessibleProject,
-    repository: PlantVersionRepositoryDependency,
+    plants: PlantVersionRepositoryDependency,
+    cases: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    minio: MinioDependency,
 ) -> Response:
-    archive = await services.export_project(project, repository)
+    archive = await services.export_project(project, plants, cases, files, minio)
     filename = f"project-{project.id}.zip"
     return Response(
         content=archive,
