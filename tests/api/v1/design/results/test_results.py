@@ -171,3 +171,15 @@ async def test_compare_refuses_bad_and_unknown_ids(
 
     assert bad.json()["error"]["code"] == "validation_failed"
     assert unknown.json()["error"]["code"] == "result_not_found"
+
+
+async def test_a_design_becomes_the_next_plant_version(
+    client, make_user, make_project, make_result, blobs
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    result = await make_result(project, "A", outcome_with(40, 10))
+
+    response = await client.post(f"{URL}/{result.id}/adopt", headers=bearer(user))
+
+    assert response.json() == {"plant_version": 1}

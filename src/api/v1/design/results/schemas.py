@@ -76,6 +76,10 @@ class Coverage(BaseModel):
     cooling: list[CoverageDay] = []
 
 
+class AdoptedDesign(BaseModel):
+    plant_version: int
+
+
 class ResultDetail(Result):
     capacities: list[Capacity]
     sizes: list[Capacity]

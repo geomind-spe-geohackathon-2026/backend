@@ -11,6 +11,9 @@ from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
+from src.core.clients.postgres.repositories.plant_version import (
+    PlantVersionRepository,
+)
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.errors import ValidationFailedError
@@ -84,6 +87,38 @@ async def add_coverage(
         await results.set_content(result, {**result.content, "coverage": coverage})
 
 
+async def readable_result(
+    result_id: UUID,
+    user: User,
+    projects: ProjectRepository,
+    results: ResultRepository,
+) -> Result:
+    result = await results.get_by_id(result_id)
+    if result is None:
+        raise errors.ResultNotFoundError("Result not found")
+    try:
+        await require_project(result.project_id, user, projects)
+    except ProjectNotFoundError as error:
+        raise errors.ResultNotFoundError("Result not found") from error
+    return result
+
+
+async def adopt_design(
+    result_id: UUID,
+    user: User,
+    projects: ProjectRepository,
+    results: ResultRepository,
+    plants: PlantVersionRepository,
+) -> schemas.AdoptedDesign:
+    """Save the design of a result as the project's next plant version."""
+    result = await readable_result(result_id, user, projects, results)
+    note = f"Design of {result.name}"
+    version = await plants.save_version(
+        result.project_id, result.content["design"], note, user.id
+    )
+    return schemas.AdoptedDesign(plant_version=version.number)
+
+
 async def get_result(
     result_id: UUID,
     user: User,
@@ -93,13 +128,7 @@ async def get_result(
     files: CaseFileRepository,
     blobs: BlobStore,
 ) -> schemas.ResultDetail:
-    result = await results.get_by_id(result_id)
-    if result is None:
-        raise errors.ResultNotFoundError("Result not found")
-    try:
-        await require_project(result.project_id, user, projects)
-    except ProjectNotFoundError as error:
-        raise errors.ResultNotFoundError("Result not found") from error
+    result = await readable_result(result_id, user, projects, results)
     case = await cases.version_by_number(result.project_id, result.case_version)
     if case is None:
         return to_detail(result)

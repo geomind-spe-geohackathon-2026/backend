@@ -12,6 +12,10 @@ from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
     get_case_version_repository,
 )
+from src.core.clients.postgres.repositories.plant_version import (
+    PlantVersionRepository,
+    get_plant_version_repository,
+)
 from src.core.clients.postgres.repositories.project import (
     ProjectRepository,
     get_project_repository,
@@ -38,6 +42,10 @@ ResultRepositoryDependency = Annotated[
 CaseVersionRepositoryDependency = Annotated[
     CaseVersionRepository,
     Depends(get_case_version_repository),
+]
+PlantVersionRepositoryDependency = Annotated[
+    PlantVersionRepository,
+    Depends(get_plant_version_repository),
 ]
 CaseFileRepositoryDependency = Annotated[
     CaseFileRepository,
@@ -67,6 +75,17 @@ async def compare_results(
     results: ResultRepositoryDependency,
 ) -> schemas.ResultComparison:
     return await services.compare_results(project, ids, x, y, user, projects, results)
+
+
+@router.post("/{result_id}/adopt", response_model=schemas.AdoptedDesign)
+async def adopt_design(
+    result_id: UUID,
+    user: CurrentUser,
+    projects: ProjectRepositoryDependency,
+    results: ResultRepositoryDependency,
+    plants: PlantVersionRepositoryDependency,
+) -> schemas.AdoptedDesign:
+    return await services.adopt_design(result_id, user, projects, results, plants)
 
 
 @router.get("/{result_id}", response_model=schemas.ResultDetail)

@@ -69,6 +69,10 @@ async def read_run_artifact(session: AsyncSession, run_id: UUID, key: str) -> An
     return None if row is None else row.data
 
 
+async def read_chat_artifacts(session: AsyncSession, chat_id: UUID) -> dict[str, Any]:
+    return await RunArtifactRepository(session).all_for_chat(chat_id)
+
+
 async def read_chat_artifact(session: AsyncSession, chat_id: UUID, key: str) -> Any:
     row = await RunArtifactRepository(session).newest_for_chat(chat_id, key)
     return None if row is None else row.data
@@ -105,10 +109,21 @@ class DatabaseRunStore:
         self.run_id = run_id
         self.chat_id = chat_id
         self.warmed: list[Any] | None = None
+        self.warmed_artifacts: dict[str, Any] = {}
 
     async def warm(self, run_id: str) -> None:
         """Read a run's events ahead of ``resume``, which reads them on the loop."""
         self.warmed = await asyncio.to_thread(self.load_events, run_id)
+
+    async def warm_chat(self, chat_id: str) -> None:
+        """Read a chat's artifacts ahead of the run: geomind's async tools read them.
+
+        ``save_profile`` and the like read case files from the event loop, where a
+        blocking call would stall the loop it needs.
+        """
+        self.warmed_artifacts = await asyncio.to_thread(
+            self.bridge.call, read_chat_artifacts, UUID(chat_id)
+        )
 
     def save_event(self, run_id: str, event: Any) -> None:
         """Store the full ``event.to_dict()``, public or internal."""
@@ -152,7 +167,10 @@ class DatabaseRunStore:
     def save_chat_artifact(self, chat_id: str, key: str, data: Any) -> None:
         """Save bytes or a JSON value in the chat's own space."""
         self.bridge.call(write_artifact, None, UUID(chat_id), key, data)
+        self.warmed_artifacts[key] = data
 
     def load_chat_artifact(self, chat_id: str, key: str) -> Any:
         """Return the newest artifact of the chat under a key, or ``None``."""
+        if self.bridge.in_loop():
+            return self.warmed_artifacts.get(key)
         return self.bridge.call(read_chat_artifact, UUID(chat_id), key)

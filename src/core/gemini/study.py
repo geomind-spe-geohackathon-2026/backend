@@ -233,7 +233,7 @@ def progress_of(
     def on_progress(done: int, total: int) -> None:
         if is_cancelled():
             raise gm.errors.Cancelled("The study was cancelled")
-        report(done, total)
+        report(done, max(done, total))
 
     return on_progress
 

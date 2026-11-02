@@ -146,3 +146,7 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
 - gemini: `size` leaves coolers at the plant file's rating
   Today: on HeatingFullCoolingPlant, `size` sets the chillers and leaves absorption, compression and adsorption coolers at 40, 20 and 10 MW; peaks are 8.1, 3.6 and 9.4 MW (20%, 18%, 94% of rating)
   Also check: compression cooler peak 3.57 MW against chiller peak 3.34 MW implies a COP near 14
+
+- geomind: `save_profile` is async and reads case files through the sync `Session.load_artifact` on the event loop
+  Today: a store that blocks on that loop deadlocks, so the backend reads the chat's artifacts ahead of the run (`warm_chat`)
+  Wanted: read them in a thread

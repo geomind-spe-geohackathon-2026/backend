@@ -63,6 +63,19 @@
         "title": "Actor",
         "type": "object"
       },
+      "AdoptedDesign": {
+        "properties": {
+          "plant_version": {
+            "title": "Plant Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "plant_version"
+        ],
+        "title": "AdoptedDesign",
+        "type": "object"
+      },
       "Approval": {
         "additionalProperties": false,
         "properties": {
@@ -4708,6 +4721,49 @@
           }
         },
         "summary": "Get Result",
+        "tags": [
+          "Results"
+        ]
+      }
+    },
+    "/api/v1/design/results/{result_id}/adopt": {
+      "post": {
+        "operationId": "adopt_design_api_v1_design_results__result_id__adopt_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "result_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Result Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdoptedDesign"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Adopt Design",
         "tags": [
           "Results"
         ]

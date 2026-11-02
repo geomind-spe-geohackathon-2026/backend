@@ -359,3 +359,19 @@ def test_an_incomplete_case_is_not_given_to_the_chat() -> None:
     del content["site"]["reservoir"]["thickness"]["value"]
 
     assert seeded(SeedStore(), (content, design_inputs.case_files())).state is None
+
+
+async def test_a_warmed_chat_artifact_is_read_on_the_loop(
+    session_factory, make_user, make_project, make_chat, make_run
+) -> None:
+    owner = await make_user()
+    chat, first, _, bridge = await seed(
+        session_factory, owner, make_project, make_chat, make_run
+    )
+    store = DatabaseRunStore(bridge, first.id, chat.id)
+    await asyncio.to_thread(store.save_chat_artifact, str(chat.id), "case/a.csv", b"x")
+    fresh = DatabaseRunStore(bridge, first.id, chat.id)
+
+    await fresh.warm_chat(str(chat.id))
+
+    assert fresh.load_chat_artifact(str(chat.id), "case/a.csv") == b"x"

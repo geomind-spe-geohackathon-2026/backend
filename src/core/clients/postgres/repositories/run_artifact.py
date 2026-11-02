@@ -58,6 +58,16 @@ class RunArtifactRepository(BaseRepository):
         )
         return await self.session.scalar(statement)
 
+    async def all_for_chat(self, chat_id: UUID) -> dict[str, Any]:
+        """Return the newest value of every key of a chat's own space."""
+        statement = (
+            select(RunArtifact)
+            .where(RunArtifact.chat_id == chat_id, RunArtifact.run_id.is_(None))
+            .order_by(RunArtifact.created, RunArtifact.id)
+        )
+        rows = await self.session.scalars(statement)
+        return {row.key: row.data for row in rows}
+
 
 def get_run_artifact_repository(session: DatabaseSession) -> RunArtifactRepository:
     return RunArtifactRepository(session)

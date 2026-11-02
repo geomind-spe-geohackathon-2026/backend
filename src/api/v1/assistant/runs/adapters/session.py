@@ -214,6 +214,7 @@ async def start(
     """Start a run under the id the backend gave it; geomind chooses loop and agent."""
     history = await asyncio.to_thread(environment.store.load_history, str(chat_id))
     await asyncio.to_thread(seed_problem, environment, chat_id, project_id)
+    await environment.store.warm_chat(str(chat_id))
     try:
         run = gd.Run(
             message=message,
@@ -237,6 +238,7 @@ async def resume(
     """Answer a pending request, or with none continue a run that was cancelled."""
     try:
         await environment.store.warm(run_id.hex)
+        await environment.store.warm_chat(str(environment.store.chat_id))
         run = await asyncio.to_thread(
             gd.Run.load,
             run_id.hex,
