@@ -10,7 +10,8 @@ def fenced(value: Any) -> str:
 def llm_section(call: dict[str, Any]) -> list[str]:
     lines = [
         f"- LLM call, model `{call['model']}`: {call['input_tokens']} in, "
-        f"{call['output_tokens']} out, cost {call['cost']:.4g}, {call['duration']:.3f} s",
+        f"{call['output_tokens']} out, cost {call['cost']:.4g}, "
+        f"{call['duration']:.3f} s",
     ]
     if call["answer"]:
         lines += ["", call["answer"]]
