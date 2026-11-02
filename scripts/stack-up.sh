@@ -48,13 +48,14 @@ export ASSISTANT_LLM
 
 GEMINI_VERSION="$("$PYTHON" -c 'import gemini; print(gemini.__version__)')"
 SANDBOX_IMAGE="gemini-sandbox:$GEMINI_VERSION"
-GEMINI_SOURCE="${GEMINI_SOURCE:-$BACKEND/../gemini}"
+PIP_CONFIG_FILE="${PIP_CONFIG_FILE:-$BACKEND/pip.conf}"
 
 prepare_sandbox() {
   if docker image inspect "$SANDBOX_IMAGE" >/dev/null 2>&1; then return 0; fi
-  if [ -f "$GEMINI_SOURCE/docker/sandbox.Dockerfile" ]; then
-    echo "building $SANDBOX_IMAGE from $GEMINI_SOURCE"
-    docker build -q -f "$GEMINI_SOURCE/docker/sandbox.Dockerfile" -t "$SANDBOX_IMAGE" "$GEMINI_SOURCE" >/dev/null
+  if [ -f "$PIP_CONFIG_FILE" ]; then
+    echo "building $SANDBOX_IMAGE from the registry"
+    docker build -q --secret "id=pip_conf,src=$PIP_CONFIG_FILE" --build-arg "GEMINI_VERSION=$GEMINI_VERSION" \
+      -f "$BACKEND/docker/sandbox.Dockerfile" -t "$SANDBOX_IMAGE" "$BACKEND/docker" >/dev/null
     return 0
   fi
   return 1

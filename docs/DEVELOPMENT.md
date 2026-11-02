@@ -116,5 +116,6 @@ Write tests for behavior, security boundaries, and failure handling. Do not add 
 
 This folder's `compose.yml` and `.env.production` deploy the API and the worker behind
 Traefik; `.env` stays with the tests.
-The data services and Traefik come from `../infrastructure`. The backend image needs
-`../gemini` and `../geomind`, which compose passes as extra build contexts.
+The data services and Traefik come from `../infrastructure`. The backend image installs
+gemini and geomind from the package registry at the versions in `requirements.txt`; compose
+passes `pip.conf` as a BuildKit secret (`PIP_CONFIG_FILE` names another file).

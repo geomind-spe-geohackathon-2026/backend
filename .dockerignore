@@ -11,3 +11,4 @@ htmlcov
 tests
 logs
 .tmp
+pip.conf

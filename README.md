@@ -27,8 +27,10 @@ python -m src.main --fastapi
 python -m src.main --celery
 ```
 
-`requirements.txt` installs gemini from `../gemini` in editable mode, so that repository
-must sit next to this one.
+`requirements.txt` pins gemini and geomind to released versions from the package registry.
+Nothing is installed with `-e`. Copy `pip.conf.example` to `pip.conf`, fill in the index URL and
+install with `PIP_CONFIG_FILE=pip.conf pip install -r requirements-dev.txt`. `pip.conf` is
+ignored by git and by the image build.
 
 Configure the placeholder values in `.env` before starting the services.
 
@@ -39,7 +41,7 @@ use `GET /api/v1/system/health`.
 
 `compose.dev.yml` runs only the services (PostgreSQL 16, Redis 7, MinIO, bound to 127.0.0.1,
 compose project `geomind-dev`, named volumes). The API, the Celery worker and the frontend run
-on the host from `.venv`, so the sibling `../gemini` and `../geomind` installs are the ones used.
+on the host from `.venv`, so the versions pinned in `requirements.txt` are the ones used.
 
 ```sh
 scripts/stack-up.sh           # create .env.dev if missing, services, migrate, seed, API, worker, frontend
@@ -71,11 +73,19 @@ alembic revision --autogenerate -m "describe change"
 ## Docker
 
 This folder deploys the API and the worker from its own `compose.yml` and `.env.production`. The
-image needs `../gemini` and `../geomind`, which compose passes as extra build contexts:
+image installs the pinned engines from the registry. `pip.conf` reaches the build as a BuildKit
+secret, so it is in no image layer:
 
 ```sh
-docker build --build-context gemini=../gemini --build-context geomind=../geomind -t geomind-backend .
+docker build --secret id=pip_conf,src=pip.conf -t geomind-backend .
 ```
+
+To bump a pin: change the version in `requirements.txt`, run
+`PIP_CONFIG_FILE=pip.conf pip install -r requirements-dev.txt`, run the tests, fix what the new
+version changes, and commit. `tests/test_versions.py` fails while the installed version and the
+pin differ. A new gemini version also needs a new sandbox image: `stack-up.sh`
+builds `gemini-sandbox:<version>` from `docker/sandbox.Dockerfile` when it is missing. geomind
+releases from its `main`, gemini from its `dev`.
 
 PostgreSQL, Redis, MinIO, ChromaDB and InfluxDB come from `../infrastructure`, which
 also runs Traefik. Create the external `geomind` and `traefik` networks, start those

@@ -3,9 +3,7 @@ name: geomind-backend
 x-service: &service
   build:
     context: .
-    additional_contexts:
-      gemini: ../gemini
-      geomind: ../geomind
+    secrets: [pip_conf]
   image: geomind-backend:latest
   restart: unless-stopped
   stop_grace_period: 30s
@@ -37,6 +35,10 @@ services:
     <<: *service
     container_name: geomind-celery
     command: [python, -m, src.main, --celery]
+
+secrets:
+  pip_conf:
+    file: ${PIP_CONFIG_FILE:-./pip.conf}
 
 networks:
   geomind:
