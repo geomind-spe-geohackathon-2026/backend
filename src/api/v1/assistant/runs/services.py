@@ -156,8 +156,9 @@ async def stored_events(
 ) -> list[StreamEvent]:
     """Return the public events after a sequence, then the text of running steps.
 
-    The buffered text of a step comes as one ``text.delta`` without an id; the step's
-    ``step.finished`` replaces it.
+    The buffered text of a step comes as one ``text.delta`` without an id and
+    ``buffered: true``, after the stored events; the client replaces the step's text
+    with it, and the step's ``step.finished`` replaces that.
     """
     async with factory() as session:
         rows = await RunEventRepository(session).after(run_id, after, public_only=True)
@@ -168,6 +169,7 @@ async def stored_events(
             "text": delta.text,
             "agent": delta.agent,
             "parent": delta.parent,
+            "buffered": True,
         }
         events.append(StreamEvent("text.delta", data, None))
     return events

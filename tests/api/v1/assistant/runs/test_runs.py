@@ -250,3 +250,25 @@ async def test_replay_adds_the_buffered_text_of_a_running_step(
     assert [(e.type, e.sequence, e.data["text"]) for e in events] == [
         ("text.delta", None, "partial")
     ]
+    assert events[0].data["buffered"] is True
+
+
+async def test_buffered_text_is_one_event_per_step_after_the_stored_events(
+    session_factory, session, make_user, make_project, make_chat, make_run, redis
+) -> None:
+    owner = await make_user()
+    run = await make_run(await make_chat(await make_project(owner), owner), owner)
+    await store_events(session, run, await play(run.id))
+    deltas = RunDeltaRepository(redis)
+    await deltas.append(str(run.id), PendingDelta("analyst", None, 9, "par"), 60)
+    await deltas.append(str(run.id), PendingDelta("analyst", None, 9, "tial"), 60)
+
+    events = await stored_events(session_factory, deltas, run.id, -1)
+
+    buffered = [e for e in events if e.type == "text.delta"]
+    assert len(buffered) == 1
+    assert buffered[0] is events[-1]
+    assert buffered[0].sequence is None
+    assert buffered[0].data["text"] == "partial"
+    assert all(e.sequence is not None for e in events[:-1])
+    assert not any(e.data.get("buffered") for e in events[:-1])

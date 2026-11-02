@@ -15,7 +15,9 @@ Routes follow `../../docs/contracts.md`. Only `runs/adapters/` imports geomind.
    publishes public events to Redis. `text.delta` is not stored; it is buffered in
    Redis (`run_delta:*`, TTL `ASSISTANT_DELTA_TTL_SECONDS`) until `step.finished`.
 4. `GET .../events` replays stored public events after `Last-Event-ID`, adds the buffered
-   text of running steps as one `text.delta` without id, then streams live. It ends after
+   text of running steps, once per step and after the stored events, as one `text.delta`
+   without id and with `buffered: true` (the client replaces the step's text with it),
+   then streams live. It ends after
    the root run's `run.finished` (delegated runs also emit one).
 5. `POST .../answer` validates against the stored request, moves `waiting` to `running`
    atomically and sends `assistant.runs.resume`. `POST .../cancel` sets the Redis flag
