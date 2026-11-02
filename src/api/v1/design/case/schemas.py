@@ -29,6 +29,7 @@ class CaseCreate(BaseModel):
 
 class CaseCheck(BaseModel):
     content: dict[str, Any]
+    project: UUID | None = None
 
 
 class CaseProblems(BaseModel):

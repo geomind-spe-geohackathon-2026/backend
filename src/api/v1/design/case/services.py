@@ -76,9 +76,24 @@ async def get_case(
     return await build_case(version, files_repository, blobs)
 
 
-def check_case(content: dict[str, Any]) -> schemas.CaseProblems:
+async def saved_files(
+    project: Project,
+    repository: CaseVersionRepository,
+    files: CaseFileRepository,
+    blobs: BlobStore,
+) -> dict[str, bytes] | None:
+    """Return the files of the project's latest case, or ``None`` without a case."""
+    latest = await repository.latest_version(project.id)
+    if latest is None:
+        return None
+    return await stored_files(await files.list_for_version(latest.id), blobs)
+
+
+def check_case(
+    content: dict[str, Any], files: dict[str, bytes] | None = None
+) -> schemas.CaseProblems:
     """Return gemini's missing values and problems for a case document."""
-    missing, problems = case.validate(content, None)
+    missing, problems = case.validate(content, files)
     return schemas.CaseProblems(missing=missing, problems=problems)
 
 

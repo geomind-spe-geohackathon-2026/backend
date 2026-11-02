@@ -99,7 +99,7 @@ wait_http "http://127.0.0.1:$API_PORT/api/v1/system/health" api
 echo "seeding"
 "$PYTHON" scripts/seed.py --url "http://127.0.0.1:$API_PORT"
 
-start worker "$PYTHON" -m celery -A src.celery:app worker --loglevel=INFO --concurrency=2
+FORKED_BY_MULTIPROCESSING=1 start worker "$PYTHON" -m celery -A src.celery:app worker --loglevel=INFO --concurrency=2
 
 cd "$FRONTEND"
 VITE_API_MODE=real VITE_PROXY_TARGET="http://127.0.0.1:$API_PORT" \

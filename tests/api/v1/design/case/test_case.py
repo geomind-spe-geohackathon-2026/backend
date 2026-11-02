@@ -90,7 +90,7 @@ async def test_stale_base_and_identical_content_are_conflicts(
     assert stale.json()["error"]["details"] == {"latest": 1}
 
 
-async def test_validate_returns_missing_and_problems(client, make_user) -> None:
+async def test_validate_returns_missing_and_problems(client, make_user, blobs) -> None:
     user = await make_user()
 
     incomplete = await client.post(
@@ -103,6 +103,40 @@ async def test_validate_returns_missing_and_problems(client, make_user) -> None:
     assert len(incomplete.json()["missing"]) == 1
     assert incomplete.json()["problems"] == []
     assert broken.json()["problems"][0]["code"] == "invalid_unit"
+
+
+async def test_validate_with_a_project_finds_its_saved_files(
+    client, make_user, make_project, blobs
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    headers = bearer(user)
+    await save_case(client, headers, project)
+    await upload(client, headers, project, 1)
+
+    response = await client.post(
+        f"{CASE}/validate",
+        headers=headers,
+        json={"content": example_case(), "project": str(project.id)},
+    )
+
+    assert response.json() == {"missing": [], "problems": []}
+
+
+async def test_validate_refuses_the_project_of_another_user(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    other = await make_user("other@example.com")
+    project = await make_project(owner)
+
+    response = await client.post(
+        f"{CASE}/validate",
+        headers=bearer(other),
+        json={"content": example_case(), "project": str(project.id)},
+    )
+
+    assert response.status_code == 404
 
 
 async def test_schema_is_geminis_case_schema(client, make_user) -> None:

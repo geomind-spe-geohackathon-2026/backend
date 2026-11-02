@@ -83,9 +83,17 @@ async def save_case(
 @router.post("/validate", response_model=schemas.CaseProblems)
 async def validate_case(
     payload: schemas.CaseCheck,
-    _user: CurrentUser,
+    user: CurrentUser,
+    projects: ProjectRepositoryDependency,
+    repository: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    blobs: BlobStoreDependency,
 ) -> schemas.CaseProblems:
-    return services.check_case(payload.content)
+    stored: dict[str, bytes] | None = None
+    if payload.project is not None:
+        project = await require_project(payload.project, user, projects)
+        stored = await services.saved_files(project, repository, files, blobs)
+    return services.check_case(payload.content, stored)
 
 
 @router.post("/files", response_model=schemas.Case, status_code=status.HTTP_201_CREATED)

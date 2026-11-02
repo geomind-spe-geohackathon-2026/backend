@@ -267,6 +267,18 @@
             "additionalProperties": true,
             "title": "Content",
             "type": "object"
+          },
+          "project": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project"
           }
         },
         "required": [
