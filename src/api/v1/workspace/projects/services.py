@@ -14,12 +14,14 @@ from pydantic import ValidationError
 from fastapi import UploadFile
 from src.api.v1.workspace.projects import schemas
 from src.core.clients.minio.blobs import BlobStore
+from src.core.clients.minio.keys import layout_key
 from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
+from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
@@ -132,8 +134,22 @@ async def rename_project(
     return await describe_one(renamed, progress)
 
 
-async def delete_project(project: Project, repository: ProjectRepository) -> None:
+async def delete_project(
+    project: Project,
+    repository: ProjectRepository,
+    documents: DocumentRepository,
+    files: CaseFileRepository,
+    blobs: BlobStore,
+) -> None:
+    """Delete the project, then its stored bytes; a failed delete of bytes is raised."""
+    keys = [
+        *await documents.object_keys(project.id),
+        *await files.object_keys(project.id),
+        layout_key(project.id),
+    ]
     await repository.delete(project.id)
+    for key in keys:
+        await blobs.delete(key)
 
 
 def write_archive(

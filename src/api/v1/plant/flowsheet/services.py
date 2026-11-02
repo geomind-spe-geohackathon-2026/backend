@@ -4,6 +4,7 @@ from uuid import UUID
 
 from src.api.v1.plant.flowsheet import schemas
 from src.core.clients.minio.blobs import BlobStore
+from src.core.clients.minio.keys import layout_key
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
@@ -21,10 +22,6 @@ from src.core.versioning import (
     describe_versions,
     latest_version,
 )
-
-
-def layout_key(project_id: UUID) -> str:
-    return f"plant/{project_id}/layout.json"
 
 
 async def read_layout(blobs: BlobStore, project_id: UUID) -> dict[str, Any]:

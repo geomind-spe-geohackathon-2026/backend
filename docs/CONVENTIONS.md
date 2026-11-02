@@ -270,6 +270,9 @@ code uses the repository; it does not add tables or queries of its own.
   values are allowed. Case files keep their folder (`case/files/<n>/<name>`).
 - Archives with `..` or absolute paths, or above `PROJECT_IMPORT_MAX_BYTES` uploaded or
   unpacked, are refused. Only `project.json` and `plant/<number>.json` are read.
+- Deleting a project removes its rows first, then its documents, case files and layout
+  from MinIO. A failed object delete is raised, not logged away (errors are never
+  swallowed); the leftover bytes are unreachable and can be removed by hand.
 - Imported versions keep their number, note and creation time; the importer becomes
   their author. Legacy project zips are not accepted.
 

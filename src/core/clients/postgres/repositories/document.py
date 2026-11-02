@@ -53,6 +53,10 @@ class DocumentRepository(BaseRepository):
             statement = statement.where(Document.text.icontains(word, autoescape=True))
         return list(await self.session.scalars(statement.order_by(Document.created)))
 
+    async def object_keys(self, project_id: UUID) -> list[str]:
+        statement = select(Document.object_key).where(Document.project_id == project_id)
+        return list(await self.session.scalars(statement))
+
     async def delete(self, document_id: UUID) -> None:
         await self.session.execute(delete(Document).where(Document.id == document_id))
         await self.session.commit()

@@ -34,6 +34,11 @@ class CaseFileRepository(BaseRepository):
         )
         return list(await self.session.scalars(statement))
 
+    async def object_keys(self, project_id: UUID) -> list[str]:
+        """Return each stored object of the project once; versions share objects."""
+        statement = select(CaseFile.object_key).where(CaseFile.project_id == project_id)
+        return sorted(set(await self.session.scalars(statement)))
+
     async def get(self, case_version_id: UUID, name: str) -> CaseFile | None:
         statement = select(CaseFile).where(
             CaseFile.case_version_id == case_version_id,
