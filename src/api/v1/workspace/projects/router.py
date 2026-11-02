@@ -19,15 +19,12 @@ from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
     get_plant_version_repository,
 )
-from src.core.clients.postgres.repositories.progress import (
-    ProgressRepository,
-    get_progress_repository,
-)
 from src.core.clients.postgres.repositories.project import (
     ProjectRepository,
     get_project_repository,
 )
 from src.core.pagination.page import Page, PageParams
+from src.core.progress.reader import ProgressReaderDependency
 from src.core.security.access import AccessibleProject, CurrentUser
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
@@ -48,10 +45,6 @@ DocumentRepositoryDependency = Annotated[
     DocumentRepository,
     Depends(get_document_repository),
 ]
-ProgressRepositoryDependency = Annotated[
-    ProgressRepository,
-    Depends(get_progress_repository),
-]
 ProjectRepositoryDependency = Annotated[
     ProjectRepository,
     Depends(get_project_repository),
@@ -63,7 +56,7 @@ async def list_projects(
     user: CurrentUser,
     page: PageParams,
     repository: ProjectRepositoryDependency,
-    progress: ProgressRepositoryDependency,
+    progress: ProgressReaderDependency,
     search: Annotated[str | None, Query()] = None,
 ) -> Page:
     return await services.list_projects(user, page, search, repository, progress)
@@ -78,7 +71,7 @@ async def create_project(
     payload: schemas.ProjectCreate,
     user: CurrentUser,
     repository: ProjectRepositoryDependency,
-    progress: ProgressRepositoryDependency,
+    progress: ProgressReaderDependency,
 ) -> schemas.Project:
     return await services.create_project(payload, user, repository, progress)
 
@@ -92,7 +85,7 @@ async def import_project(
     file: UploadFile,
     user: CurrentUser,
     repository: ProjectRepositoryDependency,
-    progress: ProgressRepositoryDependency,
+    progress: ProgressReaderDependency,
     blobs: BlobStoreDependency,
 ) -> schemas.Project:
     return await services.import_project(file, user, repository, progress, blobs)
@@ -101,7 +94,7 @@ async def import_project(
 @router.get("/{project_id}", response_model=schemas.Project)
 async def get_project(
     project: AccessibleProject,
-    progress: ProgressRepositoryDependency,
+    progress: ProgressReaderDependency,
 ) -> schemas.Project:
     return await services.get_project(project, progress)
 
@@ -111,7 +104,7 @@ async def rename_project(
     payload: schemas.ProjectUpdate,
     project: AccessibleProject,
     repository: ProjectRepositoryDependency,
-    progress: ProgressRepositoryDependency,
+    progress: ProgressReaderDependency,
 ) -> schemas.Project:
     return await services.rename_project(project, payload, repository, progress)
 

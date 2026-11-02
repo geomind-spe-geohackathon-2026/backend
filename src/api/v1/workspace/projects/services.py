@@ -26,7 +26,6 @@ from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
 from src.core.clients.postgres.repositories.progress import (
-    ProgressRepository,
     ProjectFacts,
 )
 from src.core.clients.postgres.repositories.project import (
@@ -41,6 +40,7 @@ from src.core.gemini.errors import PlantInvalidError
 from src.core.gemini.plant import validate_content
 from src.core.gemini.stored import stored_files
 from src.core.pagination.page import Page, PageRequest, encode_cursor
+from src.core.progress.reader import ProgressReader
 from src.core.progress.states import build_progress
 from src.core.settings import settings
 
@@ -83,7 +83,7 @@ def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
 
 async def describe_one(
     project: Project,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> schemas.Project:
     facts = await progress.facts([project.id])
     return describe_project(project, facts[project.id])
@@ -94,7 +94,7 @@ async def list_projects(
     page: PageRequest,
     search: str | None,
     repository: ProjectRepository,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> Page:
     owner_id = None if user.role == "admin" else user.id
     rows = await repository.list_page(page, owner_id, search)
@@ -111,7 +111,7 @@ async def create_project(
     payload: schemas.ProjectCreate,
     user: User,
     repository: ProjectRepository,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> schemas.Project:
     project = await repository.create(payload.name, user.id)
     return await describe_one(project, progress)
@@ -119,7 +119,7 @@ async def create_project(
 
 async def get_project(
     project: Project,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> schemas.Project:
     return await describe_one(project, progress)
 
@@ -128,7 +128,7 @@ async def rename_project(
     project: Project,
     payload: schemas.ProjectUpdate,
     repository: ProjectRepository,
-    progress: ProgressRepository,
+    progress: ProgressReader,
 ) -> schemas.Project:
     renamed = await repository.rename(project, payload.name)
     return await describe_one(renamed, progress)
@@ -332,7 +332,7 @@ async def import_project(
     file: UploadFile,
     user: User,
     repository: ProjectRepository,
-    progress: ProgressRepository,
+    progress: ProgressReader,
     blobs: BlobStore,
 ) -> schemas.Project:
     upload = await file.read(settings.PROJECT_IMPORT_MAX_BYTES + 1)

@@ -4,9 +4,9 @@ from src.core.clients.postgres.models.activity import Activity
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.repositories.activity import ActivityRepository
 from src.core.clients.postgres.repositories.chat import ChatRepository
-from src.core.clients.postgres.repositories.progress import ProgressRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.pagination.page import PageRequest
+from src.core.progress.reader import ProgressReader
 from src.core.progress.states import build_progress
 
 CHAT_LIMIT = 5
@@ -29,7 +29,7 @@ def describe_activity(activity: Activity) -> schemas.Activity:
 
 async def get_overview(
     project: Project,
-    progress: ProgressRepository,
+    progress: ProgressReader,
     chats: ChatRepository,
     runs: RunRepository,
     activity: ActivityRepository,

@@ -16,7 +16,7 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   `identity/{authn,me,users}`, `workspace/{projects,overview,documents}`. One function in `services.py` per
   use-case.
 - **Workspace:** project `progress` is computed, never stored, by `src/core/progress/`
-  from `ProgressRepository` (read-only counts over the other tables). Uploaded documents
+  from `ProgressRepository` (read-only counts over the other tables). `ProgressReader` adds the case's missing values from `gm.Case` (step `incomplete`). Uploaded documents
   are extracted by the Celery task `workspace.documents.extract`; the assistant searches
   them with `src/core/documents/search.py:search_documents` (keyword search through
   `DocumentRepository`). Bytes in MinIO go through `BlobStore` (`src/core/clients/minio/blobs.py`: `put`, `get`, `delete`).
