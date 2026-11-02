@@ -35,3 +35,19 @@ def broken_case() -> dict[str, Any]:
     content = deepcopy(example_case())
     content["demand"]["heating"]["power"]["unit"] = "K"
     return content
+
+
+def site_case() -> dict[str, Any]:
+    """Return a case that states the ground and the reservoir."""
+    content = deepcopy(example_case())
+    content["site"] = {
+        "ground": {
+            "gradient": {"value": 0.03, "unit": "K/m"},
+            "surface_temperature": {"value": 10, "unit": "degC"},
+        },
+        "reservoir": {
+            "permeability": {"value": 1e-13, "unit": "m2"},
+            "thickness": {"value": 100, "unit": "m"},
+        },
+    }
+    return content

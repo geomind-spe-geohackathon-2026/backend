@@ -48,13 +48,13 @@ def validate_content(content: Any) -> dict[str, Any]:
     return normalised
 
 
-def problems_of(content: Any) -> list[dict[str, str]]:
-    """Return the structural problems of a document, else its missing values."""
+def problems_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str]]:
+    """Return the structural problems of a document, else what the case leaves."""
     try:
         plant = gm.Plant.from_dict(content)
     except gm.errors.ValidationError as error:
         return [problem_of(problem) for problem in error.problems]
-    return [problem_of(issue.problem()) for issue in plant.check()]
+    return [problem_of(issue.problem()) for issue in gm.check(plant, case)]
 
 
 def from_template(name: str) -> gm.Plant:
@@ -151,6 +151,14 @@ def module_ids(tree: dict[str, Any], prefix: str = "") -> list[str]:
     return found
 
 
+def free_document(plant: gm.Plant) -> dict[str, Any]:
+    """Return the plant as a free structure, without class type and size."""
+    document = plant.to_dict(structure=True)
+    return {
+        key: value for key, value in document.items() if key not in {"type", "size"}
+    }
+
+
 def structure(plant: gm.Plant) -> dict[str, list[dict[str, Any]]]:
     """Return the modules and connections of a plant as the flowsheet shows them."""
     modules = []
@@ -185,12 +193,16 @@ def set_parameters(
         raise plant_invalid(list(error.problems), str(error)) from error
 
 
-def missing_parameters(plant: gm.Plant, module: str) -> list[str]:
-    """Return the names of the module's own parameters that have no value."""
+def missing_parameters(
+    plant: gm.Plant,
+    module: str,
+    case: gm.Case | None,
+) -> list[str]:
+    """Return the names of the module's own parameters that the plant and case leave."""
     owner = f"params.{module}"
     return [
         issue.path.rpartition(".")[2]
-        for issue in plant.check()
+        for issue in gm.check(plant, case)
         if issue.kind == "missing" and issue.path.rpartition(".")[0] == owner
     ]
 
@@ -199,6 +211,7 @@ def parameters(
     plant: gm.Plant,
     module: str,
     at: datetime | None,
+    case: gm.Case | None,
 ) -> dict[str, Any]:
     """Return a module's schema, values at a time, missing names and history."""
     target = get_module(plant, module)
@@ -207,6 +220,6 @@ def parameters(
         "type": target.describe()["type"],
         "schema": target.parameter_schema(),
         "values": plant.params_at(module, at),
-        "missing": missing_parameters(plant, module),
+        "missing": missing_parameters(plant, module, case),
         "history": plant.param_history(module),
     }

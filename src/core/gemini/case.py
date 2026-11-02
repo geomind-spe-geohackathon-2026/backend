@@ -35,6 +35,11 @@ def read(
         return None, [problem_of(problem) for problem in error.problems]
 
 
+def build(content: Any, files: dict[str, bytes] | None) -> gm.Case | None:
+    """Return the case a complete document makes, else None."""
+    return read(content, files)[0]
+
+
 def validate(
     content: Any,
     files: dict[str, bytes] | None,

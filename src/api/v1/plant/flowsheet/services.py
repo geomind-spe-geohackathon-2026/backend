@@ -1,6 +1,9 @@
+import asyncio
 import json
 from typing import Any
 from uuid import UUID
+
+import gemini as gm
 
 from src.api.v1.plant.flowsheet import schemas
 from src.core.clients.minio.blobs import BlobStore
@@ -80,6 +83,7 @@ async def build_flowsheet(
         project=version.project_id,
         version=version.number,
         spec=version.content,
+        structure=plant.free_document(built),
         layout=await read_layout(blobs, version.project_id),
         **plant.structure(built),
     )
@@ -148,9 +152,14 @@ async def save_layout(
     return await build_flowsheet(latest, blobs)
 
 
-def validate_spec(spec: dict[str, Any]) -> schemas.SpecProblems:
-    """Return gemini's problems for a plant document."""
-    return schemas.SpecProblems(problems=plant.problems_of(spec))
+async def validate_spec(
+    spec: dict[str, Any],
+    case: gm.Case | None,
+) -> schemas.SpecProblems:
+    """Return gemini's problems for a plant document, on the case when there is one."""
+    return schemas.SpecProblems(
+        problems=await asyncio.to_thread(plant.problems_of, spec, case)
+    )
 
 
 async def list_versions(
