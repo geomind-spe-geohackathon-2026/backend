@@ -19,9 +19,9 @@ def test_the_seeded_plant_serves_heating_and_cooling_on_the_example_case() -> No
         "run",
         "s",
         {},
-        seed_plant(),
-        inputs.case_content(),
-        inputs.case_files(),
+        (seed_plant(), inputs.case_content(), inputs.case_files()),
+        lambda *_: None,
+        lambda: False,
     )
 
     assert outcome["report"]["heat_delivered"]["value"] > 0

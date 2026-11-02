@@ -33,8 +33,12 @@ class Result(BaseModel):
 class Capacity(BaseModel):
     name: str
     title: str
+    kind: str
     value: float | None
     unit: str
+    peak: float | None
+    peak_unit: str
+    share: float | None
     reason: str | None
 
 
@@ -45,14 +49,30 @@ class Constraint(BaseModel):
     message: str
 
 
-class Coverage(BaseModel):
+class Figure(BaseModel):
+    value: float
+    unit: str
+
+
+class CoverageDay(BaseModel):
     date: str
     source: Literal["geothermal", "backup", "short"]
+    demand: Figure
+    geothermal: Figure
+    backup: Figure
+    short: Figure
+    failed_steps: Figure
+
+
+class Coverage(BaseModel):
+    heating: list[CoverageDay] = []
+    cooling: list[CoverageDay] = []
 
 
 class ResultDetail(Result):
     capacities: list[Capacity]
-    coverage: list[Coverage] | None
+    sizes: list[Capacity]
+    coverage: Coverage | None
     constraints: list[Constraint]
     series: list[Any]
 

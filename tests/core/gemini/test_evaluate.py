@@ -110,7 +110,7 @@ def test_a_figure_keeps_gemini_title_or_its_name() -> None:
 
     kpis = evaluate.kpis_of(report)
 
-    assert [kpi["title"] for kpi in kpis] == ["Cost of heat", "lcoh"]
+    assert [kpi["title"] for kpi in kpis] == ["Cost of heat", "LCOH"]
 
 
 def test_a_value_that_misses_the_limit_by_a_hair_is_not_rounded_onto_it() -> None:
@@ -120,3 +120,46 @@ def test_a_value_that_misses_the_limit_by_a_hair_is_not_rounded_onto_it() -> Non
     }
 
     assert evaluate.message_of(requirement) == "0.1000004 against the limit 0.1"
+
+
+def rated(kind: str, value: float, unit: str) -> dict:
+    return {
+        "kind": kind,
+        "capacity": {"value": value, "unit": unit},
+        "peak": {"value": None, "unit": unit, "reason": "unused"},
+        "share": {"value": None, "unit": "-", "reason": "unused"},
+    }
+
+
+RATINGS = {
+    "capacities": {
+        "d0": rated("production_pump", 300.0, "m3/h"),
+        "supply_pipe": rated("pipe", 100.0, "m"),
+        "heat_exchanger": rated("heat_exchanger", 1.5e6, "W/K"),
+        "absorption_cooler": rated("cooler", 40.0, "MW"),
+    }
+}
+
+
+def test_a_capacity_keeps_the_module_id_and_says_its_kind() -> None:
+    first = evaluate.capacities_of(RATINGS)[0]
+
+    assert (first["title"], first["kind"]) == ("d0", "Production pump")
+
+
+def test_a_length_is_a_size_not_a_capacity() -> None:
+    capacities = [item["name"] for item in evaluate.capacities_of(RATINGS)]
+    sizes = [item["name"] for item in evaluate.sizes_of(RATINGS)]
+
+    assert "supply_pipe" not in capacities
+    assert sizes == ["supply_pipe"]
+
+
+def test_a_large_conductance_has_a_readable_unit() -> None:
+    exchanger = evaluate.capacities_of(RATINGS)[1]
+
+    assert (exchanger["value"], exchanger["unit"]) == (1.5, "MW/K")
+
+
+def test_a_cooler_says_its_rating_is_heat_rejected() -> None:
+    assert evaluate.capacities_of(RATINGS)[2]["kind"] == "Cooler, heat rejected"

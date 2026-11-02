@@ -15,6 +15,10 @@ from tests.routes import route_exists
 URL = "/api/v1/design/study"
 
 
+def never_cancelled(_job: str) -> bool:
+    return False
+
+
 async def test_kinds_are_geminis_methods(client, make_user) -> None:
     user = await make_user()
 
@@ -212,7 +216,7 @@ async def test_other_users_study_is_not_found(
     assert response.json()["error"]["code"] == "study_not_found"
 
 
-async def test_cancel_terminates_the_worker(
+async def test_cancel_flags_the_study_without_killing_the_worker(
     client, make_user, make_project, save_inputs, queued, terminated, redis
 ) -> None:
     user = await make_user()
@@ -225,7 +229,7 @@ async def test_cancel_terminates_the_worker(
 
     assert response.json()["status"] == "cancelled"
     assert response.json()["ended"] is not None
-    assert terminated == ["task-1"]
+    assert terminated == []
     assert await redis.exists(f"job:{study_id}:cancel")
     again = await client.post(f"{URL}/{study_id}/cancel", headers=bearer(user))
     assert again.status_code == 409
@@ -266,6 +270,7 @@ async def test_worker_stores_the_result(
             services.Stores.open(worker),
             blobs,
             lambda *args: reported.append(args),
+            never_cancelled,
         )
 
     stores = services.Stores.open(session)
@@ -274,8 +279,8 @@ async def test_worker_stores_the_result(
     assert done.status == "done"
     assert (done.progress_done, done.progress_total) == (1, 1)
     assert result.summary["checks"]["passed"] == 13
-    assert result.content["coverage"] is None
-    assert reported == [(str(study.id), 0, 1), (str(study.id), 1, 1)]
+    assert "coverage" not in result.content
+    assert reported == [(str(study.id), 0, 1)]
     activity = await stores.activity.latest(project.id, 1)
     assert (activity[0].link_route, activity[0].link_id) == (
         "design/results",
@@ -299,7 +304,11 @@ async def test_worker_records_a_failed_study(
 
     async with session_factory() as worker:
         await services.run_study(
-            study.id, services.Stores.open(worker), blobs, lambda *_: None
+            study.id,
+            services.Stores.open(worker),
+            blobs,
+            lambda *_: None,
+            never_cancelled,
         )
 
     stores = services.Stores.open(session)
@@ -326,5 +335,38 @@ async def test_worker_leaves_a_cancelled_study_alone(
 
     async with session_factory() as worker:
         await services.run_study(
-            study.id, services.Stores.open(worker), blobs, lambda *_: None
+            study.id,
+            services.Stores.open(worker),
+            blobs,
+            lambda *_: None,
+            never_cancelled,
         )
+
+
+async def test_a_cancelled_study_stops_without_a_result_or_a_failure(
+    session, session_factory, make_user, make_project, save_inputs, blobs, monkeypatch
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    await save_inputs(project, user)
+    study = await make_queued(session_factory, project, user)
+
+    def stopped(*_: object) -> None:
+        raise gemini_study.StudyCancelledError("stopped")
+
+    monkeypatch.setattr(gemini_study, "run", stopped)
+
+    async with session_factory() as worker:
+        await services.run_study(
+            study.id,
+            services.Stores.open(worker),
+            blobs,
+            lambda *_: None,
+            never_cancelled,
+        )
+
+    stores = services.Stores.open(session)
+    cancelled = await stores.studies.refresh(await stores.studies.get_by_id(study.id))
+    assert cancelled.status == "cancelled"
+    assert cancelled.error is None
+    assert await stores.results.get_for_study(study.id) is None

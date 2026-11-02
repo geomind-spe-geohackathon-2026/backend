@@ -14,10 +14,25 @@ FAILED = "fail"
 NOT_ASSESSED = "not_assessed"
 DIMENSIONLESS = "-"
 FULL_DIGITS = 12
+ABBREVIATIONS = {
+    "capex": "CAPEX",
+    "opex": "OPEX",
+    "lcts": "LCTS",
+    "lcoh": "LCOH",
+    "lcoc": "LCOC",
+    "co2": "CO2",
+    "co2_emitted": "CO2 emitted",
+}
+KIND_MEANINGS = {"cooler": "heat rejected"}
+LENGTH_UNIT = "m"
+CONDUCTANCE_UNIT = "W/K"
+CONDUCTANCE_SCALES = ((1e6, "MW/K"), (1e3, "kW/K"))
 
 
 def title_of(name: str) -> str:
     """Return a readable title for a gemini name; gemini has no titles."""
+    if name in ABBREVIATIONS:
+        return ABBREVIATIONS[name]
     return name.replace("_", " ").capitalize()
 
 
@@ -31,7 +46,7 @@ def kpis_of(report: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "name": name,
-            "title": item.get("title", name),
+            "title": item.get("title", title_of(name)),
             "value": item["value"],
             "unit": item["unit"],
             "reason": item.get("reason"),
@@ -136,17 +151,56 @@ def constraints_of(report: dict[str, Any]) -> list[dict[str, str]]:
     ]
 
 
+def readable(figure: dict[str, Any]) -> dict[str, Any]:
+    """Return a figure, a thermal conductance in the largest unit that fits."""
+    value, unit = figure["value"], figure["unit"]
+    if value is None or unit != CONDUCTANCE_UNIT:
+        return figure
+    for scale, scaled in CONDUCTANCE_SCALES:
+        if abs(value) >= scale:
+            return {**figure, "value": value / scale, "unit": scaled}
+    return figure
+
+
+def kind_text(kind: str) -> str:
+    """Return a module kind in words, with what its rating measures if not plain."""
+    text = title_of(kind)
+    meaning = KIND_MEANINGS.get(kind)
+    return f"{text}, {meaning}" if meaning else text
+
+
+def rating_of(path: str, item: dict[str, Any]) -> dict[str, Any]:
+    """Return one rated module with its peak use and the share of its rating used."""
+    capacity = readable(item["capacity"])
+    peak = readable(item["peak"])
+    return {
+        "name": path,
+        "title": path,
+        "kind": kind_text(item["kind"]),
+        "value": capacity["value"],
+        "unit": capacity["unit"],
+        "peak": peak["value"],
+        "peak_unit": peak["unit"],
+        "share": item["share"]["value"],
+        "reason": None,
+    }
+
+
 def capacities_of(report: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return the capacity of each module of the report."""
+    """Return the rated capacity of each module of the report; lengths are not one."""
     return [
-        {
-            "name": path,
-            "title": f"{path} ({item['kind']})",
-            "value": item["capacity"]["value"],
-            "unit": item["capacity"]["unit"],
-            "reason": None,
-        }
+        rating_of(path, item)
         for path, item in report["capacities"].items()
+        if item["capacity"]["unit"] != LENGTH_UNIT
+    ]
+
+
+def sizes_of(report: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return what gemini lists as a rating but is a length, such as a pipe."""
+    return [
+        rating_of(path, item)
+        for path, item in report["capacities"].items()
+        if item["capacity"]["unit"] == LENGTH_UNIT
     ]
 
 
@@ -155,6 +209,7 @@ def summarise(report: dict[str, Any]) -> dict[str, Any]:
     return {
         "summary": {"kpis": kpis_of(report), "checks": checks_of(report)},
         "capacities": capacities_of(report),
+        "sizes": sizes_of(report),
         "constraints": constraints_of(report),
     }
 

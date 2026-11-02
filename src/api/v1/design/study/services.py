@@ -319,8 +319,6 @@ async def cancel_study(
         study, {"status": "cancelled", "ended": utc_now()}
     )
     await control.request_cancel(jobs, str(study.id))
-    if study.task_id:
-        await asyncio.to_thread(control.terminate, study.task_id)
     await record(study, stores, f"Cancelled study {study.name}", STUDY_ROUTE)
     return to_study(study, None, None)
 
@@ -354,7 +352,6 @@ async def finish_done(
     content = {
         "capacities": parts["capacities"],
         "constraints": parts["constraints"],
-        "coverage": None,
         "series": [],
         **outcome,
     }
@@ -381,7 +378,20 @@ async def finish_done(
     )
 
 
-async def compute(study: Study, stores: Stores, blobs: BlobStore) -> dict[str, Any]:
+async def finish_cancelled(study: Study, stores: Stores) -> None:
+    study = await stores.studies.refresh(study)
+    if study.status == "running":
+        values = {"status": "cancelled", "ended": utc_now()}
+        await stores.studies.update(study, values)
+
+
+async def compute(
+    study: Study,
+    stores: Stores,
+    blobs: BlobStore,
+    report: Callable[[int, int], None],
+    is_cancelled: Callable[[], bool],
+) -> dict[str, Any]:
     inputs = await gather_inputs(
         study.project_id, stores, blobs, study.plant_version, study.case_version
     )
@@ -391,9 +401,9 @@ async def compute(study: Study, stores: Stores, blobs: BlobStore) -> dict[str, A
         study.kind,
         study.name,
         study.settings,
-        inputs.plant.content,
-        inputs.case.content,
-        inputs.case_files,
+        (inputs.plant.content, inputs.case.content, inputs.case_files),
+        report,
+        is_cancelled,
     )
 
 
@@ -402,11 +412,13 @@ async def run_study(
     stores: Stores,
     blobs: BlobStore,
     report: Callable[[str, int, int], None],
+    is_cancelled: Callable[[str], bool],
 ) -> None:
     """Run a queued study; a study in any other state is left alone.
 
-    gemini takes no progress callback, so progress stays 0 of 1 until the end.
-    An unexpected error is recorded on the study and raised again.
+    gemini calls back after each trial, which reports progress and stops a cancelled
+    study; trials already run are lost. An unexpected error is recorded on the study
+    and raised again.
     """
     study = await stores.studies.get_by_id(study_id)
     if study is None or study.status != "queued":
@@ -414,9 +426,17 @@ async def run_study(
     study = await stores.studies.update(
         study, {"status": "running", "started": utc_now()}
     )
-    report(str(study.id), 0, 1)
+    job = str(study.id)
+    report(job, 0, 1)
+
+    def trial(done: int, total: int) -> None:
+        report(job, done, total)
+
     try:
-        outcome = await compute(study, stores, blobs)
+        outcome = await compute(study, stores, blobs, trial, lambda: is_cancelled(job))
+    except gemini_study.StudyCancelledError:
+        await finish_cancelled(study, stores)
+        return
     except AppError as error:
         await finish_failed(study, stores, failure_of(error))
         return
@@ -424,4 +444,3 @@ async def run_study(
         await finish_failed(study, stores, failure_of(AppError(str(error))))
         raise
     await finish_done(study, outcome, stores)
-    report(str(study.id), 1, 1)

@@ -18,6 +18,16 @@ def missing(**changes):
     return study.missing_inputs(**{**arguments, **changes})
 
 
+def run_of(kind: str, settings: dict | None = None, **changes) -> dict:
+    arguments = {
+        "report": lambda *_: None,
+        "is_cancelled": lambda: False,
+        **changes,
+    }
+    documents = (inputs.plant_content(), inputs.case_content(), inputs.case_files())
+    return study.run(kind, "s", settings or {}, documents, **arguments)
+
+
 def test_kinds_are_the_method_values_with_the_shared_schema() -> None:
     kinds = study.kinds()
 
@@ -83,14 +93,8 @@ def test_a_method_keeps_the_prepare_it_was_given() -> None:
 
 
 def test_the_size_kind_runs_gemini_sizing() -> None:
-    arguments = (
-        inputs.plant_content(),
-        inputs.case_content(),
-        inputs.case_files(),
-    )
-
-    sized = study.run("size", "s", {}, *arguments)
-    plain = study.run("run", "s", {}, *arguments)
+    sized = run_of("size")
+    plain = run_of("run")
 
     assert sized["design"] != plain["design"]
 
@@ -146,15 +150,36 @@ def test_a_broken_plant_is_plant_invalid() -> None:
 
 
 def test_a_run_gives_report_run_and_design() -> None:
-    outcome = study.run(
-        "run",
-        "s",
-        {},
-        inputs.plant_content(),
-        inputs.case_content(),
-        inputs.case_files(),
-    )
+    outcome = run_of("run")
 
     assert outcome["report"]["lcts"]["unit"] == "EUR/MWh"
     assert outcome["run"]["case_name"]
     assert outcome["design"]["kind"] == "plant"
+
+
+SAMPLED = {"metrics": ["lcts"], "samples": 3, "seed": 0}
+
+
+def test_a_study_reports_its_trials() -> None:
+    reported = []
+
+    run_of("sample", SAMPLED, report=lambda *pair: reported.append(pair))
+
+    assert reported[-1][0] == reported[-1][1]
+    assert reported[-1][1] > 1
+
+
+def test_a_cancel_flag_stops_the_study() -> None:
+    with pytest.raises(study.StudyCancelledError):
+        run_of("sample", SAMPLED, is_cancelled=lambda: True)
+
+
+def test_a_run_gives_coverage_by_day_and_service() -> None:
+    coverage = run_of("run")["coverage"]
+
+    assert "heating" in coverage
+    day = coverage["heating"][0]
+    assert day["source"] in {"geothermal", "backup", "short"}
+    assert day["demand"]["unit"] == "MWh"
+    parts = day["geothermal"]["value"] + day["backup"]["value"] + day["short"]["value"]
+    assert parts == pytest.approx(day["demand"]["value"])

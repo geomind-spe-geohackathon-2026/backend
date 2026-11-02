@@ -209,8 +209,27 @@
       },
       "Capacity": {
         "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "peak": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak"
+          },
+          "peak_unit": {
+            "title": "Peak Unit",
             "type": "string"
           },
           "reason": {
@@ -223,6 +242,17 @@
               }
             ],
             "title": "Reason"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share"
           },
           "title": {
             "title": "Title",
@@ -247,8 +277,12 @@
         "required": [
           "name",
           "title",
+          "kind",
           "value",
           "unit",
+          "peak",
+          "peak_unit",
+          "share",
           "reason"
         ],
         "title": "Capacity",
@@ -599,9 +633,46 @@
       },
       "Coverage": {
         "properties": {
+          "cooling": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CoverageDay"
+            },
+            "title": "Cooling",
+            "type": "array"
+          },
+          "heating": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CoverageDay"
+            },
+            "title": "Heating",
+            "type": "array"
+          }
+        },
+        "title": "Coverage",
+        "type": "object"
+      },
+      "CoverageDay": {
+        "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/Figure"
+          },
           "date": {
             "title": "Date",
             "type": "string"
+          },
+          "demand": {
+            "$ref": "#/components/schemas/Figure"
+          },
+          "failed_steps": {
+            "$ref": "#/components/schemas/Figure"
+          },
+          "geothermal": {
+            "$ref": "#/components/schemas/Figure"
+          },
+          "short": {
+            "$ref": "#/components/schemas/Figure"
           },
           "source": {
             "enum": [
@@ -615,9 +686,14 @@
         },
         "required": [
           "date",
-          "source"
+          "source",
+          "demand",
+          "geothermal",
+          "backup",
+          "short",
+          "failed_steps"
         ],
-        "title": "Coverage",
+        "title": "CoverageDay",
         "type": "object"
       },
       "Credentials": {
@@ -702,6 +778,24 @@
           "message"
         ],
         "title": "Failure",
+        "type": "object"
+      },
+      "Figure": {
+        "properties": {
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "unit"
+        ],
+        "title": "Figure",
         "type": "object"
       },
       "Flowsheet": {
@@ -2284,16 +2378,12 @@
           "coverage": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/Coverage"
-                },
-                "type": "array"
+                "$ref": "#/components/schemas/Coverage"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Coverage"
+            ]
           },
           "created": {
             "format": "date-time",
@@ -2332,6 +2422,13 @@
             "title": "Series",
             "type": "array"
           },
+          "sizes": {
+            "items": {
+              "$ref": "#/components/schemas/Capacity"
+            },
+            "title": "Sizes",
+            "type": "array"
+          },
           "study": {
             "anyOf": [
               {
@@ -2355,6 +2452,7 @@
           "checks",
           "created",
           "capacities",
+          "sizes",
           "coverage",
           "constraints",
           "series"

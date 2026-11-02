@@ -32,7 +32,8 @@ def to_detail(result: Result) -> schemas.ResultDetail:
     return schemas.ResultDetail(
         **to_summary(result),
         capacities=parts["capacities"],
-        coverage=content["coverage"],
+        sizes=parts["sizes"],
+        coverage=content.get("coverage"),
         constraints=parts["constraints"],
         series=content["series"],
     )

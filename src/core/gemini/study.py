@@ -2,6 +2,7 @@
 
 import inspect
 import json
+from collections.abc import Callable
 from typing import Any
 
 import gemini as gm
@@ -28,6 +29,10 @@ class StudyRunError(AppError):
 
     status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     code = "study_failed"
+
+
+class StudyCancelledError(Exception):
+    """A study stopped between trials because its cancel flag was set."""
 
 
 def reserved_keys() -> frozenset[str]:
@@ -82,7 +87,7 @@ def argument_names(method: str) -> list[str]:
 
 def metric_names() -> list[str]:
     """Return the metrics gemini can read from a run."""
-    return list(gm.evaluate._utils.display.METRICS)
+    return [metric["name"] for metric in gm.evaluate.metrics()]
 
 
 def with_choices(key: str, schema: dict[str, Any]) -> dict[str, Any]:
@@ -197,23 +202,62 @@ def missing_inputs(
     return [{"path": item["path"], "message": item["message"]} for item in problems]
 
 
+def progress_of(
+    report: Callable[[int, int], None],
+    is_cancelled: Callable[[], bool],
+) -> Callable[[int, int], None]:
+    """Return gemini's callback: stop a cancelled study, else report its trials."""
+
+    def on_progress(done: int, total: int) -> None:
+        if is_cancelled():
+            raise gm.errors.Cancelled("The study was cancelled")
+        report(done, total)
+
+    return on_progress
+
+
+def plain_day(day: dict[str, Any]) -> dict[str, Any]:
+    """Return one day of gemini's coverage with its quantities as plain figures."""
+    return {
+        key: value if isinstance(value, str) else value.to_dict()
+        for key, value in day.items()
+    }
+
+
+def coverage_of(outcome: Any, case_content: dict[str, Any], files: Any) -> dict:
+    """Return gemini's daily coverage of a run, by service."""
+    built = case.build(case_content, files)
+    coverage = gm.evaluate.daily_coverage(outcome.plant, built, outcome.results)
+    return {
+        service: [plain_day(day) for day in days] for service, days in coverage.items()
+    }
+
+
 def run(
     kind: str,
     name: str,
     settings: dict[str, Any],
-    plant_content: dict[str, Any],
-    case_content: dict[str, Any],
-    case_files: dict[str, bytes],
+    inputs: tuple[dict[str, Any], dict[str, Any], dict[str, bytes]],
+    report: Callable[[int, int], None],
+    is_cancelled: Callable[[], bool],
 ) -> dict[str, Any]:
-    """Run a study of one plant on one case; return report, run record, design."""
+    """Run a study of one plant on one case; return report, run, design, coverage.
+
+    ``inputs`` is the plant document, the case document and the case's files.
+    """
+    plant_content, case_content, case_files = inputs
     files = files_of(plant_content, case_content, case_files)
     study = from_dict(kind, name, settings, files)
     try:
-        outcome = study.run().runs[0]
+        progress = progress_of(report, is_cancelled)
+        outcome = study.run(on_progress=progress).runs[0]
         return {
             "report": outcome.report.to_dict(),
             "run": outcome.to_dict(),
             "design": outcome.plant.to_dict(),
+            "coverage": coverage_of(outcome, case_content, case_files),
         }
+    except gm.errors.Cancelled as error:
+        raise StudyCancelledError(str(error)) from error
     except gm.errors.GeminiError as error:
         raise StudyRunError(str(error), details={"code": error.code}) from error
