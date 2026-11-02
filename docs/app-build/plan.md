@@ -8,7 +8,7 @@ Gemini gap decisions:
 - Plant document check: Plant.from_dict + check(). No 501. Templates: gm.plants.names().
 - Case section titles: derive from schema top-level properties, never a fixed list. Series: Case.from_dict(data, files=...) leaf.series.time/.si.
 - Module title: describe()["type"]. Parameters from parameter_schema().
-- Study kinds: gemini method enum, shared Study.schema(). Progress done 0/total 1 until end. Cancel: Celery revoke with terminate.
+- Study kinds: gemini method enum, shared Study.schema(). Progress: gemini on_progress (0.5.2). Cancel: flag read in on_progress, Celery terminate as fallback.
 - Coverage: null; frontend shows "not available". No backend physics.
 - Pareto: compare() flags mapped to ids.
 - No plant migration: old documents fail with plant_invalid.

@@ -133,9 +133,9 @@ src/
   Redis (`job:<id>:progress`); the API reads it with `JobRepository.progress`. A task
   calls `self.check_cancelled(job_id)` between steps; the API sets the flag with
   `jobs.control.request_cancel`. State expires after `JOB_STATE_TTL_SECONDS`.
-- A task that cannot check a flag (a study, because gemini's study functions take no
-  cancel check) is stopped with `jobs.control.terminate(task_id)`: Celery revoke with
-  terminate. Store the task id on the study row.
+- A study checks the flag from gemini's `on_progress` callback (after each trial) and ends
+  as `cancelled`. `jobs.control.terminate(task_id)` (Celery revoke with terminate) stays as
+  the fallback for a task that runs no trial. Store the task id on the study row.
 - A task body calls one `services.py` function; it opens its own session and Redis
   client, and runs async code with `asyncio.run`.
 

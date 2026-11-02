@@ -36,6 +36,7 @@ from src.core.gemini import evaluate as gemini_evaluate
 from src.core.gemini import study as gemini_study
 from src.core.gemini.stored import stored_files
 from src.core.jobs import control
+from src.core.jobs.errors import JobCancelledError
 from src.core.pagination.page import Page, PageRequest, encode_cursor
 from src.core.routes import RESULTS_ROUTE, STUDY_ROUTE
 from src.core.security.access import require_project
@@ -342,10 +343,21 @@ async def finish_failed(
     await record(study, stores, f"Study {study.name} failed", STUDY_ROUTE)
 
 
+async def finish_cancelled(study: Study, stores: Stores) -> None:
+    """Mark a study that stopped on its flag as cancelled, unless the API did."""
+    study = await stores.studies.refresh(study)
+    if study.status != "running":
+        return
+    values = {"status": "cancelled", "ended": utc_now()}
+    study = await stores.studies.update(study, values)
+    await record(study, stores, f"Cancelled study {study.name}", STUDY_ROUTE)
+
+
 async def finish_done(
     study: Study,
     outcome: dict[str, Any],
     stores: Stores,
+    progress: JobProgress,
 ) -> None:
     study = await stores.studies.refresh(study)
     if study.status != "running":
@@ -371,8 +383,8 @@ async def finish_done(
     )
     values = {
         "status": "done",
-        "progress_done": 1,
-        "progress_total": 1,
+        "progress_done": progress.done,
+        "progress_total": progress.total,
         "ended": utc_now(),
     }
     study = await stores.studies.update(study, values)
@@ -381,7 +393,12 @@ async def finish_done(
     )
 
 
-async def compute(study: Study, stores: Stores, blobs: BlobStore) -> dict[str, Any]:
+async def compute(
+    study: Study,
+    stores: Stores,
+    blobs: BlobStore,
+    on_progress: Callable[[int, int], None],
+) -> dict[str, Any]:
     inputs = await gather_inputs(
         study.project_id, stores, blobs, study.plant_version, study.case_version
     )
@@ -394,7 +411,27 @@ async def compute(study: Study, stores: Stores, blobs: BlobStore) -> dict[str, A
         inputs.plant.content,
         inputs.case.content,
         inputs.case_files,
+        on_progress,
     )
+
+
+def stop_on_flag(
+    study_id: UUID,
+    report: Callable[[str, int, int], None],
+    check: Callable[[str], None],
+    reached: list[JobProgress],
+) -> Callable[[int, int], None]:
+    """Return gemini's callback: report the trial, then stop if cancel was asked."""
+
+    def on_progress(done: int, total: int) -> None:
+        reached.append(JobProgress(done=done, total=total))
+        report(str(study_id), done, total)
+        try:
+            check(str(study_id))
+        except JobCancelledError as error:
+            raise gemini_study.StudyCancelled(error.message) from error
+
+    return on_progress
 
 
 async def run_study(
@@ -402,11 +439,13 @@ async def run_study(
     stores: Stores,
     blobs: BlobStore,
     report: Callable[[str, int, int], None],
+    check: Callable[[str], None],
 ) -> None:
     """Run a queued study; a study in any other state is left alone.
 
-    gemini takes no progress callback, so progress stays 0 of 1 until the end.
-    An unexpected error is recorded on the study and raised again.
+    gemini reports ``done`` of ``total`` trials after each one; ``check`` raises
+    ``JobCancelledError`` when the cancel flag is set, which ends the study as
+    cancelled. An unexpected error is recorded on the study and raised again.
     """
     study = await stores.studies.get_by_id(study_id)
     if study is None or study.status != "queued":
@@ -415,13 +454,20 @@ async def run_study(
         study, {"status": "running", "started": utc_now()}
     )
     report(str(study.id), 0, 1)
+    reached: list[JobProgress] = []
     try:
-        outcome = await compute(study, stores, blobs)
+        outcome = await compute(
+            study, stores, blobs, stop_on_flag(study.id, report, check, reached)
+        )
+    except gemini_study.StudyCancelled:
+        await finish_cancelled(study, stores)
+        return
     except AppError as error:
         await finish_failed(study, stores, failure_of(error))
         return
     except Exception as error:
         await finish_failed(study, stores, failure_of(AppError(str(error))))
         raise
-    await finish_done(study, outcome, stores)
-    report(str(study.id), 1, 1)
+    last = reached[-1] if reached else JobProgress(done=1, total=1)
+    await finish_done(study, outcome, stores, last)
+    report(str(study.id), last.done, last.total)

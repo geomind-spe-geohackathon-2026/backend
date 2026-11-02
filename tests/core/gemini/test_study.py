@@ -1,3 +1,4 @@
+import gemini as gm
 import pytest
 
 from src.core.errors import CaseInvalidError, ValidationFailedError
@@ -26,6 +27,7 @@ def test_kinds_are_the_method_values_with_the_shared_schema() -> None:
         "minimize",
         "sample",
         "sensitivity",
+        "size",
     ]
     assert all(item["schema"]["title"] == "Study" for item in kinds)
     assert all(item["description"] for item in kinds)
@@ -123,3 +125,59 @@ def test_a_run_gives_report_run_and_design() -> None:
     assert outcome["report"]["lcts"]["unit"] == "EUR/MWh"
     assert outcome["run"]["case_name"]
     assert outcome["design"]["kind"] == "plant"
+
+
+def test_size_is_a_run_that_prepares_the_plant_and_takes_no_settings() -> None:
+    assert properties_of("size")["properties"] == {}
+    found = study.document("size", "s", {})
+
+    assert (found["method"], found["prepare"]) == ("run", ["size"])
+    assert "prepare" not in study.document("run", "s", {})
+
+
+def test_size_refuses_a_prepare_of_its_own() -> None:
+    with pytest.raises(ValidationFailedError) as error:
+        study.document("size", "s", {"prepare": []})
+
+    assert list(error.value.details["fields"]) == ["prepare"]
+
+
+def test_metric_names_are_the_names_of_gemini_metrics() -> None:
+    assert study.metric_names() == [item["name"] for item in gm.evaluate.metrics()]
+
+
+def run_example(on_progress=None) -> dict:
+    return study.run(
+        "run",
+        "s",
+        {},
+        inputs.plant_content(),
+        inputs.case_content(),
+        inputs.case_files(),
+        on_progress,
+    )
+
+
+def test_a_run_reports_progress_and_gives_the_daily_coverage() -> None:
+    reached = []
+
+    outcome = run_example(lambda done, total: reached.append((done, total)))
+
+    assert reached[-1][0] == reached[-1][1]
+    days = outcome["coverage"]
+    assert len(days) == 365
+    first = days[0]
+    assert first["service"] == "heating"
+    assert first["source"] in {"geothermal", "backup", "short"}
+    assert len(first["date"]) == len("2027-01-01")
+    assert first["demand"]["unit"] == "MWh"
+    assert isinstance(first["demand"]["value"], float)
+    assert isinstance(first["failed_steps"], int)
+
+
+def test_cancelling_from_the_callback_stops_the_study() -> None:
+    def stop(done: int, total: int) -> None:
+        raise study.StudyCancelled("stop")
+
+    with pytest.raises(study.StudyCancelled):
+        run_example(stop)

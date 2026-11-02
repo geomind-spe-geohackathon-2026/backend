@@ -569,9 +569,33 @@
       },
       "Coverage": {
         "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/Energy"
+          },
           "date": {
             "title": "Date",
             "type": "string"
+          },
+          "demand": {
+            "$ref": "#/components/schemas/Energy"
+          },
+          "failed_steps": {
+            "title": "Failed Steps",
+            "type": "integer"
+          },
+          "geothermal": {
+            "$ref": "#/components/schemas/Energy"
+          },
+          "service": {
+            "enum": [
+              "heating",
+              "cooling"
+            ],
+            "title": "Service",
+            "type": "string"
+          },
+          "short": {
+            "$ref": "#/components/schemas/Energy"
           },
           "source": {
             "enum": [
@@ -585,7 +609,13 @@
         },
         "required": [
           "date",
-          "source"
+          "source",
+          "service",
+          "demand",
+          "geothermal",
+          "backup",
+          "short",
+          "failed_steps"
         ],
         "title": "Coverage",
         "type": "object"
@@ -654,6 +684,24 @@
           "created"
         ],
         "title": "Document",
+        "type": "object"
+      },
+      "Energy": {
+        "properties": {
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "unit"
+        ],
+        "title": "Energy",
         "type": "object"
       },
       "Failure": {

@@ -10,15 +10,19 @@ gemini finds unset is "missing", anything else is `case_invalid`, `plant_invalid
 case files are read from MinIO. A study with missing inputs is created `blocked` and is
 started later with `POST /design/study/{id}/start`.
 
-gemini has no progress callback or cancel check for studies, so progress is `0/1` until the
-end. Cancel sets the row to `cancelled`, sets the Redis flag and revokes the task with
-terminate. The worker never overwrites a study that is no longer `running`.
+Progress is gemini's `on_progress(done, total)`, written to Redis after each trial (`0/1`
+only until the first one). The same callback reads the cancel flag and raises
+`StudyCancelled` (gemini's `Cancelled`), which ends the study as `cancelled`, not `failed`.
+Cancel sets the row to `cancelled`, sets the Redis flag and, as a fallback for a study that
+runs no trial, revokes the task with terminate. The worker never overwrites a study that is
+no longer `running`. Kind `size` is gemini's `run` with `prepare: ["size"]` and no settings.
 
 ## Results
 
 One result per study: `summary` (KPIs, check counts) for lists and `content` (capacities,
-constraints, gemini's report, run record and final design) for detail. `coverage` is `null`
-until gemini publishes daily coverage by source; `series` is empty until gemini publishes
+constraints, gemini's report, run record and final design) for detail. `coverage` is the
+flat list of `gm.evaluate.daily_coverage` days (each with its `service`), computed by the
+worker from the run's results and the case, or `null` when gemini cannot read it; `series` is empty until gemini publishes
 edge series. Compare maps the `pareto` flags of `gm.evaluate.compare` to result ids.
 
 ## Reports

@@ -2,6 +2,7 @@
 
 import inspect
 import json
+from collections.abc import Callable
 from typing import Any
 
 import gemini as gm
@@ -17,6 +18,9 @@ CASE_FOLDER = "case/"
 MISSING_CODE = "missing_value"
 INPUTS = frozenset({"plant", "case", "plan"})
 METHODS_WITH_ARGUMENTS = ("minimize", "sample", "sensitivity")
+SIZE = "size"
+SIZE_METHOD = "run"
+SIZE_PREPARE = ["size"]
 
 
 class StudyRunError(AppError):
@@ -24,6 +28,13 @@ class StudyRunError(AppError):
 
     status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     code = "study_failed"
+
+
+class StudyCancelled(AppError):
+    """A study stopped between two trials because its cancel flag was set."""
+
+    status_code = status.HTTP_409_CONFLICT
+    code = "cancelled"
 
 
 def reserved_keys() -> frozenset[str]:
@@ -46,6 +57,8 @@ def method_arguments(method: str) -> list[inspect.Parameter]:
 
 def settings_schema(method: str, full: dict[str, Any]) -> dict[str, Any]:
     """Return the schema of the settings of one method, with metric names as choices."""
+    if method == SIZE:
+        return {**{k: v for k, v in full.items() if k != "required"}, "properties": {}}
     reserved = reserved_keys()
     arguments = method_arguments(method)
     taken = {name for other in METHODS_WITH_ARGUMENTS for name in argument_names(other)}
@@ -76,7 +89,7 @@ def argument_names(method: str) -> list[str]:
 
 def metric_names() -> list[str]:
     """Return the metrics gemini can read from a run."""
-    return list(gm.evaluate._utils.display.METRICS)
+    return [item["name"] for item in gm.evaluate.metrics()]
 
 
 def with_choices(key: str, schema: dict[str, Any]) -> dict[str, Any]:
@@ -98,7 +111,7 @@ def kinds() -> list[dict[str, Any]]:
             "description": describe(method),
             "schema": settings_schema(method, full),
         }
-        for method in full["properties"]["method"]["enum"]
+        for method in [*full["properties"]["method"]["enum"], SIZE]
     ]
 
 
@@ -110,7 +123,8 @@ def describe(method: str) -> str:
 
 def document(kind: str, name: str, settings: dict[str, Any]) -> dict[str, Any]:
     """Return the study document for the case and plant files the backend gives it."""
-    clashes = reserved_keys() & settings.keys()
+    sized = kind == SIZE
+    clashes = (reserved_keys() | ({"prepare"} if sized else set())) & settings.keys()
     if clashes:
         raise ValidationFailedError(
             {key: "This key is set by the backend" for key in sorted(clashes)}
@@ -122,7 +136,8 @@ def document(kind: str, name: str, settings: dict[str, Any]) -> dict[str, Any]:
         "name": name,
         "cases": [CASE_FILE],
         "plants": [PLANT_FILE],
-        "method": kind,
+        "method": SIZE_METHOD if sized else kind,
+        **({"prepare": SIZE_PREPARE} if sized else {}),
         **settings,
     }
 
@@ -189,6 +204,43 @@ def missing_inputs(
     return [{"path": item["path"], "message": item["message"]} for item in problems]
 
 
+def coverage_of(
+    design: gm.Plant,
+    case_content: dict[str, Any],
+    case_files: dict[str, bytes],
+    results: Any,
+) -> list[dict[str, Any]] | None:
+    """Return the days of the run by service, flat, each with its ``service``.
+
+    ``None`` when gemini cannot read the coverage from the run.
+    """
+    try:
+        case_object = gm.Case.from_dict(case_content, files=case_files)
+        days = gm.evaluate.daily_coverage(design, case_object, results)
+    except gm.errors.GeminiError:
+        return None
+    return [
+        plain_day(service, day) for service, found in days.items() for day in found
+    ] or None
+
+
+def plain_day(service: str, day: dict[str, Any]) -> dict[str, Any]:
+    """Return one day of ``daily_coverage`` as JSON: energies as ``{value, unit}``."""
+    energies = ("demand", "geothermal", "backup", "short")
+    return {
+        "date": day["date"],
+        "source": day["source"],
+        "service": service,
+        **{key: plain_quantity(day[key]) for key in energies},
+        "failed_steps": int(day["failed_steps"].value),
+    }
+
+
+def plain_quantity(quantity: Any) -> dict[str, Any]:
+    """Return a gemini quantity as ``{value, unit}``."""
+    return {"value": quantity.value, "unit": quantity.unit.value}
+
+
 def run(
     kind: str,
     name: str,
@@ -196,16 +248,42 @@ def run(
     plant_content: dict[str, Any],
     case_content: dict[str, Any],
     case_files: dict[str, bytes],
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> dict[str, Any]:
-    """Run a study of one plant on one case; return report, run record, design."""
+    """Run a study of one plant on one case; return report, run record, design.
+
+    ``on_progress(done, total)`` is called after each trial; raising
+    ``StudyCancelled`` from it stops the study and raises it again from here.
+    """
     files = files_of(plant_content, case_content, case_files)
     study = from_dict(kind, name, settings, files)
     try:
-        outcome = study.run().runs[0]
+        outcome = study.run(on_progress=stoppable(on_progress)).runs[0]
         return {
             "report": outcome.report.to_dict(),
             "run": outcome.to_dict(),
             "design": outcome.plant.to_dict(),
+            "coverage": coverage_of(
+                outcome.plant, case_content, case_files, outcome.results
+            ),
         }
+    except gm.errors.Cancelled as error:
+        raise StudyCancelled("Study was cancelled") from error
     except gm.errors.GeminiError as error:
         raise StudyRunError(str(error), details={"code": error.code}) from error
+
+
+def stoppable(
+    on_progress: Callable[[int, int], None] | None,
+) -> Callable[[int, int], None] | None:
+    """Wrap the callback so that ``StudyCancelled`` stops gemini the way it expects."""
+    if on_progress is None:
+        return None
+
+    def callback(done: int, total: int) -> None:
+        try:
+            on_progress(done, total)
+        except StudyCancelled as error:
+            raise gm.errors.Cancelled(error.message) from error
+
+    return callback

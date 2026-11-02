@@ -21,7 +21,9 @@ async def execute(task: Task, study_id: UUID) -> None:
         async with sessions() as session:
             stores = services.Stores.open(session)
             blobs = BlobStore(create_minio_client(), settings.MINIO_BUCKET_NAME)
-            await services.run_study(study_id, stores, blobs, task.report)
+            await services.run_study(
+                study_id, stores, blobs, task.report, task.check_cancelled
+            )
     finally:
         await engine.dispose()
 

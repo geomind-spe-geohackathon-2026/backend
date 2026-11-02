@@ -7,6 +7,7 @@ from src.api.v1.design.study import services
 from src.core.clients.postgres.models.study import Study
 from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.gemini import study as gemini_study
+from src.core.jobs.errors import JobCancelledError
 from tests import design_inputs
 from tests.api.v1.design.study.conftest import study_body
 from tests.conftest import bearer
@@ -26,12 +27,14 @@ async def test_kinds_are_geminis_methods(client, make_user) -> None:
         "minimize",
         "sample",
         "sensitivity",
+        "size",
     ]
     assert kinds[0]["schema"]["title"] == "Study"
     assert kinds[0]["description"]
     by_kind = {kind["kind"]: set(kind["schema"]["properties"]) for kind in kinds}
     assert by_kind["sample"] == {"metrics", "samples", "seed"}
     assert by_kind["minimize"] == {"objective", "evaluations", "seed"}
+    assert by_kind["size"] == set()
 
 
 async def test_ready_study_is_queued(
@@ -155,7 +158,7 @@ async def test_unknown_kind_is_validation_failed(
     project = await make_project(user)
 
     response = await client.post(
-        URL, json=study_body(project, kind="size"), headers=bearer(user)
+        URL, json=study_body(project, kind="optimise"), headers=bearer(user)
     )
 
     assert response.json()["error"]["details"]["fields"] == {
@@ -255,7 +258,14 @@ async def test_worker_stores_the_result(
     project = await make_project(user)
     await save_inputs(project, user)
     study = await make_queued(session_factory, project, user)
-    monkeypatch.setattr(gemini_study, "run", lambda *_: design_inputs.outcome())
+    coverage = [{"date": "2027-01-01", "source": "geothermal", "service": "heating"}]
+
+    def run(*arguments: Any) -> dict[str, Any]:
+        arguments[-1](1, 3)
+        arguments[-1](3, 3)
+        return {**design_inputs.outcome(), "coverage": coverage}
+
+    monkeypatch.setattr(gemini_study, "run", run)
     reported = []
 
     async with session_factory() as worker:
@@ -264,16 +274,22 @@ async def test_worker_stores_the_result(
             services.Stores.open(worker),
             blobs,
             lambda *args: reported.append(args),
+            lambda _: None,
         )
 
     stores = services.Stores.open(session)
     done = await stores.studies.refresh(await stores.studies.get_by_id(study.id))
     result = await stores.results.get_for_study(study.id)
     assert done.status == "done"
-    assert (done.progress_done, done.progress_total) == (1, 1)
+    assert (done.progress_done, done.progress_total) == (3, 3)
     assert result.summary["checks"]["passed"] == 13
-    assert result.content["coverage"] is None
-    assert reported == [(str(study.id), 0, 1), (str(study.id), 1, 1)]
+    assert result.content["coverage"] == coverage
+    assert reported == [
+        (str(study.id), 0, 1),
+        (str(study.id), 1, 3),
+        (str(study.id), 3, 3),
+        (str(study.id), 3, 3),
+    ]
     activity = await stores.activity.latest(project.id, 1)
     assert (activity[0].link_route, activity[0].link_id) == (
         "design/results",
@@ -297,7 +313,11 @@ async def test_worker_records_a_failed_study(
 
     async with session_factory() as worker:
         await services.run_study(
-            study.id, services.Stores.open(worker), blobs, lambda *_: None
+            study.id,
+            services.Stores.open(worker),
+            blobs,
+            lambda *_: None,
+            lambda _: None,
         )
 
     stores = services.Stores.open(session)
@@ -324,5 +344,89 @@ async def test_worker_leaves_a_cancelled_study_alone(
 
     async with session_factory() as worker:
         await services.run_study(
-            study.id, services.Stores.open(worker), blobs, lambda *_: None
+            study.id,
+            services.Stores.open(worker),
+            blobs,
+            lambda *_: None,
+            lambda _: None,
         )
+
+
+async def test_worker_stops_on_the_cancel_flag_and_finishes_cancelled(
+    session_factory, session, make_user, make_project, save_inputs, blobs, monkeypatch
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    await save_inputs(project, user)
+    study = await make_queued(session_factory, project, user)
+    trials = []
+
+    def run(*arguments: Any) -> dict[str, Any]:
+        for done in (1, 2, 3):
+            trials.append(done)
+            arguments[-1](done, 3)
+        return design_inputs.outcome()
+
+    def check(job_id: str) -> None:
+        if len(trials) == 2:
+            raise JobCancelledError(job_id)
+
+    monkeypatch.setattr(gemini_study, "run", run)
+    reported = []
+
+    async with session_factory() as worker:
+        await services.run_study(
+            study.id,
+            services.Stores.open(worker),
+            blobs,
+            lambda *args: reported.append(args),
+            check,
+        )
+
+    stores = services.Stores.open(session)
+    stopped = await stores.studies.refresh(await stores.studies.get_by_id(study.id))
+    assert stopped.status == "cancelled"
+    assert stopped.error is None
+    assert stopped.ended is not None
+    assert trials == [1, 2]
+    assert reported[-1] == (str(study.id), 2, 3)
+    assert await stores.results.get_for_study(study.id) is None
+    row = (await stores.activity.latest(project.id, 1))[0]
+    assert row.text == f"Cancelled study {study.name}"
+
+
+async def test_progress_of_a_running_study_is_what_the_trials_reported(
+    client, make_user, make_project, save_inputs, queued, session_factory, redis
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    await save_inputs(project, user)
+    created = await client.post(URL, json=study_body(project), headers=bearer(user))
+    study_id = created.json()["id"]
+    async with session_factory() as session:
+        repository = StudyRepository(session)
+        await repository.update(
+            await repository.get_by_id(UUID(study_id)), {"status": "running"}
+        )
+    await redis.set(f"job:{study_id}:progress", '{"done": 4, "total": 9}')
+
+    response = await client.get(f"{URL}/{study_id}", headers=bearer(user))
+
+    assert response.json()["progress"] == {"done": 4, "total": 9}
+
+
+async def test_size_study_is_queued_as_a_run_that_prepares_the_plant(
+    client, make_user, make_project, save_inputs, queued
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    await save_inputs(project, user)
+
+    response = await client.post(
+        URL, json=study_body(project, kind="size"), headers=bearer(user)
+    )
+
+    assert response.status_code == 201
+    assert response.json()["kind"] == "size"
+    assert response.json()["status"] == "queued"
+    assert queued == [UUID(response.json()["id"])]

@@ -171,3 +171,28 @@ async def test_compare_refuses_bad_and_unknown_ids(
 
     assert bad.json()["error"]["code"] == "validation_failed"
     assert unknown.json()["error"]["code"] == "result_not_found"
+
+
+async def test_detail_gives_the_daily_coverage_by_service(
+    client, make_user, make_project, make_result
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    energy = {"value": 1.5, "unit": "MWh"}
+    day = {
+        "date": "2027-01-01",
+        "source": "backup",
+        "service": "heating",
+        "demand": energy,
+        "geothermal": energy,
+        "backup": energy,
+        "short": {"value": 0.0, "unit": "MWh"},
+        "failed_steps": 0,
+    }
+    result = await make_result(
+        project, "A", {**outcome_with(40, 10), "coverage": [day]}
+    )
+
+    response = await client.get(f"{URL}/{result.id}", headers=bearer(user))
+
+    assert response.json()["coverage"] == [day]

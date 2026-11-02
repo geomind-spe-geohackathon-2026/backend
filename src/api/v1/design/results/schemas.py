@@ -45,9 +45,20 @@ class Constraint(BaseModel):
     message: str
 
 
+class Energy(BaseModel):
+    value: float
+    unit: str
+
+
 class Coverage(BaseModel):
     date: str
     source: Literal["geothermal", "backup", "short"]
+    service: Literal["heating", "cooling"]
+    demand: Energy
+    geothermal: Energy
+    backup: Energy
+    short: Energy
+    failed_steps: int
 
 
 class ResultDetail(Result):
