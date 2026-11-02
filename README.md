@@ -35,10 +35,33 @@ Configure the placeholder values in `.env` before starting the services.
 API documentation is available at `http://localhost/docs`; health checks
 use `GET /api/v1/system/health`.
 
+## Local stack
+
+`compose.services.yml` runs only the services (PostgreSQL 16, Redis 7, MinIO, bound to 127.0.0.1,
+compose project `geomind-dev`, named volumes). The API, the Celery worker and the frontend run
+on the host from `.venv`, so the sibling `../gemini` and `../geomind` installs are the ones used.
+
+```sh
+scripts/stack-up.sh           # create .env.dev if missing, services, migrate, seed, API, worker, frontend
+scripts/stack-down.sh         # stop everything, keep the data
+scripts/stack-down.sh --reset # also drop the volumes
+```
+
+`.env.dev` (git-ignored, generated from `.env.dev.example`) holds the settings. The app is
+`http://localhost:5173`, the API `http://127.0.0.1:8000/docs`; sign in as `admin@example.com` /
+`example-password`. The seed (`scripts/seed.py`, idempotent) adds one example project with one
+value missing. The assistant uses OpenRouter only when `OPENROUTER_API_KEY` is set in
+`.env.dev`; otherwise `ASSISTANT_LLM=fake` plays a scripted run. Logs and pids are in
+`.tmp/stack/`. With the image `gemini-sandbox:<gemini version>` present (built from a gemini
+checkout with `make sandbox-image`; stack-up builds it from `.tmp/snap` when missing) the stack
+uses `ASSISTANT_SANDBOX=docker`.
+
 ## Database and checks
 
 ```sh
 alembic upgrade head
+POSTGRES_TEST_URL=postgresql+asyncpg://user:password@127.0.0.1:5432/scratch_db \
+  .venv/bin/python -m pytest -m postgres --no-cov
 alembic revision --autogenerate -m "describe change"
 .venv/bin/python -m pytest -n auto
 .venv/bin/python -m ruff check .

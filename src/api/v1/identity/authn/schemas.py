@@ -1,11 +1,11 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 from src.core.security.schemas import UserResponse
 
 
 class Credentials(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    email: str = Field(max_length=320)
+    password: str = Field(max_length=128)
 
 
 class TokenPairResponse(BaseModel):

@@ -40,6 +40,27 @@ def sign_in(client: httpx.Client, email: str, password: str) -> None:
     client.headers["authorization"] = f"Bearer {response.json()['access_token']}"
 
 
+def ensure_admin(client: httpx.Client, email: str | None, password: str | None) -> None:
+    if not email or not password:
+        return
+    response = client.post(
+        "/api/v1/identity/users",
+        json={
+            "email": email,
+            "name": "Local admin",
+            "password": password,
+            "role": "admin",
+        },
+    )
+    if response.status_code == 201:
+        print(f"admin created: {email}")
+        return
+    if response.status_code == 409:
+        print(f"admin exists: {email}")
+        return
+    response.raise_for_status()
+
+
 def find_project(client: httpx.Client) -> dict | None:
     response = client.get("/api/v1/workspace/projects", params={"search": PROJECT_NAME})
     response.raise_for_status()
@@ -89,6 +110,11 @@ def main() -> int:
     args = parser.parse_args()
     with httpx.Client(base_url=args.url, timeout=60) as client:
         sign_in(client, args.email, args.password)
+        ensure_admin(
+            client,
+            os.environ.get("LOCAL_ADMIN_EMAIL"),
+            os.environ.get("LOCAL_ADMIN_PASSWORD"),
+        )
         existing = find_project(client)
         if existing is not None:
             print(f"example project exists: {existing['id']}")

@@ -14,7 +14,7 @@ make_env() {
   cp .env.dev.example .env.dev
   chmod 600 .env.dev
   local key value
-  for key in JWT_SECRET_KEY POSTGRES_PASSWORD REDIS_PASSWORD MINIO_ROOT_PASSWORD; do
+  for key in JWT_SECRET_KEY POSTGRES_PASSWORD REDIS_PASSWORD MINIO_ROOT_PASSWORD LOCAL_ADMIN_PASSWORD; do
     value="$(openssl rand -hex 24)"
     sed -i.bak "s|^$key=replace-me|$key=$value|" .env.dev
     case "$key" in

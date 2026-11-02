@@ -581,13 +581,12 @@
       "Credentials": {
         "properties": {
           "email": {
-            "format": "email",
+            "maxLength": 320,
             "title": "Email",
             "type": "string"
           },
           "password": {
             "maxLength": 128,
-            "minLength": 8,
             "title": "Password",
             "type": "string"
           }
