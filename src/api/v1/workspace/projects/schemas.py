@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
 
+from src.core.progress.schemas import Progress
+
 ProjectName = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=1, max_length=255),
@@ -11,6 +13,10 @@ ProjectName = Annotated[
 
 
 class ProjectCreate(BaseModel):
+    name: ProjectName
+
+
+class ProjectUpdate(BaseModel):
     name: ProjectName
 
 
@@ -27,19 +33,28 @@ class VersionFile(BaseModel):
     content: Any
 
 
-class OwnerResponse(BaseModel):
+class CaseVersionFile(BaseModel):
+    number: int
+    note: str
+    created: AwareDatetime
+    content: dict[str, Any]
+
+
+class Owner(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     name: str
 
 
-class ProjectResponse(BaseModel):
+class Project(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     name: str
-    owner: OwnerResponse
+    owner: Owner
     plant_version: int | None
+    case_version: int | None
     created: datetime
     updated: datetime
+    progress: Progress
