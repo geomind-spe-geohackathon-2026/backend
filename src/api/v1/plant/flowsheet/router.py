@@ -2,7 +2,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 from src.api.v1.plant.flowsheet import schemas, services
-from src.api.v1.plant.flowsheet.dependencies import QueriedProject
 from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.repositories.activity import (
     ActivityRepository,
@@ -20,6 +19,7 @@ from src.core.pagination.page import Page
 from src.core.security.access import (
     CurrentUser,
     ProjectRepositoryDependency,
+    QueriedProject,
     require_project,
 )
 from src.core.versioning import Version

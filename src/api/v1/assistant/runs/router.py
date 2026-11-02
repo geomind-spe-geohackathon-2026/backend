@@ -8,7 +8,6 @@ from src.api.v1.assistant.runs import schemas, services
 from src.core.assistant import schemas as shared
 from src.core.assistant.access import (
     AccessibleRun,
-    QueryProject,
     RunRepositoryDependency,
     SessionFactory,
 )
@@ -21,6 +20,7 @@ from src.core.clients.postgres.repositories.run_event import (
 from src.core.clients.redis.client import RedisClient
 from src.core.clients.redis.repositories.job import JobRepository, get_job_repository
 from src.core.pagination.page import Page, PageParams
+from src.core.security.access import QueriedProject
 from src.core.sse.follow import last_event_id
 
 router = APIRouter(prefix="/runs", tags=["Runs"])
@@ -34,7 +34,7 @@ JobRepositoryDependency = Annotated[JobRepository, Depends(get_job_repository)]
 
 @router.get("", response_model=Page[shared.Run])
 async def list_runs(
-    project: QueryProject,
+    project: QueriedProject,
     page: PageParams,
     runs: RunRepositoryDependency,
     run_status: Annotated[Literal["active"] | None, Query(alias="status")] = None,

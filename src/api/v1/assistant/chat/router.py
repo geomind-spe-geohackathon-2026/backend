@@ -6,7 +6,6 @@ from src.core.assistant.access import (
     AccessibleChat,
     ChatRepositoryDependency,
     ProjectRepositoryDependency,
-    QueryProject,
     RunRepositoryDependency,
 )
 from src.core.assistant.queue import EnqueueDependency
@@ -20,7 +19,7 @@ from src.core.clients.postgres.repositories.message import (
     get_message_repository,
 )
 from src.core.pagination.page import Page, PageParams
-from src.core.security.access import CurrentUser, require_project
+from src.core.security.access import CurrentUser, QueriedProject, require_project
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -36,7 +35,7 @@ ChatStateRepositoryDependency = Annotated[
 
 @router.get("", response_model=Page[Chat])
 async def list_chats(
-    project: QueryProject,
+    project: QueriedProject,
     page: PageParams,
     chats: ChatRepositoryDependency,
     runs: RunRepositoryDependency,

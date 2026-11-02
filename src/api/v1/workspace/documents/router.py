@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, Query, UploadFile, status
+from fastapi import APIRouter, Depends, Form, UploadFile, status
 from src.api.v1.workspace.documents import schemas, services
 from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.models.project import Project
@@ -14,7 +14,7 @@ from src.core.clients.postgres.repositories.project import (
     get_project_repository,
 )
 from src.core.pagination.page import Page, PageParams
-from src.core.security.access import CurrentUser, require_project
+from src.core.security.access import CurrentUser, QueriedProject, require_project
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -28,14 +28,6 @@ ProjectRepositoryDependency = Annotated[
 ]
 
 
-async def project_from_query(
-    project: Annotated[UUID, Query()],
-    user: CurrentUser,
-    repository: ProjectRepositoryDependency,
-) -> Project:
-    return await require_project(project, user, repository)
-
-
 async def project_from_form(
     project: Annotated[UUID, Form()],
     user: CurrentUser,
@@ -46,7 +38,7 @@ async def project_from_form(
 
 @router.get("", response_model=Page[schemas.Document])
 async def list_documents(
-    project: Annotated[Project, Depends(project_from_query)],
+    project: QueriedProject,
     page: PageParams,
     repository: DocumentRepositoryDependency,
 ) -> Page:
