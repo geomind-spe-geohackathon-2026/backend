@@ -4,6 +4,30 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
 
 ## gemini (0.5.0, 217625e)
 
+- [gemini] Public list of metric names
+  Needed by: `GET /design/study/kinds`, metric and objective choices
+  Today: only the private `gm.evaluate._utils.display.METRICS`, read once in `src/core/gemini/study.py:metric_names`. This is a known break of the public-API rule
+  Wanted: `gm.evaluate.metrics() -> [{name, title, unit}]`
+  Blocking: no (worked around with the private read; a gemini change there breaks Sample, Sensitivity and Minimize forms)
+
+- [gemini] `kind` in `Case.schema()`
+  Needed by: starting an empty problem
+  Today: `kind` is a plain string, while `Study.schema()` has a const
+  Wanted: `kind: {const: "case"}`
+  Blocking: no (the backend adds it, `src/core/gemini/header.py`)
+
+- [gemini] Costs marked in the report
+  Needed by: report Costs section
+  Today: nothing says which figures are costs
+  Wanted: a `role` or `group` on report values
+  Blocking: no
+
+- [gemini] Optional marker for range and uncertainty
+  Needed by: Problem form
+  Today: the schema can't separate an optional group from a required one inside a quantity
+  Wanted: these groups outside `required`, or an explicit marker
+  Blocking: no
+
 - [gemini] Daily coverage by source
   Needed by: `GET /design/results/{id}`, Results days strip
   Today: `gm.evaluate.totals` gives whole-window ratios only
@@ -58,7 +82,7 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
   Wanted: `plant.missing(module) -> [{path, message}]`
   Blocking: no
 
-## geomind (0.3.0, 989cb59)
+## geomind (0.3.1, a38bad6)
 
 - [geomind] Record studies and results that agents run
   Needed by: Study and Results pages
