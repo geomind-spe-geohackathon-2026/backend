@@ -17,6 +17,9 @@ CASE_FOLDER = "case/"
 MISSING_CODE = "missing_value"
 INPUTS = frozenset({"plant", "case", "plan"})
 METHODS_WITH_ARGUMENTS = ("minimize", "sample", "sensitivity")
+SIZE_KIND = "size"
+SIZE_DOCUMENT = {"method": "run", "prepare": [SIZE_KIND]}
+PREPARE_KEY = "prepare"
 
 
 class StudyRunError(AppError):
@@ -46,6 +49,9 @@ def method_arguments(method: str) -> list[inspect.Parameter]:
 
 def settings_schema(method: str, full: dict[str, Any]) -> dict[str, Any]:
     """Return the schema of the settings of one method, with metric names as choices."""
+    schema = {key: value for key, value in full.items() if key != "required"}
+    if method == SIZE_KIND:
+        return {**schema, "properties": {}}
     reserved = reserved_keys()
     arguments = method_arguments(method)
     taken = {name for other in METHODS_WITH_ARGUMENTS for name in argument_names(other)}
@@ -54,7 +60,7 @@ def settings_schema(method: str, full: dict[str, Any]) -> dict[str, Any]:
     ]
     properties = {
         key: with_choices(key, full["properties"][key])
-        for key in names
+        for key in dict.fromkeys([*names, PREPARE_KEY])
         if key in full["properties"]
     }
     required = [
@@ -62,7 +68,6 @@ def settings_schema(method: str, full: dict[str, Any]) -> dict[str, Any]:
         for parameter in arguments
         if parameter.default is parameter.empty and parameter.name in properties
     ]
-    schema = {key: value for key, value in full.items() if key != "required"}
     return {
         **schema,
         "properties": properties,
@@ -89,7 +94,7 @@ def with_choices(key: str, schema: dict[str, Any]) -> dict[str, Any]:
 
 
 def kinds() -> list[dict[str, Any]]:
-    """Return gemini's study methods, each with the settings schema it takes."""
+    """Return gemini's study methods and sizing, each with its settings schema."""
     full = gm.Study.schema()
     return [
         {
@@ -98,7 +103,7 @@ def kinds() -> list[dict[str, Any]]:
             "description": describe(method),
             "schema": settings_schema(method, full),
         }
-        for method in full["properties"]["method"]["enum"]
+        for method in [*full["properties"]["method"]["enum"], SIZE_KIND]
     ]
 
 
@@ -124,6 +129,7 @@ def document(kind: str, name: str, settings: dict[str, Any]) -> dict[str, Any]:
         "plants": [PLANT_FILE],
         "method": kind,
         **settings,
+        **(SIZE_DOCUMENT if kind == SIZE_KIND else {}),
     }
 
 

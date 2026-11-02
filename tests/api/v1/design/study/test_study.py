@@ -26,12 +26,14 @@ async def test_kinds_are_geminis_methods(client, make_user) -> None:
         "minimize",
         "sample",
         "sensitivity",
+        "size",
     ]
     assert kinds[0]["schema"]["title"] == "Study"
     assert kinds[0]["description"]
     by_kind = {kind["kind"]: set(kind["schema"]["properties"]) for kind in kinds}
-    assert by_kind["sample"] == {"metrics", "samples", "seed"}
-    assert by_kind["minimize"] == {"objective", "evaluations", "seed"}
+    assert by_kind["sample"] == {"metrics", "samples", "seed", "prepare"}
+    assert by_kind["minimize"] == {"objective", "evaluations", "seed", "prepare"}
+    assert by_kind["size"] == set()
 
 
 async def test_ready_study_is_queued(
@@ -155,7 +157,7 @@ async def test_unknown_kind_is_validation_failed(
     project = await make_project(user)
 
     response = await client.post(
-        URL, json=study_body(project, kind="size"), headers=bearer(user)
+        URL, json=study_body(project, kind="unknown"), headers=bearer(user)
     )
 
     assert response.json()["error"]["details"]["fields"] == {

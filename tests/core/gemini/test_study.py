@@ -26,6 +26,7 @@ def test_kinds_are_the_method_values_with_the_shared_schema() -> None:
         "minimize",
         "sample",
         "sensitivity",
+        "size",
     ]
     assert all(item["schema"]["title"] == "Study" for item in kinds)
     assert all(item["description"] for item in kinds)
@@ -40,10 +41,17 @@ def test_each_kind_asks_only_for_the_settings_of_its_method() -> None:
         "objective",
         "evaluations",
         "seed",
+        "prepare",
     }
-    assert set(properties_of("sample")["properties"]) == {"metrics", "samples", "seed"}
-    assert set(properties_of("sensitivity")["properties"]) == {"metrics"}
+    assert set(properties_of("sample")["properties"]) == {
+        "metrics",
+        "samples",
+        "seed",
+        "prepare",
+    }
+    assert set(properties_of("sensitivity")["properties"]) == {"metrics", "prepare"}
     assert set(properties_of("run")["properties"]) == {"prepare"}
+    assert properties_of("size")["properties"] == {}
 
 
 def test_the_required_settings_are_the_arguments_without_a_default() -> None:
@@ -58,6 +66,33 @@ def test_metrics_and_the_objective_are_choices_of_gemini_metric_names() -> None:
 
     assert "lcts" in sample["metrics"]["items"]["enum"]
     assert objective["enum"] == sample["metrics"]["items"]["enum"]
+
+
+def test_the_size_kind_writes_a_run_prepared_by_sizing() -> None:
+    written = study.document("size", "s", {})
+
+    assert written["method"] == "run"
+    assert written["prepare"] == ["size"]
+
+
+def test_a_method_keeps_the_prepare_it_was_given() -> None:
+    written = study.document("minimize", "s", {"prepare": ["size"]})
+
+    assert written["method"] == "minimize"
+    assert written["prepare"] == ["size"]
+
+
+def test_the_size_kind_runs_gemini_sizing() -> None:
+    arguments = (
+        inputs.plant_content(),
+        inputs.case_content(),
+        inputs.case_files(),
+    )
+
+    sized = study.run("size", "s", {}, *arguments)
+    plain = study.run("run", "s", {}, *arguments)
+
+    assert sized["design"] != plain["design"]
 
 
 def test_ready_inputs_miss_nothing() -> None:
