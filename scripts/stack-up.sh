@@ -46,6 +46,25 @@ if [ -z "${ASSISTANT_LLM:-}" ]; then
 fi
 export ASSISTANT_LLM
 
+GEMINI_VERSION="$("$PYTHON" -c 'import gemini; print(gemini.__version__)')"
+SANDBOX_IMAGE="gemini-sandbox:$GEMINI_VERSION"
+GEMINI_SOURCE="${GEMINI_SOURCE:-$BACKEND/.tmp/snap/gemini-217625e}"
+
+prepare_sandbox() {
+  if docker image inspect "$SANDBOX_IMAGE" >/dev/null 2>&1; then return 0; fi
+  if [ -f "$GEMINI_SOURCE/docker/sandbox.Dockerfile" ]; then
+    echo "building $SANDBOX_IMAGE from $GEMINI_SOURCE"
+    docker build -q -f "$GEMINI_SOURCE/docker/sandbox.Dockerfile" -t "$SANDBOX_IMAGE" "$GEMINI_SOURCE" >/dev/null
+    return 0
+  fi
+  return 1
+}
+
+if [ -z "${ASSISTANT_SANDBOX:-}" ]; then
+  if prepare_sandbox; then ASSISTANT_SANDBOX=docker; else ASSISTANT_SANDBOX=none; fi
+fi
+export ASSISTANT_SANDBOX
+
 alive() { [ -f "$STACK/$1.pid" ] && kill -0 "$(cat "$STACK/$1.pid")" 2>/dev/null; }
 
 port_free() {
@@ -110,5 +129,5 @@ echo
 echo "app      http://localhost:$FRONTEND_PORT"
 echo "api      http://127.0.0.1:$API_PORT/docs"
 echo "login    $FIRST_ADMIN_EMAIL / $FIRST_ADMIN_PASSWORD"
-echo "assistant $ASSISTANT_LLM"
+echo "assistant $ASSISTANT_LLM, sandbox $ASSISTANT_SANDBOX ($SANDBOX_IMAGE)"
 echo "logs     $STACK/*.log"
