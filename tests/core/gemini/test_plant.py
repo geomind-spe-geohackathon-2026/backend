@@ -157,3 +157,8 @@ def test_a_group_inside_a_later_module_lists_its_names() -> None:
     assert plant.range_names(built, "d1.reservoir") == plant.range_names(
         built, "d0.reservoir"
     )
+
+
+def test_template_text_has_no_code_marks() -> None:
+    for name in plant.template_names():
+        assert "``" not in plant.describe_template(name)["description"]

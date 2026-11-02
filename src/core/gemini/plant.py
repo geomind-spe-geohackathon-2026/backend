@@ -117,13 +117,18 @@ def ports_of(name: str) -> dict[str, Any]:
     }
 
 
+def plain_text(text: str) -> str:
+    """Return gemini's text without the marks of its code words."""
+    return text.replace("``", "")
+
+
 @cache
 def describe_template(name: str) -> dict[str, Any]:
     """Return a template's summary as its description, and its purpose."""
     plant = gm.plants.get(name)
     modules = structure(plant)["modules"]
     return {
-        "description": plant.describe()["summary"],
+        "description": plain_text(plant.describe()["summary"]),
         "purpose": plant.purpose,
         "modules": len(modules),
         "categories": sorted({module["category"] for module in modules}),

@@ -51,7 +51,7 @@ def list_palette(category: str | None) -> list[schemas.Palette]:
                 type=description["type"],
                 title=description["type"],
                 category=description["category"],
-                summary=description["summary"],
+                summary=plant.plain_text(description["summary"]),
             )
         )
     return cards
