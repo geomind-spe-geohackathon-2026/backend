@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from src.core.settings import settings
@@ -12,3 +13,18 @@ def configure_logging() -> None:
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(f"swarmax.{name}")
+
+
+class DisconnectFilter(logging.Filter):
+    """Drop the pool's traceback for a connection cut because a client went away."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        error = record.exc_info[0] if record.exc_info else None
+        return not (error is not None and issubclass(error, asyncio.CancelledError))
+
+
+def ignore_client_disconnects() -> None:
+    logging.getLogger("sqlalchemy.pool").addFilter(DisconnectFilter())
+    logging.getLogger("sqlalchemy.pool.impl.AsyncAdaptedQueuePool").addFilter(
+        DisconnectFilter()
+    )
