@@ -10,7 +10,7 @@ def fenced(value: Any) -> str:
 def llm_section(call: dict[str, Any]) -> list[str]:
     lines = [
         f"- LLM call, model `{call['model']}`: {call['input_tokens']} in, "
-        f"{call['output_tokens']} out, cost {call['cost']}, {call['duration']} s",
+        f"{call['output_tokens']} out, cost {call['cost']:.4g}, {call['duration']:.3f} s",
     ]
     if call["answer"]:
         lines += ["", call["answer"]]
@@ -20,7 +20,7 @@ def llm_section(call: dict[str, Any]) -> list[str]:
 def tool_section(call: dict[str, Any]) -> list[str]:
     failed = " (error)" if call.get("error") else ""
     return [
-        f"- Tool `{call['tool']}`{failed}, {call['duration']} s",
+        f"- Tool `{call['tool']}`{failed}, {call['duration']:.3f} s",
         "",
         "Input:",
         fenced(call["input"]),
