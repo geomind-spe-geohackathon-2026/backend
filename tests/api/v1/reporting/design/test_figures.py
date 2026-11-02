@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from src.api.v1.reporting.design import figures, narrative, schemas, services
 
 
@@ -86,3 +88,13 @@ def test_a_flowsheet_page_follows_the_capacities_when_they_are_chosen() -> None:
 
 def test_noise_on_a_bound_is_no_margin() -> None:
     assert narrative.margin_text(1e-5, "-") == "0"
+
+
+def test_the_plant_line_names_the_study_kind_in_words() -> None:
+    result = SimpleNamespace(name="Best", content={"design": {"type": "HeatingPlant"}})
+    study = SimpleNamespace(kind="minimize")
+
+    line = services.design_markdown(result, study)
+
+    assert "Find the best design" in line
+    assert "Heating plant" in line

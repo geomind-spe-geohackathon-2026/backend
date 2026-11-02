@@ -13,6 +13,14 @@ EMISSION_UNITS = ("kt", "t")
 THOUSAND = 1000
 PERCENT = 100
 SHORT_ID = 3
+WELLS_GROUP = "Wells"
+SURFACE_GROUP = "Surface plant"
+OTHER_CAPEX_GROUP = "Other"
+CAPEX_GROUPS = (WELLS_GROUP, SURFACE_GROUP, OTHER_CAPEX_GROUP)
+CAPEX_KINDS = {
+    WELLS_GROUP: ("drilling", "production_pump"),
+    OTHER_CAPEX_GROUP: ("pipe", "flare", "gas_makeup"),
+}
 NOISE = 1e-3
 TILE_FIGURES = ("lcts", "capex", "opex", "co2", "heat_delivered", "cold_delivered")
 
@@ -180,3 +188,19 @@ def capex_rows(report: dict[str, Any], economics: dict[str, Any]) -> list[list[s
             ]
         )
     return rows
+
+
+def capex_summary(report: dict[str, Any]) -> list[list[str]]:
+    """Return the capital cost in three rows: wells, surface plant and other."""
+    modules = (report.get("capex") or {}).get("modules") or {}
+    totals = dict.fromkeys(CAPEX_GROUPS, 0.0)
+    for item in modules.values():
+        kind = item["kind"]
+        group = next(
+            (name for name, kinds in CAPEX_KINDS.items() if kind in kinds),
+            SURFACE_GROUP,
+        )
+        totals[group] += item["value"]
+    if not modules:
+        return []
+    return [[name, f"{number_text(total)} MEUR"] for name, total in totals.items()]

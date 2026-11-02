@@ -46,9 +46,35 @@ def validate(
     content: Any,
     files: dict[str, bytes] | None,
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    """Return the missing values and the structural problems of a case document."""
+    """Return all the missing values and the structural problems of a case document."""
     _, problems = read(content, files)
-    return split(problems)
+    missing, structural = split(problems)
+    full = missing_of(content)
+    deeper = [item["path"] for item in full]
+    kept = [
+        item
+        for item in missing
+        if not any(path.startswith(f"{item['path']}.") for path in deeper)
+    ]
+    known = {item["path"] for item in kept}
+    return kept + [item for item in full if item["path"] not in known], structural
+
+
+def missing_of(content: Any) -> list[dict[str, str]]:
+    """Return what gemini lists as missing from a case, however partial it is."""
+    return [
+        problem_of(issue.problem())
+        for issue in gm.case.missing(content)
+        if not issue.is_warning
+    ]
+
+
+def warnings_of(content: Any, files: dict[str, bytes] | None) -> list[dict[str, str]]:
+    """Return what gemini warns about in a case that builds; these never block."""
+    built = build(content, files)
+    if built is None:
+        return []
+    return [problem_of(item.problem()) for item in built.check() if item.is_warning]
 
 
 def missing_values(

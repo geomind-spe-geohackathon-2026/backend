@@ -57,7 +57,11 @@ def problems_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str
         plant = gm.Plant.from_dict(content)
     except gm.errors.ValidationError as error:
         return [problem_of(problem) for problem in error.problems]
-    return [problem_of(issue.problem()) for issue in gm.check(plant, case)]
+    return [
+        problem_of(issue.problem())
+        for issue in gm.check(plant, case)
+        if not issue.is_warning
+    ]
 
 
 def from_template(name: str) -> gm.Plant:

@@ -110,7 +110,7 @@ def test_a_figure_keeps_gemini_title_or_its_name() -> None:
 
     kpis = evaluate.kpis_of(report)
 
-    assert [kpi["title"] for kpi in kpis] == ["Cost of heat", "LCOH"]
+    assert [kpi["title"] for kpi in kpis] == ["Cost of heat", "Cost of heat"]
 
 
 def test_a_value_that_misses_the_limit_by_a_hair_is_not_rounded_onto_it() -> None:
@@ -234,7 +234,7 @@ def test_a_tornado_lists_the_largest_effect_first() -> None:
     rows = evaluate.tornado_of({"found": {"rows": [row("a", 1), row("b", 3)]}})
 
     assert [item["parameter"] for item in rows] == ["b", "a"]
-    assert rows[0]["metric"] == "LCTS"
+    assert rows[0]["metric"] == "Cost of thermal supply"
 
 
 def test_a_spread_has_its_percentiles_and_draws() -> None:

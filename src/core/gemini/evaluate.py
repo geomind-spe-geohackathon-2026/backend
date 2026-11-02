@@ -14,15 +14,7 @@ FAILED = "fail"
 NOT_ASSESSED = "not_assessed"
 DIMENSIONLESS = "-"
 FULL_DIGITS = 12
-ABBREVIATIONS = {
-    "capex": "CAPEX",
-    "opex": "OPEX",
-    "lcts": "LCTS",
-    "lcoh": "LCOH",
-    "lcoc": "LCOC",
-    "co2": "CO2",
-    "co2_emitted": "CO2 emitted",
-}
+METRIC_TITLES = {item["name"]: item["title"] for item in gm.evaluate.metrics()}
 KIND_MEANINGS = {"cooler": "heat rejected"}
 LENGTH_UNIT = "m"
 CASE_PREFIX = "case."
@@ -38,10 +30,8 @@ CONDUCTANCE_SCALES = ((1e6, "MW/K"), (1e3, "kW/K"))
 
 
 def title_of(name: str) -> str:
-    """Return a readable title for a gemini name; gemini has no titles."""
-    if name in ABBREVIATIONS:
-        return ABBREVIATIONS[name]
-    return name.replace("_", " ").capitalize()
+    """Return gemini's title of a metric, else a name in words."""
+    return METRIC_TITLES.get(name) or name.replace("_", " ").capitalize()
 
 
 def is_quantity(item: Any) -> bool:

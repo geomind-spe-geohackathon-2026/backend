@@ -1,8 +1,8 @@
 import gemini
 import geomind
 
-GEMINI_NEEDED = (0, 5, 2)
-GEOMIND_NEEDED = (0, 4, 0)
+GEMINI_NEEDED = (0, 5, 3)
+GEOMIND_NEEDED = (0, 4, 1)
 
 
 def parts(version: str) -> tuple[int, ...]:

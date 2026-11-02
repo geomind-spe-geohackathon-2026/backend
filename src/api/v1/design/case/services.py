@@ -104,6 +104,10 @@ def check_case(
         missing=missing,
         problems=problems,
         plant_missing=needs,
+        warnings=[
+            {"path": item["path"], "message": item["message"]}
+            for item in case.warnings_of(content, files)
+        ],
         has_plant=plant_content is not None,
     )
 

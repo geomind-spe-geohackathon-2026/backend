@@ -91,3 +91,9 @@ def test_series_gives_time_value_points_in_the_file_unit() -> None:
             ],
         }
     ]
+
+
+def test_a_new_case_lists_everything_in_time_not_just_time() -> None:
+    missing, _ = case.validate({"format": 1, "kind": "case", "name": "c"}, {})
+
+    assert {"time.start", "time.end", "time.step"} <= {item["path"] for item in missing}

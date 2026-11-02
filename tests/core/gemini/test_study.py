@@ -70,12 +70,11 @@ def test_the_required_settings_are_the_arguments_without_a_default() -> None:
     assert properties_of("run").get("required", []) == []
 
 
-def test_metrics_and_the_objective_are_choices_of_gemini_metric_names() -> None:
-    sample = properties_of("sample")["properties"]
+def test_the_objective_lists_only_what_can_be_minimised() -> None:
     objective = properties_of("minimize")["properties"]["objective"]
 
-    assert "lcts" in sample["metrics"]["items"]["enum"]
-    assert objective["enum"] == sample["metrics"]["items"]["enum"]
+    assert "lcts" in objective["enum"]
+    assert "flow" not in objective["enum"]
 
 
 def test_the_size_kind_writes_a_run_prepared_by_sizing() -> None:
@@ -185,17 +184,16 @@ def test_a_run_gives_coverage_by_day_and_service() -> None:
     assert parts == pytest.approx(day["demand"]["value"])
 
 
-def test_a_kind_is_described_for_a_user_without_markup() -> None:
-    kinds = study.kinds()
+def test_a_kind_says_its_use_and_gemini_title() -> None:
+    kinds = {item["kind"]: item for item in study.kinds()}
 
-    assert all("``" not in kind["description"] for kind in kinds)
-    assert next(kind for kind in kinds if kind["kind"] == "minimize")["title"] == (
-        "Optimise"
-    )
+    assert kinds["minimize"]["use"] == "method"
+    assert kinds["size"]["use"] == "prepare"
+    assert kinds["minimize"]["title"] == "Find the best design"
 
 
 def test_prepare_says_what_it_does_and_keeps_gemini_choices() -> None:
     prepare = properties_of("minimize")["properties"]["prepare"]
 
-    assert "peak demand" in prepare["description"]
+    assert prepare["description"]
     assert prepare["items"]["enum"] == ["size"]

@@ -12,6 +12,7 @@ SectionKey = Literal[
     "coverage",
     "checks",
     "costs",
+    "capex",
     "findings",
     "agentlog",
     "appendix",

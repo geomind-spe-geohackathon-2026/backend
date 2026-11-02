@@ -33,6 +33,7 @@ SECTION_TITLES = {
     "coverage": "Days covered",
     "checks": "Constraint checks",
     "costs": "Costs",
+    "capex": "Capital cost by kind",
     "findings": "Uncertainty and sensitivity",
     "agentlog": "Agent log and tokens",
     "appendix": "Appendix: modules and connections",
@@ -203,12 +204,11 @@ def module_title(item: dict[str, Any]) -> str:
 def capex_markdown(result: Result, economics: dict[str, Any]) -> str:
     rows = narrative.capex_rows(result.content["report"], economics)
     if not rows:
-        return ""
-    headers = ["Item", "Amount", "Unit cost", "Source"]
-    return f"### Capital cost by kind\n\n{table(headers, rows)}"
+        return "No capital cost by kind."
+    return table(["Item", "Amount", "Unit cost", "Source"], rows)
 
 
-def costs_markdown(result: Result, economics: dict[str, Any]) -> str:
+def costs_markdown(result: Result) -> str:
     source = (
         f"From case version {result.case_version}, "
         f"plant version {result.plant_version}."
@@ -220,8 +220,9 @@ def costs_markdown(result: Result, economics: dict[str, Any]) -> str:
         f"### {name}\n\n{table(['Figure', 'Value'], rows)}"
         for name, rows in groups.items()
     ]
-    capex = capex_markdown(result, economics)
-    return "\n\n".join([source, *tables, *([capex] if capex else [])])
+    shares = narrative.capex_summary(result.content["report"])
+    extra = [table(["Capital cost", "Amount"], shares)] if shares else []
+    return "\n\n".join([source, *tables, *extra])
 
 
 def design_table(summary: str) -> str:
@@ -251,7 +252,8 @@ def design_table(summary: str) -> str:
 
 def design_markdown(result: Result, study: Study | None) -> str:
     kind = gemini_plant.type_of(result.content["design"])
-    kind_title = "" if study is None else gemini_study.KIND_TITLES.get(study.kind, "")
+    titles = {item["kind"]: item["title"] for item in gemini_study.kinds()}
+    kind_title = "" if study is None else titles.get(study.kind, "")
     origin = f" from a study of kind {kind_title}" if kind_title else ""
     return f"Design {result.name}{origin}, plant type {narrative.spaced(kind)}."
 
@@ -293,7 +295,8 @@ def section_markdown(
         "appendix": lambda: appendix_markdown(result),
         "design": lambda: design_markdown(result, study),
         "checks": lambda: checks_markdown(result, limits),
-        "costs": lambda: costs_markdown(result, economics),
+        "costs": lambda: costs_markdown(result),
+        "capex": lambda: capex_markdown(result, economics),
         "agentlog": lambda: agentlog_markdown(run),
     }
     return builders[key]()

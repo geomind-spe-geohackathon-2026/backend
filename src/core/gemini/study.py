@@ -1,6 +1,5 @@
 """The wrapper around gemini's study: its kinds, the inputs it misses, and its run."""
 
-import inspect
 import json
 from collections.abc import Callable
 from typing import Any
@@ -18,28 +17,12 @@ PLANT_FILE = "plant.json"
 CASE_FOLDER = "case/"
 MISSING_CODE = "missing_value"
 INPUTS = frozenset({"plant", "case", "plan"})
-METHODS_WITH_ARGUMENTS = ("minimize", "sample", "sensitivity")
 SIZE_KIND = "size"
 SIZE_DOCUMENT = {"method": "run", "prepare": [SIZE_KIND]}
 PREPARE_KEY = "prepare"
-PREPARE_HINT = "Size: size the equipment to the peak demand before the method runs."
-KIND_TITLES = {
-    "run": "Run",
-    "minimize": "Optimise",
-    "sample": "Uncertainty",
-    "sensitivity": "Sensitivity",
-    "size": "Size",
-}
-KIND_TEXTS = {
-    "run": "Simulate the plant as it is on the case.",
-    "minimize": "Search the ranges stated on the plant for the design with the "
-    "best objective.",
-    "sample": "Draw the uncertain values of the case at random and show the spread "
-    "of the metrics.",
-    "sensitivity": "Move each uncertain value of the case in turn and show how each "
-    "metric changes.",
-    "size": "Size the equipment to the peak demand of the case.",
-}
+METHOD_USE = "method"
+PREPARE_USE = "prepare"
+STUDY_TITLE = "Study"
 
 
 class StudyRunError(AppError):
@@ -59,86 +42,34 @@ def reserved_keys() -> frozenset[str]:
     return frozenset(schema["required"]) | {"about"}
 
 
-def method_arguments(method: str) -> list[inspect.Parameter]:
-    """Return the settings a gemini study function takes beyond its inputs."""
-    function = getattr(gm.study, method, None)
-    if function is None:
-        return []
-    return [
-        parameter
-        for name, parameter in inspect.signature(function).parameters.items()
-        if name not in INPUTS and parameter.kind is not parameter.KEYWORD_ONLY
-    ]
-
-
-def settings_schema(method: str, full: dict[str, Any]) -> dict[str, Any]:
-    """Return the schema of the settings of one method, with metric names as choices."""
-    schema = {key: value for key, value in full.items() if key != "required"}
-    if method == SIZE_KIND:
-        return {**schema, "properties": {}}
-    reserved = reserved_keys()
-    arguments = method_arguments(method)
-    taken = {name for other in METHODS_WITH_ARGUMENTS for name in argument_names(other)}
-    names = [parameter.name for parameter in arguments] or [
-        key for key in full["properties"] if key not in reserved | taken
-    ]
-    properties = {
-        key: with_choices(key, full["properties"][key])
-        for key in dict.fromkeys([*names, PREPARE_KEY])
-        if key in full["properties"]
-    }
-    required = [
-        parameter.name
-        for parameter in arguments
-        if parameter.default is parameter.empty and parameter.name in properties
-    ]
-    return {
-        **schema,
-        "properties": properties,
-        **({"required": required} if required else {}),
-    }
-
-
-def argument_names(method: str) -> list[str]:
-    return [parameter.name for parameter in method_arguments(method)]
-
-
-def metric_names() -> list[str]:
-    """Return the metrics gemini can read from a run."""
-    return [metric["name"] for metric in gm.evaluate.metrics()]
-
-
-def with_choices(key: str, schema: dict[str, Any]) -> dict[str, Any]:
-    """Make the metric settings choices of gemini's names, and say what prepare does."""
-    if key == PREPARE_KEY:
-        return {**schema, "title": "Before the method", "description": PREPARE_HINT}
-    if key == "objective":
-        return {**schema, "enum": metric_names()}
-    if key == "metrics":
-        return {**schema, "items": {**schema["items"], "enum": metric_names()}}
-    return schema
+def with_prepare(settings: dict[str, Any], hint: str | None) -> dict[str, Any]:
+    """Add the step before a method to the settings gemini lists for it."""
+    prepare = gm.Study.schema()["properties"][PREPARE_KEY]
+    shown = {**prepare, "title": "Before the method"}
+    if hint is not None:
+        shown["description"] = hint
+    properties = {**settings["properties"], PREPARE_KEY: shown}
+    return {**settings, "title": STUDY_TITLE, "properties": properties}
 
 
 def kinds() -> list[dict[str, Any]]:
-    """Return gemini's study methods and sizing, each with its settings schema."""
-    full = gm.Study.schema()
+    """Return gemini's study kinds with their settings; prepare steps say so in use."""
+    listed = gm.study.kinds()
+    hint = next(
+        (item["description"] for item in listed if item["use"] == PREPARE_USE), None
+    )
     return [
         {
-            "kind": method,
-            "title": KIND_TITLES.get(method, method.capitalize()),
-            "description": describe(method),
-            "schema": settings_schema(method, full),
+            "kind": item["kind"],
+            "use": item["use"],
+            "title": item["title"],
+            "description": item["description"],
+            "schema": with_prepare(item["settings"], hint)
+            if item["use"] == METHOD_USE
+            else {**item["settings"], "title": STUDY_TITLE},
         }
-        for method in [*full["properties"]["method"]["enum"], SIZE_KIND]
+        for item in listed
     ]
-
-
-def describe(method: str) -> str:
-    """Return one plain line on a kind; a new gemini method has its own first line."""
-    if method in KIND_TEXTS:
-        return KIND_TEXTS[method]
-    function = getattr(gm.study, method, gm.Study.run)
-    return (function.__doc__ or "").strip().splitlines()[0].replace("``", "")
 
 
 def document(kind: str, name: str, settings: dict[str, Any]) -> dict[str, Any]:
@@ -195,7 +126,7 @@ def from_dict(
 
 def issues_of(study: gm.Study) -> list[dict[str, Any]]:
     """Return gemini's problems for a study whose files it can read."""
-    return [problem_of(issue.problem()) for issue in study.check()]
+    return [problem_of(item.problem()) for item in study.check() if not item.is_warning]
 
 
 def missing_inputs(

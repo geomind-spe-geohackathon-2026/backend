@@ -11,6 +11,7 @@ class StudyKind(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     kind: str
+    use: str
     title: str
     description: str
     schema_: dict[str, Any] = Field(alias="schema")

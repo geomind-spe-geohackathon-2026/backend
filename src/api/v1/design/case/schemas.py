@@ -36,6 +36,7 @@ class CaseProblems(BaseModel):
     missing: list[Missing]
     problems: list[Problem]
     plant_missing: list[Missing] = []
+    warnings: list[Missing] = []
     has_plant: bool = False
 
 

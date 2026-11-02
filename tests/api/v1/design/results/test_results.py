@@ -67,7 +67,7 @@ async def test_list_gives_summaries(
     assert item["study"] is None
     assert {
         "name": "lcts",
-        "title": "LCTS",
+        "title": "Cost of thermal supply",
         "value": 40,
         "unit": "EUR/MWh",
         "reason": None,

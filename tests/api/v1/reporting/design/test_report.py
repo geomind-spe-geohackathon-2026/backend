@@ -95,7 +95,7 @@ async def test_costs_show_source_and_missing(
 
     sections = {item["key"]: item["markdown"] for item in response.json()["sections"]}
     assert "case version 3, plant version 4" in sections["costs"]
-    assert "| OPEX | missing: no price |" in sections["costs"]
+    assert "| Operating cost | missing: no price |" in sections["costs"]
     assert "No assistant run was chosen." in sections["agentlog"]
     assert "plant type Heating plant" in sections["design"]
     assert "13 passed" in sections["checks"]
@@ -114,7 +114,7 @@ async def test_costs_list_the_figures_of_the_report_not_a_fixed_list(
 
     costs = response.json()["sections"][0]["markdown"]
     assert "| Heat delivered |" in costs
-    assert "| CO2 |" in costs
+    assert "| CO2 emissions |" in costs
 
 
 async def test_design_is_a_table_with_the_columns_of_the_summary(
@@ -236,6 +236,7 @@ async def test_parts_list_the_sections_with_their_titles_in_order(
         {"key": "coverage", "title": "Days covered"},
         {"key": "checks", "title": "Constraint checks"},
         {"key": "costs", "title": "Costs"},
+        {"key": "capex", "title": "Capital cost by kind"},
         {"key": "findings", "title": "Uncertainty and sensitivity"},
         {"key": "agentlog", "title": "Agent log and tokens"},
         {"key": "appendix", "title": "Appendix: modules and connections"},
