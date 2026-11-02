@@ -46,6 +46,8 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   `design/case`) on `core/gemini/{plant,case}.py`; bindings and catalogue are not built
   (`parameters/fill` is `501`). See the Plant and case routes section of
   `docs/CONVENTIONS.md`.
+- **Studies, results, reports:** `design/{study,results}` and `reporting/design`, wrappers
+  in `src/core/gemini/{study,evaluate}.py`; see [docs/reporting.md](docs/reporting.md).
 - **OpenAPI:** `openapi.json` at the repo root is committed; the frontend generates its
   types from it. After any route or schema change run
   `.venv/bin/python scripts/to_openapi.py`; `tests/test_openapi.py` fails when it is stale.

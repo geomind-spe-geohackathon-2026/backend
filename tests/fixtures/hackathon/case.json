@@ -1,0 +1,234 @@
+{
+  "format": 1,
+  "kind": "case",
+  "name": "hackathon_2026",
+  "time": {
+    "start": "2027-01-01",
+    "end": "2028-01-01",
+    "step": {
+      "value": 1,
+      "unit": "d"
+    }
+  },
+  "site": {
+    "ground": {
+      "surface_temperature": {
+        "value": 12,
+        "unit": "degC"
+      },
+      "gradient": {
+        "value": 30,
+        "unit": "K/km",
+        "uncertainty": {
+          "kind": "normal",
+          "std": 2,
+          "min": 25,
+          "max": 35
+        }
+      }
+    },
+    "reservoir": {
+      "reference_depth": {
+        "value": 2500,
+        "unit": "m"
+      },
+      "thickness": {
+        "value": 100,
+        "unit": "m"
+      },
+      "permeability": {
+        "value": 200,
+        "unit": "mD",
+        "uncertainty": {
+          "kind": "triangular",
+          "min": 100,
+          "max": 400
+        }
+      },
+      "pressure": {
+        "value": 250,
+        "unit": "barg"
+      }
+    },
+    "fluid": {
+      "density": {
+        "value": 1030,
+        "unit": "kg/m3"
+      },
+      "viscosity": {
+        "value": 0.4,
+        "unit": "mPa.s"
+      },
+      "gas_liquid_ratio": {
+        "value": 0.8,
+        "unit": "Nm3/m3"
+      },
+      "dissolved_gas": {
+        "CH4": {
+          "value": 0.8
+        },
+        "CO2": {
+          "value": 0.2
+        }
+      },
+      "sand_concentration": {
+        "value": 20,
+        "unit": "mg/l"
+      }
+    },
+    "air": {
+      "temperature": {
+        "value": 10,
+        "unit": "degC"
+      },
+      "pressure": {
+        "value": 101325,
+        "unit": "Pa"
+      }
+    }
+  },
+  "demand": {
+    "heating": {
+      "power": {
+        "unit": "MW",
+        "file": "data/demand.csv",
+        "column": "heating_demand_MWth"
+      },
+      "supply_temperature": {
+        "value": 100,
+        "unit": "degC"
+      },
+      "return_temperature": {
+        "value": 60,
+        "unit": "degC"
+      },
+      "return_pressure": {
+        "value": 6,
+        "unit": "bar"
+      }
+    },
+    "cooling": {
+      "power": {
+        "unit": "MW",
+        "file": "data/demand.csv",
+        "column": "cooling_demand_MWcool"
+      },
+      "supply_temperature": {
+        "value": 20,
+        "unit": "degC"
+      },
+      "return_temperature": {
+        "value": 25,
+        "unit": "degC"
+      },
+      "return_pressure": {
+        "value": 4,
+        "unit": "bar"
+      },
+      "dew_point_margin": {
+        "value": 1,
+        "unit": "K"
+      },
+      "indoor_temperature": {
+        "value": 26,
+        "unit": "degC"
+      },
+      "indoor_relative_humidity": {
+        "value": 0.5
+      }
+    }
+  },
+  "utilities": {
+    "electricity": {
+      "co2_intensity": {
+        "value": 300,
+        "unit": "g/kWh"
+      }
+    },
+    "gas": {
+      "composition": {
+        "CH4": {
+          "value": 0.8249507401227822
+        },
+        "C2H6": {
+          "value": 0.039549858193534584
+        },
+        "C3H8": {
+          "value": 0.012748086337494389
+        },
+        "CO2": {
+          "value": 0.011912342910726407
+        },
+        "N2": {
+          "value": 0.11083897243546233
+        }
+      }
+    }
+  },
+  "economics": "economics.json",
+  "requirements": [
+    {
+      "unit": "m3/h",
+      "name": "production_flow_range",
+      "on": "doublet",
+      "quantity": "production_flow",
+      "over": "each",
+      "when": "running",
+      "min": 50,
+      "max": 300
+    },
+    {
+      "unit": "K",
+      "name": "brine_cooling_limit",
+      "on": "doublet",
+      "quantity": "brine_cooling",
+      "over": "each",
+      "when": "running",
+      "max": 40
+    },
+    {
+      "unit": "d",
+      "name": "running_time_limit",
+      "on": "doublet",
+      "quantity": "production_flow",
+      "over": "duration",
+      "when": "running",
+      "max": 330
+    },
+    {
+      "name": "pump_efficiency",
+      "on": "doublet",
+      "quantity": "pump_efficiency",
+      "min": 0.7,
+      "max": 0.7
+    },
+    {
+      "name": "full_reinjection",
+      "on": "doublet",
+      "quantity": "reinjection_ratio",
+      "over": "each",
+      "when": "running",
+      "min": 0.99999,
+      "max": 1.00001
+    },
+    {
+      "name": "doublet_count",
+      "on": "doublet",
+      "quantity": "count",
+      "min": 1,
+      "max": 3
+    },
+    {
+      "name": "heat_delivered",
+      "on": "heating_supply",
+      "quantity": "unmet_share",
+      "max": 0.01
+    },
+    {
+      "name": "cold_delivered",
+      "on": "cooling_supply",
+      "quantity": "unmet_share",
+      "max": 0.01
+    }
+  ]
+}

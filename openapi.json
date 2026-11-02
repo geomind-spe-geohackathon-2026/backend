@@ -152,6 +152,41 @@
         "title": "Body_upload_document_api_v1_workspace_documents_post",
         "type": "object"
       },
+      "Capacity": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "name",
+          "title",
+          "value",
+          "unit"
+        ],
+        "title": "Capacity",
+        "type": "object"
+      },
       "Case": {
         "properties": {
           "content": {
@@ -374,6 +409,85 @@
           "status"
         ],
         "title": "ChatRun",
+        "type": "object"
+      },
+      "Checks": {
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "not_assessed": {
+            "title": "Not Assessed",
+            "type": "integer"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "passed",
+          "failed",
+          "not_assessed"
+        ],
+        "title": "Checks",
+        "type": "object"
+      },
+      "Constraint": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "not_assessed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "title",
+          "status",
+          "message"
+        ],
+        "title": "Constraint",
+        "type": "object"
+      },
+      "Coverage": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "geothermal",
+              "backup",
+              "short"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "source"
+        ],
+        "title": "Coverage",
         "type": "object"
       },
       "Credentials": {
@@ -667,6 +781,41 @@
         "title": "HealthStatus",
         "type": "object"
       },
+      "Kpi": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "name",
+          "title",
+          "value",
+          "unit"
+        ],
+        "title": "Kpi",
+        "type": "object"
+      },
       "LayoutUpdate": {
         "properties": {
           "base": {
@@ -766,7 +915,7 @@
             "type": "array"
           },
           "progress": {
-            "$ref": "#/components/schemas/Progress"
+            "$ref": "#/components/schemas/src__core__progress__schemas__Progress"
           }
         },
         "required": [
@@ -851,6 +1000,62 @@
           "next"
         ],
         "title": "Page[Project]",
+        "type": "object"
+      },
+      "Page_Result_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Result"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "Page[Result]",
+        "type": "object"
+      },
+      "Page_Study_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Study"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "Page[Study]",
         "type": "object"
       },
       "Page_UserResponse_": {
@@ -1141,34 +1346,6 @@
         "title": "Problem",
         "type": "object"
       },
-      "Progress": {
-        "properties": {
-          "case": {
-            "$ref": "#/components/schemas/ProgressStep"
-          },
-          "plant": {
-            "$ref": "#/components/schemas/ProgressStep"
-          },
-          "report": {
-            "$ref": "#/components/schemas/ProgressStep"
-          },
-          "results": {
-            "$ref": "#/components/schemas/ProgressStep"
-          },
-          "study": {
-            "$ref": "#/components/schemas/ProgressStep"
-          }
-        },
-        "required": [
-          "case",
-          "plant",
-          "study",
-          "results",
-          "report"
-        ],
-        "title": "Progress",
-        "type": "object"
-      },
       "ProgressStep": {
         "properties": {
           "label": {
@@ -1236,7 +1413,7 @@
             "title": "Plant Version"
           },
           "progress": {
-            "$ref": "#/components/schemas/Progress"
+            "$ref": "#/components/schemas/src__core__progress__schemas__Progress"
           },
           "updated": {
             "format": "date-time",
@@ -1298,6 +1475,370 @@
           "refresh_token"
         ],
         "title": "RefreshRequest",
+        "type": "object"
+      },
+      "Report": {
+        "properties": {
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSection"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "sections"
+        ],
+        "title": "Report",
+        "type": "object"
+      },
+      "ReportExport": {
+        "properties": {
+          "format": {
+            "enum": [
+              "md",
+              "pdf"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "include": {
+            "items": {
+              "enum": [
+                "capacities",
+                "design",
+                "checks",
+                "costs",
+                "agentlog"
+              ],
+              "type": "string"
+            },
+            "title": "Include",
+            "type": "array"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "result": {
+            "format": "uuid",
+            "title": "Result",
+            "type": "string"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run"
+          }
+        },
+        "required": [
+          "project",
+          "result",
+          "include",
+          "format"
+        ],
+        "title": "ReportExport",
+        "type": "object"
+      },
+      "ReportRequest": {
+        "properties": {
+          "include": {
+            "items": {
+              "enum": [
+                "capacities",
+                "design",
+                "checks",
+                "costs",
+                "agentlog"
+              ],
+              "type": "string"
+            },
+            "title": "Include",
+            "type": "array"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "result": {
+            "format": "uuid",
+            "title": "Result",
+            "type": "string"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run"
+          }
+        },
+        "required": [
+          "project",
+          "result",
+          "include"
+        ],
+        "title": "ReportRequest",
+        "type": "object"
+      },
+      "ReportSection": {
+        "properties": {
+          "key": {
+            "enum": [
+              "capacities",
+              "design",
+              "checks",
+              "costs",
+              "agentlog"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "markdown": {
+            "title": "Markdown",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "markdown"
+        ],
+        "title": "ReportSection",
+        "type": "object"
+      },
+      "Result": {
+        "properties": {
+          "case_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Version"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/Checks"
+          },
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kpis": {
+            "items": {
+              "$ref": "#/components/schemas/Kpi"
+            },
+            "title": "Kpis",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "plant_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plant Version"
+          },
+          "study": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Study"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "study",
+          "case_version",
+          "plant_version",
+          "kpis",
+          "checks",
+          "created"
+        ],
+        "title": "Result",
+        "type": "object"
+      },
+      "ResultComparison": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Result"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "pareto": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Pareto",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "pareto"
+        ],
+        "title": "ResultComparison",
+        "type": "object"
+      },
+      "ResultDetail": {
+        "properties": {
+          "capacities": {
+            "items": {
+              "$ref": "#/components/schemas/Capacity"
+            },
+            "title": "Capacities",
+            "type": "array"
+          },
+          "case_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Version"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/Checks"
+          },
+          "constraints": {
+            "items": {
+              "$ref": "#/components/schemas/Constraint"
+            },
+            "title": "Constraints",
+            "type": "array"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Coverage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kpis": {
+            "items": {
+              "$ref": "#/components/schemas/Kpi"
+            },
+            "title": "Kpis",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "plant_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plant Version"
+          },
+          "series": {
+            "items": {},
+            "title": "Series",
+            "type": "array"
+          },
+          "study": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Study"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "study",
+          "case_version",
+          "plant_version",
+          "kpis",
+          "checks",
+          "created",
+          "capacities",
+          "coverage",
+          "constraints",
+          "series"
+        ],
+        "title": "ResultDetail",
         "type": "object"
       },
       "Run": {
@@ -1495,6 +2036,258 @@
           "problems"
         ],
         "title": "SpecProblems",
+        "type": "object"
+      },
+      "StartedBy": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "user",
+              "agent"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "run"
+        ],
+        "title": "StartedBy",
+        "type": "object"
+      },
+      "Study": {
+        "properties": {
+          "case_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Version"
+          },
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "ended": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudyError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "missing": {
+            "items": {
+              "$ref": "#/components/schemas/Missing"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "plant_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plant Version"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/src__api__v1__design__study__schemas__Progress"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          },
+          "started_by": {
+            "$ref": "#/components/schemas/StartedBy"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed",
+              "cancelled",
+              "blocked"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project",
+          "kind",
+          "name",
+          "settings",
+          "status",
+          "progress",
+          "started_by",
+          "case_version",
+          "plant_version",
+          "result",
+          "error",
+          "missing",
+          "created",
+          "ended"
+        ],
+        "title": "Study",
+        "type": "object"
+      },
+      "StudyCreate": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          }
+        },
+        "required": [
+          "project",
+          "kind",
+          "name",
+          "settings"
+        ],
+        "title": "StudyCreate",
+        "type": "object"
+      },
+      "StudyError": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details"
+        ],
+        "title": "StudyError",
+        "type": "object"
+      },
+      "StudyKind": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "schema": {
+            "additionalProperties": true,
+            "title": "Schema",
+            "type": "object"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "description",
+          "schema"
+        ],
+        "title": "StudyKind",
         "type": "object"
       },
       "Template": {
@@ -1781,6 +2574,52 @@
           "created"
         ],
         "title": "Version",
+        "type": "object"
+      },
+      "src__api__v1__design__study__schemas__Progress": {
+        "properties": {
+          "done": {
+            "title": "Done",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "done",
+          "total"
+        ],
+        "title": "Progress",
+        "type": "object"
+      },
+      "src__core__progress__schemas__Progress": {
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/ProgressStep"
+          },
+          "plant": {
+            "$ref": "#/components/schemas/ProgressStep"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ProgressStep"
+          },
+          "results": {
+            "$ref": "#/components/schemas/ProgressStep"
+          },
+          "study": {
+            "$ref": "#/components/schemas/ProgressStep"
+          }
+        },
+        "required": [
+          "case",
+          "plant",
+          "study",
+          "results",
+          "report"
+        ],
+        "title": "Progress",
         "type": "object"
       }
     }
@@ -2122,6 +2961,454 @@
         "summary": "List Versions",
         "tags": [
           "Case"
+        ]
+      }
+    },
+    "/api/v1/design/results": {
+      "get": {
+        "operationId": "list_results_api_v1_design_results_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Result_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Results",
+        "tags": [
+          "Results"
+        ]
+      }
+    },
+    "/api/v1/design/results/compare": {
+      "get": {
+        "operationId": "compare_results_api_v1_design_results_compare_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ids",
+            "required": true,
+            "schema": {
+              "title": "Ids",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "x",
+            "required": true,
+            "schema": {
+              "title": "X",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "y",
+            "required": true,
+            "schema": {
+              "title": "Y",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultComparison"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compare Results",
+        "tags": [
+          "Results"
+        ]
+      }
+    },
+    "/api/v1/design/results/{result_id}": {
+      "get": {
+        "operationId": "get_result_api_v1_design_results__result_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "result_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Result Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Result",
+        "tags": [
+          "Results"
+        ]
+      }
+    },
+    "/api/v1/design/study": {
+      "get": {
+        "operationId": "list_studies_api_v1_design_study_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Study_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Studies",
+        "tags": [
+          "Study"
+        ]
+      },
+      "post": {
+        "operationId": "create_study_api_v1_design_study_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Study"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Study",
+        "tags": [
+          "Study"
+        ]
+      }
+    },
+    "/api/v1/design/study/kinds": {
+      "get": {
+        "operationId": "list_kinds_api_v1_design_study_kinds_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudyKind"
+                  },
+                  "title": "Response List Kinds Api V1 Design Study Kinds Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Kinds",
+        "tags": [
+          "Study"
+        ]
+      }
+    },
+    "/api/v1/design/study/{study_id}": {
+      "get": {
+        "operationId": "get_study_api_v1_design_study__study_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Study Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Study"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Study",
+        "tags": [
+          "Study"
+        ]
+      }
+    },
+    "/api/v1/design/study/{study_id}/cancel": {
+      "post": {
+        "operationId": "cancel_study_api_v1_design_study__study_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Study Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Study"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Study",
+        "tags": [
+          "Study"
+        ]
+      }
+    },
+    "/api/v1/design/study/{study_id}/start": {
+      "post": {
+        "operationId": "start_study_api_v1_design_study__study_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Study Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Study"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Study",
+        "tags": [
+          "Study"
         ]
       }
     },
@@ -2913,6 +4200,85 @@
         "summary": "Fill Parameters",
         "tags": [
           "Parameters"
+        ]
+      }
+    },
+    "/api/v1/reporting/design/export": {
+      "post": {
+        "operationId": "export_report_api_v1_reporting_design_export_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportExport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {},
+              "text/markdown": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Report",
+        "tags": [
+          "Design reports"
+        ]
+      }
+    },
+    "/api/v1/reporting/design/preview": {
+      "post": {
+        "operationId": "preview_report_api_v1_reporting_design_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Report"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Report",
+        "tags": [
+          "Design reports"
         ]
       }
     },

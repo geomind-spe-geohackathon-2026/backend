@@ -24,6 +24,10 @@ class StudyRepository(BaseRepository):
         await self.session.commit()
         return study
 
+    async def refresh(self, study: Study) -> Study:
+        await self.session.refresh(study)
+        return study
+
     async def list_page(self, project_id: UUID, page: PageRequest) -> list[Study]:
         statement = select(Study).where(Study.project_id == project_id)
         statement = paginate(statement, Study.created, Study.id, page)
