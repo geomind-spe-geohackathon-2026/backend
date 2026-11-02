@@ -8,10 +8,10 @@ async def test_scripted_run_lists_the_project_plants_before_it_asks_to_save() ->
     plant = example_plant()
     workspace = gd.stores.MemoryWorkspace(plants={"p1": {plant["name"]: plant}})
     run = gd.Run(
-        message="Size the plant",
+        message="Save a demand profile",
         chat="c1",
         project="p1",
-        llm=scripted_llm(False),
+        llm=scripted_llm(False, "demand profile"),
         store=gd.stores.MemoryRunStore(),
         workspace=workspace,
         permissions=gd.Permissions(mode="ask"),
@@ -25,3 +25,20 @@ async def test_scripted_run_lists_the_project_plants_before_it_asks_to_save() ->
     assert tools[0] == "list_plants"
     assert plant["name"] in listed[0].output_summary
     assert paused.request is not None
+
+
+async def test_a_greeting_gets_a_plain_scripted_answer() -> None:
+    run = gd.Run(
+        message="hi",
+        chat="c1",
+        project="p1",
+        llm=scripted_llm(False, "hi"),
+        store=gd.stores.MemoryRunStore(),
+        permissions=gd.Permissions(mode="ask"),
+    )
+
+    result = await run.astart()
+
+    assert result.status == "done"
+    assert result.request is None
+    assert "Demo mode" in result.answer

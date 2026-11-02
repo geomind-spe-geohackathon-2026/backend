@@ -1017,13 +1017,22 @@
       },
       "HealthStatus": {
         "properties": {
+          "assistant": {
+            "enum": [
+              "model",
+              "scripted"
+            ],
+            "title": "Assistant",
+            "type": "string"
+          },
           "status": {
             "title": "Status",
             "type": "string"
           }
         },
         "required": [
-          "status"
+          "status",
+          "assistant"
         ],
         "title": "HealthStatus",
         "type": "object"

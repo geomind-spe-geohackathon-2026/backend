@@ -122,7 +122,7 @@ async def test_history_leaves_out_the_message_of_the_run_itself(
 
     history = await asyncio.to_thread(store.load_history, str(chat.id))
 
-    assert [message.content for message in history] == ["Size the plant"]
+    assert [message.content for message in history] == ["Save a demand profile"]
 
 
 async def test_store_refuses_to_block_its_own_loop(

@@ -13,10 +13,10 @@ async def play(run_id: UUID, answer_request: bool = True) -> list[Any]:
     store = gd.stores.MemoryRunStore()
     permissions = gd.Permissions(mode="ask")
     run = gd.Run(
-        message="Size the plant",
+        message="Save a demand profile",
         chat="c1",
         project="p1",
-        llm=scripted_llm(False),
+        llm=scripted_llm(False, "demand profile"),
         store=store,
         permissions=permissions,
     )
@@ -25,7 +25,7 @@ async def play(run_id: UUID, answer_request: bool = True) -> list[Any]:
     if answer_request:
         resumed = gd.Run.load(
             run.id,
-            llm=scripted_llm(True),
+            llm=scripted_llm(True, ""),
             store=store,
             permissions=permissions,
         )

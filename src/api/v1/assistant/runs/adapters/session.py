@@ -111,9 +111,9 @@ def build_environment(
     )
 
 
-def build_llm(resumed: bool) -> Any:
+def build_llm(resumed: bool, message: str) -> Any:
     if settings.ASSISTANT_LLM == "fake":
-        return scripted_llm(resumed)
+        return scripted_llm(resumed, message)
     return gd.providers.OpenRouter(
         api_key=settings.OPENROUTER_API_KEY,
         base_url=settings.OPENROUTER_BASE_URL,
@@ -167,9 +167,11 @@ def to_outcome(result: Any) -> Outcome:
     )
 
 
-def keywords(environment: Environment, resumed: bool) -> dict[str, Any]:
+def keywords(
+    environment: Environment, resumed: bool, message: str = ""
+) -> dict[str, Any]:
     return {
-        "llm": build_llm(resumed),
+        "llm": build_llm(resumed, message),
         "store": environment.store,
         "workspace": environment.workspace,
         "sandbox": build_sandbox(),
@@ -215,7 +217,7 @@ async def start(
             chat=str(chat_id),
             project=str(project_id),
             history=history,
-            **keywords(environment, resumed=False),
+            **keywords(environment, False, message),
         )
         run.id = run_id.hex
         return to_outcome(await run.astart())

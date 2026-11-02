@@ -1,3 +1,5 @@
+import json
+
 import geomind as gd
 import geomind.types as gd_types
 
@@ -5,6 +7,8 @@ MODEL = "scripted/model"
 USAGE = gd_types.Usage(input_tokens=120, output_tokens=40, cost=0.001)
 ROUTE = '{"kind": "loop", "loop": "tool", "agent": "analyst"}'
 ANSWER = "The scripted assistant finished after your approval."
+SCENARIO = "demand profile"
+DEMO_ANSWER = "Demo mode: no model is connected, so this is a scripted reply."
 
 
 def says(text: str) -> gd_types.Completion:
@@ -42,12 +46,16 @@ def asks_to_save() -> gd_types.Completion:
     )
 
 
-def scripted_llm(resumed: bool) -> gd.providers.FakeLLM:
-    """Return the test LLM that plays one run: route, plants, write, answer.
+def scripted_llm(resumed: bool, message: str) -> gd.providers.FakeLLM:
+    """Return the test LLM: a plain reply, or the scenario of a message that asks it.
 
-    The first process plays the route and the write, which pauses for approval; the
-    process that resumes plays the answer. Only ``ASSISTANT_LLM=fake`` selects it.
+    A message naming ``SCENARIO`` plays route, plants, write, which pauses for
+    approval; the process that resumes plays the answer. Any other message gets a
+    plain reply. Only ``ASSISTANT_LLM=fake`` selects it.
     """
     if resumed:
         return gd.providers.FakeLLM([says(ANSWER)])
-    return gd.providers.FakeLLM([says(ROUTE), asks_to_list(), asks_to_save()])
+    if SCENARIO in message.lower():
+        return gd.providers.FakeLLM([says(ROUTE), asks_to_list(), asks_to_save()])
+    reply = json.dumps({"kind": "answer", "answer": DEMO_ANSWER})
+    return gd.providers.FakeLLM([says(reply)])

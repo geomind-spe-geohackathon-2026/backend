@@ -18,7 +18,7 @@ def test_health() -> None:
         response = client.get("/api/v1/system/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "assistant": "model"}
 
 
 def test_openapi_uses_application_metadata() -> None:

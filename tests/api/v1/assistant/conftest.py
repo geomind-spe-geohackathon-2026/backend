@@ -58,7 +58,7 @@ def make_run(
         owner: User,
         status: str = "queued",
         values: dict[str, Any] | None = None,
-        content: str = "Size the plant",
+        content: str = "Save a demand profile",
     ) -> Run:
         async with session_factory() as session:
             runs = RunRepository(session)
