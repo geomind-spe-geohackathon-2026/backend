@@ -96,6 +96,22 @@ async def import_project(
     return await services.import_project(file, user, repository, progress, blobs)
 
 
+@router.post("/{project_id}/case/copy", response_model=schemas.Project)
+async def copy_case_into(
+    payload: schemas.CaseCopy,
+    project: AccessibleProject,
+    user: CurrentUser,
+    repository: ProjectRepositoryDependency,
+    progress: ProgressReaderDependency,
+    cases: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    blobs: BlobStoreDependency,
+) -> schemas.Project:
+    return await services.copy_case_into(
+        project, payload, user, repository, progress, cases, files, blobs
+    )
+
+
 @router.get("/{project_id}", response_model=schemas.Project)
 async def get_project(
     project: AccessibleProject,

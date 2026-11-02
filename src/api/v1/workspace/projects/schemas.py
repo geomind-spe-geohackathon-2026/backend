@@ -22,6 +22,10 @@ class Budget(BaseModel):
     max_cost: float | None = Field(default=None, gt=0)
 
 
+class CaseCopy(BaseModel):
+    case_from: UUID
+
+
 class ProjectUpdate(BaseModel):
     name: ProjectName | None = None
     budget: Budget | None = None

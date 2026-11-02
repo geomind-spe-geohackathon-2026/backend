@@ -112,3 +112,35 @@ async def test_copy_keeps_the_missing_count_of_the_source(
     )
 
     assert response.json()["progress"]["case"]["state"] == "incomplete"
+
+
+async def test_a_project_without_a_case_takes_a_copy(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    source = await seed(client, owner, make_project, blobs)
+    target = await make_project(owner, "Target")
+
+    response = await client.post(
+        f"{PROJECTS}/{target.id}/case/copy",
+        json={"case_from": str(source.id)},
+        headers=bearer(owner),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["case_version"] == 1
+
+
+async def test_a_project_with_a_case_refuses_a_copy(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    source = await seed(client, owner, make_project, blobs)
+
+    response = await client.post(
+        f"{PROJECTS}/{source.id}/case/copy",
+        json={"case_from": str(source.id)},
+        headers=bearer(owner),
+    )
+
+    assert response.status_code == 409

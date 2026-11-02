@@ -363,6 +363,20 @@
         "title": "CaseCheck",
         "type": "object"
       },
+      "CaseCopy": {
+        "properties": {
+          "case_from": {
+            "format": "uuid",
+            "title": "Case From",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_from"
+        ],
+        "title": "CaseCopy",
+        "type": "object"
+      },
       "CaseCreate": {
         "properties": {
           "base": {
@@ -6284,6 +6298,59 @@
           }
         },
         "summary": "Update Project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/workspace/projects/{project_id}/case/copy": {
+      "post": {
+        "operationId": "copy_case_into_api_v1_workspace_projects__project_id__case_copy_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseCopy"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Copy Case Into",
         "tags": [
           "Projects"
         ]

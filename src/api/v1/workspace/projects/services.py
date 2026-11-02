@@ -34,7 +34,7 @@ from src.core.clients.postgres.repositories.project import (
     ImportedVersion,
     ProjectRepository,
 )
-from src.core.errors import CaseInvalidError, ValidationFailedError
+from src.core.errors import CaseInvalidError, ConflictError, ValidationFailedError
 from src.core.gemini import case as case_document
 from src.core.gemini.errors import CaseNotFoundError, PlantInvalidError
 from src.core.gemini.plant import validate_content
@@ -150,6 +150,31 @@ async def create_project(
         project = await repository.create_with_versions(
             project_id, payload.name, user.id, [], stored
         )
+    except Exception:
+        await remove_cases(blobs, stored)
+        raise
+    return await describe_one(project, progress)
+
+
+async def copy_case_into(
+    project: Project,
+    payload: schemas.CaseCopy,
+    user: User,
+    repository: ProjectRepository,
+    progress: ProgressReader,
+    cases: CaseVersionRepository,
+    files: CaseFileRepository,
+    blobs: BlobStore,
+) -> schemas.Project:
+    """Give a project without a case a copy of another project's latest case."""
+    if await cases.latest_version(project.id) is not None:
+        raise ConflictError("The project already has a problem")
+    source = await require_project(payload.case_from, user, repository)
+    copied = await copy_case(source, cases, files, blobs)
+    stored = await store_cases(blobs, project.id, [copied])
+    try:
+        await repository.add_case(project.id, user.id, stored[0])
+        await repository.commit()
     except Exception:
         await remove_cases(blobs, stored)
         raise

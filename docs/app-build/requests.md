@@ -139,3 +139,10 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
   Wanted: `set_case` on the analyst, or a public way to start a run with the project's case
   Needed by: chat, "What it knows"
 
+- gemini: a complete list of what a case still needs (`gm.case.missing`)
+  Today: a case with only `time` passes `from_dict` and `check()` gives 0 issues, so a nearly empty problem reports nothing missing; before `time` is set the list is `time` alone
+  Needed by: Problem missing list and tab counts
+
+- gemini: `size` leaves coolers at the plant file's rating
+  Today: on HeatingFullCoolingPlant, `size` sets the chillers and leaves absorption, compression and adsorption coolers at 40, 20 and 10 MW; peaks are 8.1, 3.6 and 9.4 MW (20%, 18%, 94% of rating)
+  Also check: compression cooler peak 3.57 MW against chiller peak 3.34 MW implies a COP near 14

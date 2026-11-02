@@ -156,6 +156,9 @@ class ProjectRepository(BaseRepository):
             for file in case.files
         )
 
+    async def commit(self) -> None:
+        await self.session.commit()
+
     async def delete(self, project_id: UUID) -> None:
         await self.session.execute(delete(Project).where(Project.id == project_id))
         await self.session.commit()

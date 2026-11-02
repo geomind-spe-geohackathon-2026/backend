@@ -47,7 +47,7 @@ def ensure_admin(client: httpx.Client, email: str | None, password: str | None) 
         "/api/v1/identity/users",
         json={
             "email": email,
-            "name": "Local admin",
+            "name": email.split("@")[0],
             "password": password,
             "role": "admin",
         },
