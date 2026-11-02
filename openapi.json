@@ -63,6 +63,31 @@
         "title": "Actor",
         "type": "object"
       },
+      "Approval": {
+        "additionalProperties": false,
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "approved"
+        ],
+        "title": "Approval",
+        "type": "object"
+      },
       "Author": {
         "properties": {
           "id": {
@@ -350,46 +375,32 @@
         "title": "ChangePassword",
         "type": "object"
       },
-      "Chat": {
+      "ChatCreate": {
+        "additionalProperties": false,
         "properties": {
-          "created": {
-            "format": "date-time",
-            "title": "Created",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "last_run": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ChatRun"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "project": {
             "format": "uuid",
             "title": "Project",
             "type": "string"
           },
           "title": {
-            "title": "Title",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
           }
         },
         "required": [
-          "id",
-          "project",
-          "title",
-          "created",
-          "last_run"
+          "project"
         ],
-        "title": "Chat",
+        "title": "ChatCreate",
         "type": "object"
       },
       "ChatRun": {
@@ -409,6 +420,48 @@
           "status"
         ],
         "title": "ChatRun",
+        "type": "object"
+      },
+      "ChatState": {
+        "properties": {
+          "state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "state"
+        ],
+        "title": "ChatState",
+        "type": "object"
+      },
+      "ChatUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "ChatUpdate",
         "type": "object"
       },
       "Checks": {
@@ -555,6 +608,24 @@
           "created"
         ],
         "title": "Document",
+        "type": "object"
+      },
+      "Failure": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Failure",
         "type": "object"
       },
       "Flowsheet": {
@@ -816,6 +887,33 @@
         "title": "Kpi",
         "type": "object"
       },
+      "LastRun": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "waiting",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "LastRun",
+        "type": "object"
+      },
       "LayoutUpdate": {
         "properties": {
           "base": {
@@ -873,6 +971,90 @@
         "title": "Link",
         "type": "object"
       },
+      "Message": {
+        "properties": {
+          "chat": {
+            "format": "uuid",
+            "title": "Chat",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run"
+          }
+        },
+        "required": [
+          "id",
+          "chat",
+          "role",
+          "content",
+          "created",
+          "run"
+        ],
+        "title": "Message",
+        "type": "object"
+      },
+      "MessageCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "MessageCreate",
+        "type": "object"
+      },
+      "MessageSent": {
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "run": {
+            "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+          }
+        },
+        "required": [
+          "message",
+          "run"
+        ],
+        "title": "MessageSent",
+        "type": "object"
+      },
       "Missing": {
         "properties": {
           "message": {
@@ -895,7 +1077,7 @@
         "properties": {
           "active_runs": {
             "items": {
-              "$ref": "#/components/schemas/Run"
+              "$ref": "#/components/schemas/src__api__v1__workspace__overview__schemas__Run"
             },
             "title": "Active Runs",
             "type": "array"
@@ -909,7 +1091,7 @@
           },
           "chats": {
             "items": {
-              "$ref": "#/components/schemas/Chat"
+              "$ref": "#/components/schemas/src__api__v1__workspace__overview__schemas__Chat"
             },
             "title": "Chats",
             "type": "array"
@@ -946,6 +1128,34 @@
         "title": "Owner",
         "type": "object"
       },
+      "Page_Chat_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/src__api__v1__assistant__chat__schemas__Chat"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "Page[Chat]",
+        "type": "object"
+      },
       "Page_Document_": {
         "properties": {
           "items": {
@@ -972,6 +1182,34 @@
           "next"
         ],
         "title": "Page[Document]",
+        "type": "object"
+      },
+      "Page_Message_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "Page[Message]",
         "type": "object"
       },
       "Page_Project_": {
@@ -1028,6 +1266,34 @@
           "next"
         ],
         "title": "Page[Result]",
+        "type": "object"
+      },
+      "Page_Run_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "Page[Run]",
         "type": "object"
       },
       "Page_Study_": {
@@ -1477,6 +1743,20 @@
         "title": "RefreshRequest",
         "type": "object"
       },
+      "Reply": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Reply",
+        "type": "object"
+      },
       "Report": {
         "properties": {
           "sections": {
@@ -1841,101 +2121,31 @@
         "title": "ResultDetail",
         "type": "object"
       },
-      "Run": {
+      "RunAnswer": {
+        "additionalProperties": false,
+        "description": "The user's answer to the request a waiting run shows.",
         "properties": {
-          "chat": {
-            "format": "uuid",
-            "title": "Chat",
-            "type": "string"
-          },
-          "ended": {
+          "answer": {
             "anyOf": [
               {
-                "format": "date-time",
-                "type": "string"
+                "$ref": "#/components/schemas/Approval"
               },
               {
-                "type": "null"
+                "$ref": "#/components/schemas/Reply"
               }
             ],
-            "title": "Ended"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RunError"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "loop": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Loop"
-          },
-          "project": {
-            "format": "uuid",
-            "title": "Project",
-            "type": "string"
+            "title": "Answer"
           },
           "request": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request"
-          },
-          "started": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Started"
-          },
-          "status": {
-            "title": "Status",
+            "title": "Request",
             "type": "string"
-          },
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
           }
         },
         "required": [
-          "id",
-          "chat",
-          "project",
-          "status",
-          "loop",
-          "started",
-          "ended",
-          "usage",
           "request",
-          "error"
+          "answer"
         ],
-        "title": "Run",
+        "title": "RunAnswer",
         "type": "object"
       },
       "RunError": {
@@ -2365,7 +2575,7 @@
         "title": "TokenResponse",
         "type": "object"
       },
-      "Usage": {
+      "Tokens": {
         "properties": {
           "cost": {
             "title": "Cost",
@@ -2385,7 +2595,7 @@
           "output_tokens",
           "cost"
         ],
-        "title": "Usage",
+        "title": "Tokens",
         "type": "object"
       },
       "UserCreate": {
@@ -2576,6 +2786,76 @@
         "title": "Version",
         "type": "object"
       },
+      "src__api__v1__assistant__chat__schemas__Chat": {
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project",
+          "title",
+          "created",
+          "last_run"
+        ],
+        "title": "Chat",
+        "type": "object"
+      },
+      "src__api__v1__assistant__usage__schemas__Usage": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runs",
+          "input_tokens",
+          "output_tokens",
+          "cost"
+        ],
+        "title": "Usage",
+        "type": "object"
+      },
       "src__api__v1__design__study__schemas__Progress": {
         "properties": {
           "done": {
@@ -2592,6 +2872,274 @@
           "total"
         ],
         "title": "Progress",
+        "type": "object"
+      },
+      "src__api__v1__workspace__overview__schemas__Chat": {
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChatRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project",
+          "title",
+          "created",
+          "last_run"
+        ],
+        "title": "Chat",
+        "type": "object"
+      },
+      "src__api__v1__workspace__overview__schemas__Run": {
+        "properties": {
+          "chat": {
+            "format": "uuid",
+            "title": "Chat",
+            "type": "string"
+          },
+          "ended": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "loop": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loop"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "request": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request"
+          },
+          "started": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/src__api__v1__workspace__overview__schemas__Usage"
+          }
+        },
+        "required": [
+          "id",
+          "chat",
+          "project",
+          "status",
+          "loop",
+          "started",
+          "ended",
+          "usage",
+          "request",
+          "error"
+        ],
+        "title": "Run",
+        "type": "object"
+      },
+      "src__api__v1__workspace__overview__schemas__Usage": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "input_tokens",
+          "output_tokens",
+          "cost"
+        ],
+        "title": "Usage",
+        "type": "object"
+      },
+      "src__core__assistant__schemas__Run": {
+        "description": "A run of the assistant, as the runs page and the chat show it.",
+        "properties": {
+          "chat": {
+            "format": "uuid",
+            "title": "Chat",
+            "type": "string"
+          },
+          "ended": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Failure"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "loop": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loop"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "request": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request"
+          },
+          "started": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "waiting",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Tokens"
+          }
+        },
+        "required": [
+          "id",
+          "chat",
+          "project",
+          "status",
+          "loop",
+          "started",
+          "ended",
+          "usage",
+          "request",
+          "error"
+        ],
+        "title": "Run",
         "type": "object"
       },
       "src__core__progress__schemas__Progress": {
@@ -2630,6 +3178,810 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assistant/chat": {
+      "get": {
+        "operationId": "list_chats_api_v1_assistant_chat_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Chat_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Chats",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "post": {
+        "operationId": "create_chat_api_v1_assistant_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/src__api__v1__assistant__chat__schemas__Chat"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Chat",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/api/v1/assistant/chat/{chat_id}": {
+      "delete": {
+        "operationId": "delete_chat_api_v1_assistant_chat__chat_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Chat",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "patch": {
+        "operationId": "rename_chat_api_v1_assistant_chat__chat_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/src__api__v1__assistant__chat__schemas__Chat"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rename Chat",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/api/v1/assistant/chat/{chat_id}/messages": {
+      "get": {
+        "operationId": "list_messages_api_v1_assistant_chat__chat_id__messages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chat Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Message_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Messages",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "post": {
+        "operationId": "send_message_api_v1_assistant_chat__chat_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageSent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Message",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/api/v1/assistant/chat/{chat_id}/state": {
+      "get": {
+        "operationId": "read_state_api_v1_assistant_chat__chat_id__state_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chat_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chat Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read State",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs": {
+      "get": {
+        "operationId": "list_runs_api_v1_assistant_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "active",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Run_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Runs",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_api_v1_assistant_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Run",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs/{run_id}/answer": {
+      "post": {
+        "operationId": "answer_run_api_v1_assistant_runs__run_id__answer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Answer Run",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_run_api_v1_assistant_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/src__core__assistant__schemas__Run"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Run",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs/{run_id}/events": {
+      "get": {
+        "operationId": "stream_events_api_v1_assistant_runs__run_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "last-event-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "retry": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stream Events",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs/{run_id}/log": {
+      "get": {
+        "operationId": "get_log_api_v1_assistant_runs__run_id__log_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Log Api V1 Assistant Runs  Run Id  Log Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Log",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs/{run_id}/log/export": {
+      "get": {
+        "operationId": "export_log_api_v1_assistant_runs__run_id__log_export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": true,
+            "schema": {
+              "enum": [
+                "json",
+                "md"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {},
+              "text/markdown": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Log",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/usage": {
+      "get": {
+        "operationId": "read_usage_api_v1_assistant_usage_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/src__api__v1__assistant__usage__schemas__Usage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Usage",
+        "tags": [
+          "Usage"
+        ]
+      }
+    },
     "/api/v1/design/case": {
       "get": {
         "operationId": "get_case_api_v1_design_case_get",
