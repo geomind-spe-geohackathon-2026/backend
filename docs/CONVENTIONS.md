@@ -123,6 +123,20 @@ src/
 - Run FastAPI with `python -m src.main --fastapi`.
 - Run Celery with `python -m src.main --celery`.
 - Run workers with `celery -A src.celery:app worker --loglevel=INFO`.
+- Every task uses `core/jobs/task.py:BaseTask` (the app sets it as `task_cls`):
+  `@shared_task(bind=True, name="<domain>.<feature>.<verb>")` in the feature's
+  `tasks.py`, for example `design.study.run`. It retries only `ConnectionError` and
+  `TimeoutError` with a bounded backoff, never an `AppError`, acks late, and has the time
+  limits of `TASK_SOFT_TIME_LIMIT_SECONDS` and `TASK_TIME_LIMIT_SECONDS`.
+- The job id is the study or run id. `self.report(job_id, done, total)` writes progress to
+  Redis (`job:<id>:progress`); the API reads it with `JobRepository.progress`. A task
+  calls `self.check_cancelled(job_id)` between steps; the API sets the flag with
+  `jobs.control.request_cancel`. State expires after `JOB_STATE_TTL_SECONDS`.
+- A task that cannot check a flag (a study, because gemini's study functions take no
+  cancel check) is stopped with `jobs.control.terminate(task_id)`: Celery revoke with
+  terminate. Store the task id on the study row.
+- A task body calls one `services.py` function; it opens its own session and Redis
+  client, and runs async code with `asyncio.run`.
 
 ## Clients and repositories
 
@@ -149,6 +163,8 @@ src/
   files. They coordinate packages and do not define a reusable capability.
 - Keep focused application contracts and configuration, such as `errors.py` and
   `settings.py`, as files.
+- `core/jobs` owns the Celery base task, the cancel and terminate helpers and the
+  job errors; its Redis state is in `core/clients/redis`.
 - `core/logging` owns logger configuration and request logging middleware.
 - `core/security` owns JWT, passwords, public paths, access dependencies, security
   errors, and its middleware.

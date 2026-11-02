@@ -1,6 +1,8 @@
+from typing import Annotated
+
 from redis.asyncio import Redis
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from src.core.clients.errors import ClientNotInitializedError
 from src.core.settings import settings
 
@@ -25,3 +27,6 @@ def get_redis(request: Request) -> Redis:
     if client is None:
         raise ClientNotInitializedError("Redis is not initialized")
     return client
+
+
+RedisClient = Annotated[Redis, Depends(get_redis)]

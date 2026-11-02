@@ -40,6 +40,9 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
 - **OpenAPI:** `openapi.json` at the repo root is committed; the frontend generates its
   types from it. After any route or schema change run
   `.venv/bin/python scripts/to_openapi.py`; `tests/test_openapi.py` fails when it is stale.
+- **Jobs:** Celery tasks extend `src/core/jobs/task.py:BaseTask` (progress and cancel flag
+  in Redis, bounded retries); studies are cancelled with `jobs.control.terminate`. See
+  the Background tasks section of `docs/CONVENTIONS.md`.
 - **Stack:** `../infrastructure/compose.yml` runs everything:
   `cd ../infrastructure && cp .env.example .env && docker compose up -d --build`. The
   backend image also needs the build context `geomind: ../geomind` (the Dockerfile

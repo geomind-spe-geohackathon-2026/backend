@@ -1,14 +1,8 @@
 from datetime import UTC, datetime
-from typing import Annotated
 
-from redis.asyncio import Redis
-
-from fastapi import Depends
-from src.core.clients.redis.client import get_redis
+from src.core.clients.redis.client import RedisClient
 from src.core.clients.redis.models.revoked_access_token import RevokedAccessToken
 from src.core.clients.redis.repositories.base import BaseRedisRepository
-
-RedisClient = Annotated[Redis, Depends(get_redis)]
 
 
 class RevokedAccessTokenRepository(BaseRedisRepository):
