@@ -1,5 +1,6 @@
 """The wrapper around gemini's plant document: build, write, check and describe it."""
 
+import hashlib
 import json
 from datetime import datetime
 from functools import cache
@@ -216,9 +217,21 @@ def type_of(content: dict[str, Any]) -> str:
     return str(content.get("type") or content.get("name") or "Plant")
 
 
+def settings_of(plant: gm.Plant, module: str, params: dict[str, Any]) -> str:
+    """Return a digest of a module's values, equal only for equal settings."""
+    values = get_module(plant, module).describe()["values"]
+    text = json.dumps([values, params.get(module)], sort_keys=True, default=str)
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
 def structure_of(content: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
-    """Return the modules and connections of a plant document."""
-    return structure(from_dict(content))
+    """Return a plant document's modules, with a settings digest, and connections."""
+    plant = from_dict(content)
+    found = structure(plant)
+    params = plant.to_dict()["params"]
+    for module in found["modules"]:
+        module["settings"] = settings_of(plant, module["id"], params)
+    return found
 
 
 def set_parameters(

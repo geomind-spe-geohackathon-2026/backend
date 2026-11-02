@@ -97,3 +97,25 @@ def test_a_plant_names_what_it_needs_from_a_nearly_empty_case() -> None:
     needs = plant.case_needs(content, case)
 
     assert needs[0]["path"].startswith("site.")
+
+
+def doublet_settings(depths: dict[str, float]) -> dict[str, str]:
+    content = json.loads((EXAMPLE / "plant.json").read_text())
+    for module, depth in depths.items():
+        content["params"][module]["depth"] = {"value": depth, "unit": "m"}
+    modules = plant.structure_of(content)["modules"]
+    return {
+        item["id"]: item["settings"] for item in modules if item["type"] == "Doublet"
+    }
+
+
+def test_doublets_at_different_depths_have_different_settings() -> None:
+    settings = doublet_settings({"d0": 2000.0, "d1": 2500.0})
+
+    assert settings["d0"] != settings["d1"]
+
+
+def test_alike_doublets_have_equal_settings() -> None:
+    settings = doublet_settings({"d0": 2500.0, "d1": 2500.0})
+
+    assert settings["d0"] == settings["d1"]
