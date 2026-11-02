@@ -30,16 +30,25 @@ def reserved_keys() -> frozenset[str]:
 
 
 def kinds() -> list[dict[str, Any]]:
-    """Return gemini's study methods, each with the study schema that all share."""
-    schema = gm.Study.schema()
+    """Return gemini's study methods, each with the settings schema they share."""
+    full = gm.Study.schema()
+    reserved = reserved_keys()
+    settings = {
+        **{key: value for key, value in full.items() if key != "required"},
+        "properties": {
+            key: value
+            for key, value in full["properties"].items()
+            if key not in reserved
+        },
+    }
     return [
         {
             "kind": method,
             "title": method.capitalize(),
             "description": describe(method),
-            "schema": schema,
+            "schema": settings,
         }
-        for method in schema["properties"]["method"]["enum"]
+        for method in full["properties"]["method"]["enum"]
     ]
 
 

@@ -29,6 +29,16 @@ async def test_kinds_are_geminis_methods(client, make_user) -> None:
     ]
     assert kinds[0]["schema"]["title"] == "Study"
     assert kinds[0]["description"]
+    for kind in kinds:
+        assert set(kind["schema"]["properties"]) == {
+            "prepare",
+            "objective",
+            "metrics",
+            "evaluations",
+            "samples",
+            "seed",
+        }
+        assert "required" not in kind["schema"]
 
 
 async def test_ready_study_is_queued(
