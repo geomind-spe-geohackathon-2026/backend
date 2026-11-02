@@ -29,6 +29,8 @@ class Template(BaseModel):
     title: str
     description: str
     purpose: str | None
+    modules: int
+    categories: list[str]
 
 
 class FlowsheetModule(BaseModel):

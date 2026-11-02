@@ -58,6 +58,11 @@ async def list_documents(
     )
 
 
+def list_formats() -> list[str]:
+    """Return the file suffixes an upload may have."""
+    return sorted(SUPPORTED_SUFFIXES)
+
+
 def file_name_of(raw: str | None) -> str:
     name = PurePosixPath((raw or "").replace("\\", "/")).name
     if name in ("", ".", ".."):

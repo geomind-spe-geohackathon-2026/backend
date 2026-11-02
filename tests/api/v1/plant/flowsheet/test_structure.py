@@ -84,3 +84,15 @@ async def test_the_type_with_changed_modules_is_still_refused(
     )
 
     assert response.json()["problems"]
+
+
+async def test_a_template_says_its_size_and_categories(client, make_user) -> None:
+    user = await make_user()
+
+    response = await client.get(
+        "/api/v1/plant/flowsheet/templates", headers=bearer(user)
+    )
+
+    template = response.json()[0]
+    assert template["modules"] > 0
+    assert template["categories"]

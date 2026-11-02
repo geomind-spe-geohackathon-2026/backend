@@ -18,7 +18,7 @@ geomind-spe-geohackathon-2026/
 ├── frontend/         git@github.com:geomind-spe-geohackathon-2026/frontend.git
 ├── gemini/           git@github.com:geomind-spe-geohackathon-2026/gemini.git   branch dev, 0.5.1 (4095ec6)
 ├── geomind/          git@github.com:crust-team/geomind.git                     branch main, 0.4.0 (90f92d8)
-├── infrastructure/   git@github.com:swarmax/infrastructure.git
+├── infrastructure/   git@github.com:geomind-spe-geohackathon-2026/infrastructure.git
 └── docs/             copy contracts.md and ui-mockup.html here so the prompt's paths work
 ```
 

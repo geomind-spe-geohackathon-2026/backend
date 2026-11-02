@@ -2982,9 +2982,20 @@
       },
       "Template": {
         "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
           "description": {
             "title": "Description",
             "type": "string"
+          },
+          "modules": {
+            "title": "Modules",
+            "type": "integer"
           },
           "name": {
             "title": "Name",
@@ -3010,7 +3021,9 @@
           "name",
           "title",
           "description",
-          "purpose"
+          "purpose",
+          "modules",
+          "categories"
         ],
         "title": "Template",
         "type": "object"
@@ -3297,7 +3310,7 @@
     }
   },
   "info": {
-    "title": "swarmax-backend",
+    "title": "geomind-backend",
     "version": "0.1.0"
   },
   "openapi": "3.1.0",
@@ -5934,6 +5947,31 @@
           }
         },
         "summary": "Upload Document",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/workspace/documents/formats": {
+      "get": {
+        "operationId": "list_formats_api_v1_workspace_documents_formats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response List Formats Api V1 Workspace Documents Formats Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Formats",
         "tags": [
           "Documents"
         ]

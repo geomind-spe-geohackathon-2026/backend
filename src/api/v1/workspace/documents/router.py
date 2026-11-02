@@ -36,6 +36,11 @@ async def project_from_form(
     return await require_project(project, user, repository)
 
 
+@router.get("/formats", response_model=list[str])
+async def list_formats(_user: CurrentUser) -> list[str]:
+    return services.list_formats()
+
+
 @router.get("", response_model=Page[schemas.Document])
 async def list_documents(
     project: QueriedProject,

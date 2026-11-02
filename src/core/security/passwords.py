@@ -1,7 +1,7 @@
 from pwdlib import PasswordHash
 
 password_hash = PasswordHash.recommended()
-DUMMY_PASSWORD_HASH = password_hash.hash("swarmax-dummy-password")
+DUMMY_PASSWORD_HASH = password_hash.hash("geomind-dummy-password")
 
 
 def hash_password(password: str) -> str:

@@ -16,7 +16,7 @@ class SettingsValidationError(AppError, ValueError):
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "swarmax-backend"
+    APP_NAME: str = "geomind-backend"
     APP_ENV: Literal["development", "test", "production"] = "development"
     APP_DEBUG: bool = False
     APP_LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     FIRST_ADMIN_EMAIL: str = ""
     FIRST_ADMIN_PASSWORD: str = ""
 
-    POSTGRES_URL: str = "postgresql+asyncpg://admin:replace-with-postgres-password@postgres:5432/swarmax"
+    POSTGRES_URL: str = "postgresql+asyncpg://admin:replace-with-postgres-password@postgres:5432/geomind"
     POSTGRES_POOL_SIZE: int = 5
     POSTGRES_MAX_OVERFLOW: int = 10
 
@@ -50,14 +50,14 @@ class Settings(BaseSettings):
     MINIO_ACCESS_KEY: str = "admin"
     MINIO_SECRET_KEY: str = "replace-with-minio-password"
     MINIO_SECURE: bool = False
-    MINIO_BUCKET_NAME: str = "swarmax"
+    MINIO_BUCKET_NAME: str = "geomind"
 
     CHROMADB_URL: str = "http://chromadb:8000"
 
     INFLUXDB_URL: str = "http://influxdb:8086"
     INFLUXDB_TOKEN: str = "replace-with-influxdb-token"
-    INFLUXDB_ORG: str = "swarmax"
-    INFLUXDB_BUCKET: str = "swarmax"
+    INFLUXDB_ORG: str = "geomind"
+    INFLUXDB_BUCKET: str = "geomind"
 
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_API_KEY: str = ""

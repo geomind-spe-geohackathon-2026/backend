@@ -114,7 +114,6 @@ Write tests for behavior, security boundaries, and failure handling. Do not add 
 
 ## Compose
 
-`../infrastructure/compose.yml` is the source of truth for the whole stack. The backend
-image needs `../gemini`, which compose passes as the `gemini` build context; the same
-will apply to the agent package in B2. This folder's `compose.yml` deploys only the API
-and the worker behind Traefik.
+This folder's `compose.yml` and `.env` deploy the API and the worker behind Traefik.
+The data services and Traefik come from `../infrastructure`. The backend image needs
+`../gemini` and `../geomind`, which compose passes as extra build contexts.

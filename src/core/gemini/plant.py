@@ -104,7 +104,13 @@ def ports_of(name: str) -> dict[str, Any]:
 def describe_template(name: str) -> dict[str, Any]:
     """Return a template's summary as its description, and its purpose."""
     plant = gm.plants.get(name)
-    return {"description": plant.describe()["summary"], "purpose": plant.purpose}
+    modules = structure(plant)["modules"]
+    return {
+        "description": plant.describe()["summary"],
+        "purpose": plant.purpose,
+        "modules": len(modules),
+        "categories": sorted({module["category"] for module in modules}),
+    }
 
 
 def get_module(plant: gm.Plant, module: str) -> Any:

@@ -175,3 +175,14 @@ async def test_upload_refuses_a_type_that_cannot_be_read(
     assert response.status_code == 422
     assert ".pdf" in response.json()["error"]["details"]["fields"]["file"]
     enqueue.assert_not_called()
+
+
+async def test_formats_lists_the_suffixes_an_upload_may_have(client, make_user) -> None:
+    user = await make_user()
+
+    response = await client.get(
+        "/api/v1/workspace/documents/formats", headers=bearer(user)
+    )
+
+    assert ".pdf" in response.json()
+    assert ".txt" in response.json()

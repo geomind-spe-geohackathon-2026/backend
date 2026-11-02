@@ -26,7 +26,7 @@ def test_openapi_uses_application_metadata() -> None:
         response = client.get("/openapi.json")
 
     assert response.status_code == 200
-    assert response.json()["info"]["title"] == "swarmax-backend"
+    assert response.json()["info"]["title"] == "geomind-backend"
 
 
 def test_openapi_has_identity_routes() -> None:

@@ -25,7 +25,7 @@ async def test_creates_admin_once_without_logging_secrets(
     session_factory,
     caplog,
 ) -> None:
-    with caplog.at_level(logging.DEBUG, logger="swarmax"):
+    with caplog.at_level(logging.DEBUG, logger="geomind"):
         await ensure_first_admin(session_factory)
         await ensure_first_admin(session_factory)
 

@@ -10,7 +10,7 @@ from starlette.responses import Response
 
 from fastapi import FastAPI, Request
 
-logger = logging.getLogger("swarmax.core.errors")
+logger = logging.getLogger("geomind.core.errors")
 
 HTTP_ERROR_CODES = {
     status.HTTP_401_UNAUTHORIZED: "unauthorized",

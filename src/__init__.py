@@ -1,1 +1,1 @@
-"""Swarmax backend package."""
+"""Geomind backend package."""
