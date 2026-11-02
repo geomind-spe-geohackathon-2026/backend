@@ -52,6 +52,12 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
   Wanted: `Results.series("heat_delivered" | "cold_delivered") -> [{time, value, unit}]`
   Blocking: no (worked around: `series` is `[]`)
 
+- [gemini] Display units and grouping for report figures
+  Needed by: Results tiles
+  Today: `1,500,000 W/K`, and no grouping of costs, energy and emissions
+  Wanted: a preferred display unit and a `group` on each report value
+  Blocking: no (gemini's order and unit are shown)
+
 - [gemini] Titles
   Needed by: palette, templates, KPI tiles, constraints, Problem tabs
   Today: `describe()["type"]` and `["summary"]`; report figures and requirements have names only; `Case.schema()` has no section titles
