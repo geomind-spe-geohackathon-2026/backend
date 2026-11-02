@@ -9,7 +9,7 @@ x-service: &service
   image: geomind-backend:latest
   restart: unless-stopped
   stop_grace_period: 30s
-  env_file: [.env]
+  env_file: [.env.production]
   networks: [geomind]
 
 services:
