@@ -12,6 +12,7 @@ from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.errors import NotImplementedYetError
 from src.core.gemini import plant
 from src.core.gemini.errors import PlantNotFoundError
+from src.core.routes import PLANT_ROUTE
 from src.core.versioning import (
     Version,
     check_base,
@@ -55,8 +56,7 @@ async def save_parameters(
         "user",
         user.name,
         f"Changed {payload.module} in plant version {version.number}",
-        "design/plant",
-        str(version.number),
+        PLANT_ROUTE,
     )
     return (await describe_versions([version], users))[0]
 

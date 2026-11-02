@@ -16,6 +16,7 @@ from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.gemini import plant
 from src.core.gemini.errors import PlantNotFoundError
 from src.core.pagination.page import Page
+from src.core.routes import PLANT_ROUTE
 from src.core.versioning import (
     Version,
     check_base,
@@ -129,8 +130,7 @@ async def save_flowsheet(
         "user",
         user.name,
         f"Saved plant version {version.number}",
-        "design/plant",
-        str(version.number),
+        PLANT_ROUTE,
     )
     return await build_flowsheet(version, blobs)
 

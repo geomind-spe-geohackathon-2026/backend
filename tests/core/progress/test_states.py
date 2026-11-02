@@ -73,7 +73,9 @@ async def test_facts_are_read_from_the_tables(
     await ResultRepository(session).create(
         {"project_id": project.id, "name": "R", "summary": {}, "content": {}}
     )
-    await ActivityRepository(session).add(project.id, "user", "x", "t", "report", None)
+    await ActivityRepository(session).add(
+        project.id, "user", "x", "t", "design/report", None
+    )
 
     facts = await ProgressRepository(session).facts([project.id, other.id])
 

@@ -8,6 +8,7 @@ from tests.api.v1.plant.helpers import (
 )
 from tests.conftest import bearer
 from tests.plants import changed_plant, example_plant
+from tests.routes import route_exists
 
 
 async def test_save_and_read_back_the_spec_unchanged(
@@ -289,3 +290,4 @@ async def test_save_writes_an_activity_row(
     rows = await ActivityRepository(session).latest(project.id, 10)
     assert [row.text for row in rows] == ["Saved plant version 1"]
     assert rows[0].link_route == "design/plant"
+    assert route_exists(rows[0].link_route, rows[0].link_id)

@@ -40,7 +40,9 @@ async def test_overview_lists_latest_chats_activity_and_active_runs(
     activity = ActivityRepository(session)
     for index in range(12):
         await activity.add(project.id, "user", "Sahand", f"Change {index}")
-    await activity.add(project.id, "agent", "Designer", "Case saved", "case", "3")
+    await activity.add(
+        project.id, "agent", "Designer", "Case saved", "design/case", "3"
+    )
 
     response = await client.get(
         OVERVIEW, params={"project": str(project.id)}, headers=bearer(owner)
@@ -57,7 +59,7 @@ async def test_overview_lists_latest_chats_activity_and_active_runs(
     }
     assert len(body["activity"]) == 10
     assert body["activity"][0]["actor"] == {"kind": "agent", "name": "Designer"}
-    assert body["activity"][0]["link"] == {"route": "case", "id": "3"}
+    assert body["activity"][0]["link"] == {"route": "design/case", "id": "3"}
     assert body["activity"][1]["link"] is None
 
 

@@ -1,6 +1,7 @@
 from src.core.settings import settings
 from tests.cases import DEMAND_CSV, DEMAND_FILE, broken_case, example_case
 from tests.conftest import bearer
+from tests.routes import route_exists
 
 CASE = "/api/v1/design/case"
 
@@ -270,6 +271,8 @@ async def test_versions_are_newest_first(
         "Saved case version 1",
         "Saved case version 2",
     }
+    assert all(route_exists(row.link_route, row.link_id) for row in rows)
+    assert {row.link_route for row in rows} == {"design/case"}
 
 
 async def test_other_member_cannot_read_or_save(

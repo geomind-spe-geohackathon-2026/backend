@@ -12,9 +12,9 @@ from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.gemini import evaluate as gemini_evaluate
+from src.core.routes import REPORT_ROUTE
 from src.core.security.access import require_project
 
-REPORT_ROUTE = "report"
 SECTION_TITLES = {
     "capacities": "Capacities",
     "design": "Design",
@@ -192,7 +192,6 @@ async def export_report(
         user.name,
         f"Exported the report of {report.title} as {request.format}",
         REPORT_ROUTE,
-        str(request.result),
     )
     return Export(
         f"report-{request.result}.{request.format}",

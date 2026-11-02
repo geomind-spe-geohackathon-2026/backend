@@ -10,6 +10,7 @@ from src.core.gemini import study as gemini_study
 from tests import design_inputs
 from tests.api.v1.design.study.conftest import study_body
 from tests.conftest import bearer
+from tests.routes import route_exists
 
 URL = "/api/v1/design/study"
 
@@ -271,7 +272,11 @@ async def test_worker_stores_the_result(
     assert result.content["coverage"] is None
     assert reported == [(str(study.id), 0, 1), (str(study.id), 1, 1)]
     activity = await stores.activity.latest(project.id, 1)
-    assert (activity[0].link_route, activity[0].link_id) == ("results", str(result.id))
+    assert (activity[0].link_route, activity[0].link_id) == (
+        "design/results",
+        str(result.id),
+    )
+    assert route_exists(activity[0].link_route, activity[0].link_id)
 
 
 async def test_worker_records_a_failed_study(
@@ -297,6 +302,9 @@ async def test_worker_records_a_failed_study(
     assert failed.status == "failed"
     assert failed.error["code"] == "study_failed"
     assert failed.error["details"] == {"code": "step"}
+    row = (await stores.activity.latest(project.id, 1))[0]
+    assert (row.link_route, row.link_id) == ("design/study", None)
+    assert route_exists(row.link_route, row.link_id)
 
 
 async def test_worker_leaves_a_cancelled_study_alone(

@@ -24,7 +24,7 @@ edge series. Compare maps the `pareto` flags of `gm.evaluate.compare` to result 
 ## Reports
 
 `POST /reporting/design/preview` builds Markdown sections from a result; `export` returns
-the same Markdown as `md` or `pdf` and writes an activity row with `link_route` `report`.
+the same Markdown as `md` or `pdf` and writes an activity row with `link_route` `design/report`.
 Costs show their source (case and plant version) next to each number; a figure gemini
 cannot give says `missing`.
 

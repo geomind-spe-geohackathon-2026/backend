@@ -37,12 +37,11 @@ from src.core.gemini import study as gemini_study
 from src.core.gemini.stored import stored_files
 from src.core.jobs import control
 from src.core.pagination.page import Page, PageRequest, encode_cursor
+from src.core.routes import RESULTS_ROUTE, STUDY_ROUTE
 from src.core.security.access import require_project
 from src.core.security.errors import ProjectNotFoundError
 
 CANCELLABLE = ("queued", "running", "blocked")
-STUDY_ROUTE = "study"
-RESULTS_ROUTE = "results"
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,14 +228,20 @@ async def enqueue_study(
     return await stores.studies.update(study, {"task_id": task_id})
 
 
-async def record(study: Study, stores: Stores, text: str, route: str, id: UUID) -> None:
+async def record(
+    study: Study,
+    stores: Stores,
+    text: str,
+    route: str,
+    link_id: UUID | None = None,
+) -> None:
     await stores.activity.add(
         study.project_id,
         study.started_by_kind,
         study.started_by_name,
         text,
         route,
-        str(id),
+        None if link_id is None else str(link_id),
     )
 
 
@@ -268,14 +273,10 @@ async def create_study(
         }
     )
     if missing:
-        await record(
-            study, stores, f"Blocked study {study.name}", STUDY_ROUTE, study.id
-        )
+        await record(study, stores, f"Blocked study {study.name}", STUDY_ROUTE)
     else:
         study = await enqueue_study(study, stores, enqueue)
-        await record(
-            study, stores, f"Started study {study.name}", STUDY_ROUTE, study.id
-        )
+        await record(study, stores, f"Started study {study.name}", STUDY_ROUTE)
     return to_study(study, None, None)
 
 
@@ -301,7 +302,7 @@ async def start_study(
         raise MissingInputsError(missing)
     study = await stores.studies.update(study, {**values, "status": "queued"})
     study = await enqueue_study(study, stores, enqueue)
-    await record(study, stores, f"Started study {study.name}", STUDY_ROUTE, study.id)
+    await record(study, stores, f"Started study {study.name}", STUDY_ROUTE)
     return to_study(study, None, None)
 
 
@@ -320,7 +321,7 @@ async def cancel_study(
     await control.request_cancel(jobs, str(study.id))
     if study.task_id:
         await asyncio.to_thread(control.terminate, study.task_id)
-    await record(study, stores, f"Cancelled study {study.name}", STUDY_ROUTE, study.id)
+    await record(study, stores, f"Cancelled study {study.name}", STUDY_ROUTE)
     return to_study(study, None, None)
 
 
@@ -338,7 +339,7 @@ async def finish_failed(
         return
     values = {"status": "failed", "error": failure, "ended": utc_now()}
     study = await stores.studies.update(study, values)
-    await record(study, stores, f"Study {study.name} failed", STUDY_ROUTE, study.id)
+    await record(study, stores, f"Study {study.name} failed", STUDY_ROUTE)
 
 
 async def finish_done(

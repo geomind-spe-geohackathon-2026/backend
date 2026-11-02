@@ -22,6 +22,7 @@ from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.redis.client import create_redis_client
 from src.core.clients.redis.repositories.job import SyncJobRepository
 from src.core.logging.logger import get_logger
+from src.core.routes import RUNS_ROUTE
 from src.core.settings import settings
 from src.core.sse.events import StreamEvent
 from src.core.sse.publish import publish_event_async
@@ -152,7 +153,7 @@ async def add_activity(session: Any, run: Run, status: str) -> None:
         "agent",
         "assistant",
         f"Assistant run {status}",
-        "assistant/runs",
+        RUNS_ROUTE,
         str(run.id),
     )
 

@@ -246,7 +246,7 @@ code uses the repository; it does not add tables or queries of its own.
 | `chat_states` | the problem state, one row per version | `(chat_id, version)` unique |
 | `studies`, `results` | a Celery job per study (settings, status, progress, `task_id`, `missing`, `error`); its result with a summary and gemini's content | `(project_id, created, id)`, `(project_id, status)`, `results.study_id` |
 | `documents` | uploaded files, MinIO key, extracted `text`, `searchable` | `(project_id, created, id)` |
-| `activity` | one line per change, with an optional `link_route` and `link_id` | `(project_id, created, id)` |
+| `activity` | one line per change, with an optional `link_route` (a project-relative frontend route, constants in `core/routes.py`) and `link_id` (only for routes that take one) | `(project_id, created, id)` |
 
 - Case and plant versions share `VersionRepository` (numbering, identical content is
   `409 conflict` with `details.latest`, one retry when two saves race).

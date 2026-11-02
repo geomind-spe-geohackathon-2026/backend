@@ -13,6 +13,7 @@ from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.gemini import evaluate
 from tests import design_inputs
 from tests.conftest import bearer
+from tests.routes import route_exists
 
 PREVIEW = "/api/v1/reporting/design/preview"
 EXPORT = "/api/v1/reporting/design/export"
@@ -143,7 +144,8 @@ async def test_export_markdown_records_a_report_activity(
     assert "attachment" in response.headers["content-disposition"]
     assert response.text.startswith("# Doublet: Base\n\n## Capacities")
     rows = await ActivityRepository(session).latest(project.id, 1)
-    assert (rows[0].link_route, rows[0].link_id) == ("report", str(result.id))
+    assert (rows[0].link_route, rows[0].link_id) == ("design/report", None)
+    assert route_exists(rows[0].link_route, rows[0].link_id)
 
 
 async def test_export_pdf(client, make_user, make_project, make_result) -> None:

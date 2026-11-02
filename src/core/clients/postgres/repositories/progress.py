@@ -9,8 +9,7 @@ from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.result import Result
 from src.core.clients.postgres.models.study import Study
 from src.core.clients.postgres.repositories.base import BaseRepository, DatabaseSession
-
-REPORT_ROUTE = "report"
+from src.core.routes import REPORT_ROUTE
 
 
 @dataclass(frozen=True, slots=True)

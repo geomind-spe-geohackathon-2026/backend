@@ -21,6 +21,7 @@ from src.core.gemini import case
 from src.core.gemini.errors import CaseFileNotFoundError, CaseNotFoundError
 from src.core.gemini.stored import stored_files
 from src.core.pagination.page import Page
+from src.core.routes import CASE_ROUTE
 from src.core.versioning import (
     Version,
     check_base,
@@ -120,8 +121,7 @@ async def record(
         "user",
         user.name,
         f"Saved case version {version.number}",
-        "design/case",
-        str(version.number),
+        CASE_ROUTE,
     )
 
 

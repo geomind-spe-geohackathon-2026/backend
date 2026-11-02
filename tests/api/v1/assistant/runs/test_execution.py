@@ -12,6 +12,7 @@ from src.core.clients.redis.repositories.job import SyncJobRepository
 from src.core.settings import settings
 from tests.api.v1.assistant.conftest import run_url
 from tests.conftest import bearer
+from tests.routes import route_exists
 
 
 @pytest.fixture
@@ -73,6 +74,9 @@ async def test_run_pauses_for_approval_then_finishes(
     assert [m.run_id for m in assistant] == [run.id]
     activity = await ActivityRepository(session).latest(project.id, 5)
     assert activity[0].text == "Assistant run done"
+    assert activity[0].link_route == "assistant/runs"
+    assert activity[0].link_id == str(run.id)
+    assert route_exists(activity[0].link_route, activity[0].link_id)
     log = await client.get(run_url(run.id, "/log"), headers=headers)
     assert log.json()["run"]["status"] == "done"
     types = []
