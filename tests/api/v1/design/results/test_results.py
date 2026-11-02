@@ -65,9 +65,13 @@ async def test_list_gives_summaries(
     assert item["id"] == str(result.id)
     assert item["checks"] == {"passed": 13, "failed": 0, "not_assessed": 2}
     assert item["study"] is None
-    assert {"name": "lcts", "title": "lcts", "value": 40, "unit": "EUR/MWh"} in item[
-        "kpis"
-    ]
+    assert {
+        "name": "lcts",
+        "title": "lcts",
+        "value": 40,
+        "unit": "EUR/MWh",
+        "reason": None,
+    } in item["kpis"]
 
 
 async def test_detail_passes_gemini_content_through(

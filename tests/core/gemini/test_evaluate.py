@@ -19,6 +19,9 @@ def test_a_missing_figure_keeps_none() -> None:
 
     cold = next(k for k in parts["summary"]["kpis"] if k["name"] == "cold_delivered")
     assert cold["value"] is None
+    assert cold["reason"] == "the plant has no module at its edge that shows it"
+    heat = next(k for k in parts["summary"]["kpis"] if k["name"] == "heat_delivered")
+    assert heat["reason"] is None
 
 
 def test_constraints_have_status_and_message() -> None:
