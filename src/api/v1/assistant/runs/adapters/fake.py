@@ -11,6 +11,16 @@ def says(text: str) -> gd_types.Completion:
     return gd_types.Completion(text=text, usage=USAGE, model=MODEL)
 
 
+def asks_to_list() -> gd_types.Completion:
+    call = gd_types.ToolCall(id="scripted-list", name="list_plants", input={})
+    return gd_types.Completion(
+        text="I will look at the project's plants.",
+        tool_calls=(call,),
+        usage=USAGE,
+        model=MODEL,
+    )
+
+
 def asks_to_save() -> gd_types.Completion:
     call = gd_types.ToolCall(
         id="scripted-call",
@@ -33,11 +43,11 @@ def asks_to_save() -> gd_types.Completion:
 
 
 def scripted_llm(resumed: bool) -> gd.providers.FakeLLM:
-    """Return the test LLM that plays one run: route, ask to write, then answer.
+    """Return the test LLM that plays one run: route, list the plants, ask to write, then answer.
 
     The first process plays the route and the write, which pauses for approval; the
     process that resumes plays the answer. Only ``ASSISTANT_LLM=fake`` selects it.
     """
     if resumed:
         return gd.providers.FakeLLM([says(ANSWER)])
-    return gd.providers.FakeLLM([says(ROUTE), asks_to_save()])
+    return gd.providers.FakeLLM([says(ROUTE), asks_to_list(), asks_to_save()])
