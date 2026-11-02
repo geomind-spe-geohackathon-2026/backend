@@ -21,6 +21,7 @@ from src.core.clients.postgres.repositories.user import (
     UserRepository,
     get_user_repository,
 )
+from src.core.gemini import header
 from src.core.pagination.page import Page
 from src.core.security.access import (
     CurrentUser,
@@ -60,7 +61,7 @@ async def get_case(
 
 @router.get("/schema")
 async def get_schema(_user: CurrentUser) -> dict:
-    return services.case_schema()
+    return header.case_schema()
 
 
 @router.post("", response_model=schemas.Case, status_code=status.HTTP_201_CREATED)

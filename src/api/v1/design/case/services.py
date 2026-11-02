@@ -3,8 +3,6 @@ import hashlib
 from pathlib import PurePosixPath
 from typing import Any
 
-import gemini as gm
-
 from src.api.v1.design.case import schemas
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.models.case_file import CaseFile
@@ -30,13 +28,6 @@ from src.core.versioning import (
     describe_versions,
     latest_version,
 )
-
-
-def case_schema() -> dict[str, Any]:
-    """Return gemini's case schema with the kind a case document must carry."""
-    schema = case.schema()
-    kind = {**schema["properties"]["kind"], "const": gm.Case.__name__.lower()}
-    return {**schema, "properties": {**schema["properties"], "kind": kind}}
 
 
 def object_key(project_id: Any, data: bytes) -> str:
