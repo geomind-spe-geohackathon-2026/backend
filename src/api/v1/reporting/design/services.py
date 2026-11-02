@@ -19,9 +19,9 @@ from src.core.security.access import require_project
 SECTION_TITLES = {
     "capacities": "Capacities",
     "design": "Design",
-    "checks": "Checks",
-    "costs": "Costs",
-    "agentlog": "Agent log",
+    "checks": "Constraint checks",
+    "costs": "Costs and sources",
+    "agentlog": "Agent log and tokens",
 }
 MEDIA_TYPES = {"md": "text/markdown", "pdf": "application/pdf"}
 
@@ -155,6 +155,13 @@ def section_markdown(
         "agentlog": lambda: agentlog_markdown(run),
     }
     return builders[key]()
+
+
+def list_parts() -> list[schemas.ReportPart]:
+    return [
+        schemas.ReportPart(key=key, title=title)
+        for key, title in SECTION_TITLES.items()
+    ]
 
 
 async def load_inputs(

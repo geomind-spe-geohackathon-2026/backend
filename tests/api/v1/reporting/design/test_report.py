@@ -209,3 +209,20 @@ async def test_export_pdf(client, make_user, make_project, make_result) -> None:
 
     assert response.headers["content-type"] == "application/pdf"
     assert response.content.startswith(b"%PDF")
+
+
+async def test_parts_list_the_sections_with_their_titles_in_order(
+    client, make_user
+) -> None:
+    user = await make_user()
+
+    response = await client.get(f"{PREVIEW[:-8]}/parts", headers=bearer(user))
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"key": "capacities", "title": "Capacities"},
+        {"key": "design", "title": "Design"},
+        {"key": "checks", "title": "Constraint checks"},
+        {"key": "costs", "title": "Costs and sources"},
+        {"key": "agentlog", "title": "Agent log and tokens"},
+    ]

@@ -1968,6 +1968,31 @@
         "title": "ReportExport",
         "type": "object"
       },
+      "ReportPart": {
+        "properties": {
+          "key": {
+            "enum": [
+              "capacities",
+              "design",
+              "checks",
+              "costs",
+              "agentlog"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title"
+        ],
+        "title": "ReportPart",
+        "type": "object"
+      },
       "ReportRequest": {
         "properties": {
           "include": {
@@ -5509,6 +5534,31 @@
           }
         },
         "summary": "Export Report",
+        "tags": [
+          "Design reports"
+        ]
+      }
+    },
+    "/api/v1/reporting/design/parts": {
+      "get": {
+        "operationId": "list_parts_api_v1_reporting_design_parts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReportPart"
+                  },
+                  "title": "Response List Parts Api V1 Reporting Design Parts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Parts",
         "tags": [
           "Design reports"
         ]

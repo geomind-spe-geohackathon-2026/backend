@@ -30,6 +30,11 @@ def get_repositories(
 RepositoriesDependency = Annotated[services.Repositories, Depends(get_repositories)]
 
 
+@router.get("/parts", response_model=list[schemas.ReportPart])
+async def list_parts(_user: CurrentUser) -> list[schemas.ReportPart]:
+    return services.list_parts()
+
+
 @router.post("/preview", response_model=schemas.Report)
 async def preview_report(
     payload: schemas.ReportRequest,

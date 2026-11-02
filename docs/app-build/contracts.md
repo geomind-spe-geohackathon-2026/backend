@@ -163,6 +163,7 @@ All values come from gemini's evaluate/report output, passed through.
 
 | Method | Path | Body → Response |
 |---|---|---|
+| GET | `/reporting/design/parts` | → `[{key, title}]`, the report sections in order with their titles (the one source of section titles) |
 | POST | `/reporting/design/preview` | `{project, result, run?, include: [capacities, design, checks, costs, agentlog]}` → `{title, sections: [{key, title, markdown}]}` |
 | POST | `/reporting/design/export` | same body plus `format: md|pdf` → the file (PDF from the same Markdown; costs show their source, missing ones say "missing") |
 

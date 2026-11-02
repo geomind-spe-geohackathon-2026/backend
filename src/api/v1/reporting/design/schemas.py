@@ -26,3 +26,8 @@ class ReportSection(BaseModel):
 class Report(BaseModel):
     title: str
     sections: list[ReportSection]
+
+
+class ReportPart(BaseModel):
+    key: SectionKey
+    title: str
