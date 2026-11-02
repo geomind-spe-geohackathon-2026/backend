@@ -43,7 +43,7 @@ def asks_to_save() -> gd_types.Completion:
 
 
 def scripted_llm(resumed: bool) -> gd.providers.FakeLLM:
-    """Return the test LLM that plays one run: route, list the plants, ask to write, then answer.
+    """Return the test LLM that plays one run: route, plants, write, answer.
 
     The first process plays the route and the write, which pauses for approval; the
     process that resumes plays the answer. Only ``ASSISTANT_LLM=fake`` selects it.
