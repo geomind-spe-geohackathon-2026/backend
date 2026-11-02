@@ -1,4 +1,4 @@
-# Swarmax backend
+# Geomind backend
 
 FastAPI backend with Celery, PostgreSQL, Redis, Alembic, and infrastructure
 clients.
@@ -70,21 +70,23 @@ alembic revision --autogenerate -m "describe change"
 
 ## Docker
 
-`../infrastructure/compose.yml` is the source of truth for running the whole stack; see
-[its README](../infrastructure/README.md). The image needs `../gemini`, which both
-compose files pass as a second build context:
+This folder deploys the API and the worker from its own `compose.yml` and `.env`. The
+image needs `../gemini` and `../geomind`, which compose passes as extra build contexts:
 
 ```sh
-docker build --build-context gemini=../gemini -t swarmax-backend .
+docker build --build-context gemini=../gemini --build-context geomind=../geomind -t geomind-backend .
 ```
 
-This folder's `compose.yml` only deploys the API and the worker behind Traefik. Create
-the external `swarmax` and `traefik` networks, configure `.env`, then run:
+PostgreSQL, Redis, MinIO, ChromaDB and InfluxDB come from `../infrastructure`, which
+also runs Traefik. Create the external `geomind` and `traefik` networks, start those
+services, configure `.env` with their passwords, then run:
 
 ```sh
+cp .env.example .env
 docker compose config -q
 docker compose up -d --build
 ```
 
-Traefik routes `https://api.swarmax.xyz` to the FastAPI container. Compose runs
+Traefik routes `https://api.geomind.team` to the FastAPI container, which runs the
+database migrations before it starts. Compose runs
 FastAPI and Celery as separate services from the same image.
