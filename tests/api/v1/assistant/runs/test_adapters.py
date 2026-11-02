@@ -51,6 +51,7 @@ async def test_store_passes_geomind_conformance(
         "conformance-run": first.id.hex,
         "conformance-other-run": second.id.hex,
         "conformance-chat": str(empty.id),
+        "conformance-other-chat": str(uuid4()),
         "conformance-missing": str(uuid4()),
     }
 
@@ -82,12 +83,14 @@ async def test_chat_artifacts_are_read_by_the_next_run_of_the_chat(
     reader = DatabaseRunStore(bridge, second.id, chat.id)
 
     def check() -> None:
-        writer.save_artifact(first.id.hex, "case/demand.csv", b"1,2")
+        writer.save_chat_artifact(str(chat.id), "case/demand.csv", b"1,2")
+        writer.save_artifact(first.id.hex, "only-run", b"1")
         writer.save_chat_artifact(str(chat.id), "design/a", {"v": 1})
         writer.save_chat_artifact(str(chat.id), "design/a", {"v": 2})
         assert reader.load_chat_artifact(str(chat.id), "design/a") == {"v": 2}
         assert reader.load_chat_artifact(str(chat.id), "case/demand.csv") == b"1,2"
         assert reader.load_artifact(second.id.hex, "case/demand.csv") is None
+        assert reader.load_chat_artifact(str(chat.id), "only-run") is None
         assert reader.load_chat_artifact(str(uuid4()), "design/a") is None
 
     await asyncio.to_thread(check)

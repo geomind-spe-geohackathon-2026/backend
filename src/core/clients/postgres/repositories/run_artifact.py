@@ -10,12 +10,12 @@ from src.core.clients.postgres.repositories.base import BaseRepository, Database
 class RunArtifactRepository(BaseRepository):
     async def save(
         self,
-        run_id: UUID,
+        run_id: UUID | None,
         chat_id: UUID,
         key: str,
         data: bytes | Any,
     ) -> RunArtifact:
-        """Save bytes or a JSON value; a later save under the same key wins."""
+        """Save bytes or a JSON value; no run id means the chat's space. A later save wins."""
         if isinstance(data, bytes):
             artifact = RunArtifact(
                 run_id=run_id,
@@ -48,7 +48,10 @@ class RunArtifactRepository(BaseRepository):
     async def newest_for_chat(self, chat_id: UUID, key: str) -> RunArtifact | None:
         statement = (
             select(RunArtifact)
-            .where(RunArtifact.chat_id == chat_id, RunArtifact.key == key)
+            .where(RunArtifact.chat_id == chat_id,
+                RunArtifact.run_id.is_(None),
+                RunArtifact.key == key,
+            )
             .order_by(RunArtifact.created.desc(), RunArtifact.id.desc())
             .limit(1)
         )

@@ -54,7 +54,7 @@ async def read_state(session: AsyncSession, chat_id: UUID) -> dict[str, Any] | N
 
 async def write_artifact(
     session: AsyncSession,
-    run_id: UUID,
+    run_id: UUID | None,
     chat_id: UUID,
     key: str,
     data: Any,
@@ -75,9 +75,9 @@ async def read_chat_artifact(session: AsyncSession, chat_id: UUID, key: str) -> 
 class DatabaseRunStore:
     """geomind's ``RunStore`` on the backend's tables.
 
-    One store serves one run of one chat: artifacts saved by the run carry both ids, so
-    the run reads its own by ``(run, key)`` and the chat's next message reads the newest
-    by ``(chat, key)``. A message of the run itself is left out of the history, because
+    One store serves one run of one chat: a run's artifacts carry both ids and are read by
+    ``(run, key)``; a chat's artifacts have no run and are read by ``(chat, key)``, so the
+    chat's next message reads what the first saved there. The two spaces are separate. A message of the run itself is left out of the history, because
     geomind adds it. Every method blocks and must be called from a thread.
     """
 
@@ -131,8 +131,8 @@ class DatabaseRunStore:
         return self.bridge.call(read_run_artifact, UUID(run_id), key)
 
     def save_chat_artifact(self, chat_id: str, key: str, data: Any) -> None:
-        """Save bytes or a JSON value for the whole chat, written by the current run."""
-        self.bridge.call(write_artifact, self.run_id, UUID(chat_id), key, data)
+        """Save bytes or a JSON value in the chat's own space, apart from every run's."""
+        self.bridge.call(write_artifact, None, UUID(chat_id), key, data)
 
     def load_chat_artifact(self, chat_id: str, key: str) -> Any:
         """Return the newest artifact of the chat under a key, or ``None``."""

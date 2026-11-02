@@ -141,12 +141,15 @@ async def test_artifacts_are_read_by_run_and_by_chat(session, chat, project, own
     repository = RunArtifactRepository(session)
     await repository.save(first.id, chat.id, "case/a.csv", b"old")
     await repository.save(first.id, chat.id, "result/1", {"k": 1})
-    await repository.save(second.id, chat.id, "case/a.csv", b"new")
+    await repository.save(second.id, chat.id, "case/a.csv", b"mine")
+    await repository.save(None, chat.id, "case/a.csv", b"new")
 
     assert (await repository.newest_for_run(first.id, "case/a.csv")).data == b"old"
     assert (await repository.newest_for_chat(chat.id, "case/a.csv")).data == b"new"
     assert (await repository.newest_for_run(first.id, "result/1")).data == {"k": 1}
     assert await repository.newest_for_run(second.id, "result/1") is None
+    assert (await repository.newest_for_run(second.id, "case/a.csv")).data == b"mine"
+    assert await repository.newest_for_chat(chat.id, "result/1") is None
     assert await repository.newest_for_chat(chat.id, "missing") is None
 
 

@@ -139,3 +139,9 @@ Semantics of `Workspace.case` and case files by content:
 ## API rules
 
 api.json (version 0.2.0) pins: Run (signature of `__init__`, `aresume`, `astart`, `cancel`, `load`, `resume`, `start`), RunResult, protocols (LLM, RunStore, Sandbox, SandboxProvider, Workspace), Permissions, hooks (Cancellation, CostBudget, Hook, RequireApproval, TokenBudget, Verified), stop_reasons, answers, events, runlog, Callback, Completion, Message, Usage, `all` (public names) and the version. A change to a frozen interface raises the minor version (0.x semver rule).
+
+## Update: geomind 0.3.0 (989cb59), D3
+
+- Difference 3 and 12 are resolved upstream: `save_chat_artifact` / `load_chat_artifact` exist, a chat's space and a run's are separate, and `check_run_store(factory, seed_history)` and `check_workspace` test them.
+- Backend: a chat artifact is a `run_artifacts` row with `run_id` null (migration 0008); `newest_for_chat` reads only those rows. A run's artifacts keep both ids and are read by run. Both conformance checks pass in `tests/api/v1/assistant/runs/test_adapters.py`.
+- Installed: gemini 0.5.0 (217625e), geomind 0.3.0 (989cb59); `requirements.txt` installs both editable from the sibling checkouts, so no range changes.
