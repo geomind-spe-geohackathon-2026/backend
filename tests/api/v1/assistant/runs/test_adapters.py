@@ -375,3 +375,20 @@ async def test_a_warmed_chat_artifact_is_read_on_the_loop(
     await fresh.warm_chat(str(chat.id))
 
     assert fresh.load_chat_artifact(str(chat.id), "case/a.csv") == b"x"
+
+
+async def test_the_ledger_answers_on_the_loop_once_warmed(
+    session_factory, make_user, make_project, make_chat, make_run
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    chat = await make_chat(project, owner)
+    spent = {"input_tokens": 10, "output_tokens": 5, "cost": 0.5}
+    await make_run(chat, owner, status="done", values=spent)
+    ledger = DatabaseUsageLedger(
+        LoopBridge(asyncio.get_running_loop(), session_factory)
+    )
+
+    await ledger.warm(str(project.id))
+
+    assert ledger.spent(str(project.id)).input_tokens == 10

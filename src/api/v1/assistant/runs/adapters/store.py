@@ -84,13 +84,23 @@ async def read_spent(session: AsyncSession, project_id: UUID) -> gd.types.Usage:
 
 
 class DatabaseUsageLedger:
-    """geomind's ``UsageLedger`` on the runs table; every method blocks."""
+    """geomind's ``UsageLedger`` on the runs table.
+
+    geomind's hook asks from the event loop, so the sum is read ahead of the run.
+    """
 
     def __init__(self, bridge: LoopBridge) -> None:
         self.bridge = bridge
+        self.warmed: gd.types.Usage | None = None
+
+    async def warm(self, project_id: str) -> None:
+        """Read what the project spent ahead of a run."""
+        self.warmed = await asyncio.to_thread(self.spent, project_id)
 
     def spent(self, project_id: str) -> gd.types.Usage:
         """Return the tokens and cost of every finished run of a project."""
+        if self.bridge.in_loop() and self.warmed is not None:
+            return self.warmed
         return self.bridge.call(read_spent, UUID(project_id))
 
 
