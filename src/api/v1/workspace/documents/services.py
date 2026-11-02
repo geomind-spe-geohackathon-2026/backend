@@ -10,7 +10,7 @@ from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.documents.errors import DocumentNotFoundError
-from src.core.documents.extract import extract_text
+from src.core.documents.extract import SUPPORTED_SUFFIXES, extract_text, is_supported
 from src.core.errors import ValidationFailedError
 from src.core.logging.logger import get_logger
 from src.core.pagination.page import Page, PageRequest, encode_cursor
@@ -73,6 +73,11 @@ async def upload_document(
     blobs: BlobStore,
 ) -> schemas.Document:
     name = file_name_of(file.filename)
+    if not is_supported(name):
+        supported = ", ".join(sorted(SUPPORTED_SUFFIXES))
+        raise ValidationFailedError(
+            {"file": f"This file type cannot be read; upload one of {supported}"}
+        )
     data = await read_upload(file)
     key = f"projects/{project.id}/documents/{uuid4()}/{name}"
     await blobs.put(key, data)

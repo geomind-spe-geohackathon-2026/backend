@@ -1,5 +1,5 @@
 from src.core.clients.postgres.repositories.document import DocumentRepository
-from src.core.documents.extract import extract_text
+from src.core.documents.extract import extract_text, is_supported
 from src.core.documents.search import search_documents
 
 
@@ -7,8 +7,28 @@ def test_text_files_are_read() -> None:
     assert extract_text("notes.MD", b"Porosity 0.2") == "Porosity 0.2"
 
 
-def test_other_formats_have_no_text() -> None:
+def pdf_with(text: str) -> bytes:
+    from fpdf import FPDF
+
+    document = FPDF()
+    document.add_page()
+    document.set_font("Helvetica", size=12)
+    document.cell(text=text)
+    return bytes(document.output())
+
+
+def test_the_text_of_a_pdf_is_read() -> None:
+    assert "Porosity 0.2" in (
+        extract_text("report.pdf", pdf_with("Porosity 0.2")) or ""
+    )
+
+
+def test_a_broken_pdf_has_no_text() -> None:
     assert extract_text("scan.pdf", b"%PDF") is None
+
+
+def test_other_formats_have_no_text() -> None:
+    assert extract_text("tool.exe", b"MZ") is None
 
 
 def test_binary_content_has_no_text() -> None:
@@ -70,3 +90,9 @@ async def test_search_stays_inside_the_project(
     assert (
         await search_documents(DocumentRepository(session), second.id, "heat", 5) == []
     )
+
+
+def test_a_file_type_is_supported_when_it_can_be_read() -> None:
+    assert is_supported("a.PDF")
+    assert is_supported("a.csv")
+    assert not is_supported("bad.exe")
