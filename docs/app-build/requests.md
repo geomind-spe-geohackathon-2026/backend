@@ -2,7 +2,7 @@
 
 Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing here is blocking: no route returns 501 for these except `plant/parameters/fill`, which waits for the catalogue.
 
-## gemini (0.5.0)
+## gemini (0.5.0, 217625e)
 
 - [gemini] Daily coverage by source
   Needed by: `GET /design/results/{id}`, Results days strip
@@ -58,19 +58,7 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
   Wanted: `plant.missing(module) -> [{path, message}]`
   Blocking: no
 
-## geomind
-
-- [geomind] Chat-scoped artifact methods not released yet
-  Needed by: the second message of a chat reading what the first run produced
-  Today: `RunStore` has no `save_chat_artifact` / `load_chat_artifact`
-  Wanted: both on the protocol and in `gd.testing.check_run_store`
-  Blocking: no (the backend implements them, tested directly). An adaptation commit is expected on origin main.
-
-- [geomind] Replacement for `gm.plants.validate`
-  Needed by: `geomind/tools/gemini/plants.py:96` at eeb80d9
-  Today: the call fails on gemini 0.5.0, where `validate` was removed on purpose
-  Wanted: `Plant.from_dict` plus `check()`
-  Blocking: yes for the design tools until the adaptation commit lands
+## geomind (0.3.0, 989cb59)
 
 - [geomind] Record studies and results that agents run
   Needed by: Study and Results pages
