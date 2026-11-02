@@ -117,3 +117,17 @@ async def test_a_bucket_another_process_made_first_is_fine() -> None:
             raise s3_error("BucketAlreadyOwnedByYou")
 
     await BlobStore(Late(), "bucket").put("k", b"x")
+
+
+async def test_keys_lists_under_a_prefix_and_a_missing_bucket_has_none() -> None:
+    class Item:
+        object_name = "case/1/a"
+
+    class Listing(FakeMinio):
+        def list_objects(self, bucket: str, prefix: str, recursive: bool) -> list[Item]:
+            if bucket == "absent":
+                raise s3_error("NoSuchBucket")
+            return [Item()]
+
+    assert await BlobStore(Listing(), "bucket").keys("case/1/") == ["case/1/a"]
+    assert await BlobStore(Listing(), "absent").keys("case/1/") == []

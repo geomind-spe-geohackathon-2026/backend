@@ -36,6 +36,15 @@ class BlobStore:
             response.close()
             response.release_conn()
 
+    def keys_sync(self, prefix: str) -> list[str]:
+        try:
+            found = self.client.list_objects(self.bucket, prefix, recursive=True)
+            return [item.object_name for item in found]
+        except S3Error as error:
+            if error.code in MISSING_OBJECT_CODES:
+                return []
+            raise
+
     def delete_sync(self, key: str) -> None:
         try:
             self.client.remove_object(self.bucket, key)
@@ -50,6 +59,10 @@ class BlobStore:
     async def get(self, key: str) -> bytes | None:
         """Return the object's bytes, or ``None`` when there is no such object."""
         return await asyncio.to_thread(self.get_sync, key)
+
+    async def keys(self, prefix: str) -> list[str]:
+        """Return the keys under a prefix; a missing bucket has none."""
+        return await asyncio.to_thread(self.keys_sync, prefix)
 
     async def delete(self, key: str) -> None:
         """Remove the object; removing one that is not there is not an error."""
