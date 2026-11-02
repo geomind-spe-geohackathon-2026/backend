@@ -269,3 +269,40 @@ def test_a_plant_value_without_a_value_is_refused_in_words() -> None:
         plant.set_plant_ranges(built, {"nothing": {"min": 1, "max": 2, "unit": None}})
 
     assert "set a value first" in str(error.value.details)
+
+
+def test_a_plant_level_value_is_set() -> None:
+    built = plant.set_plant_values(seeded(), {"depth": {"value": 2.6, "unit": "km"}})
+
+    shown = plant.plant_search(built)["depth"]
+    assert (shown["value"], shown["unit"]) == (pytest.approx(2.6), "km")
+    assert shown["min"] == pytest.approx(2.0)
+
+
+def test_more_doublets_add_modules_that_ask_for_their_values() -> None:
+    built = plant.set_plant_values(seeded(), {"size.doublets": {"value": 3}})
+
+    ids = [item["id"] for item in plant.structure(built)["modules"]]
+    assert "d2" in ids
+    assert plant.plant_search(built)["size.doublets"]["value"] == 3
+
+
+def test_fewer_doublets_drop_the_values_of_the_removed_modules() -> None:
+    built = plant.set_plant_values(seeded(), {"size.doublets": {"value": 1}})
+
+    written = plant.to_dict(built)
+    assert "d0" in written["params"]
+    assert "d1" not in written["params"]
+    assert from_dict(written).size == {"doublets": 1}
+
+
+def test_a_size_outside_the_class_is_refused_in_gemini_words() -> None:
+    with pytest.raises(PlantInvalidError) as error:
+        plant.set_plant_values(seeded(), {"size.doublets": {"value": 9}})
+
+    assert "expected 1 to 3" in str(error.value.details)
+
+
+def test_only_plant_level_values_are_taken() -> None:
+    with pytest.raises(PlantInvalidError):
+        plant.set_plant_values(seeded(), {"d0.nominal_flow": {"value": 1.0}})

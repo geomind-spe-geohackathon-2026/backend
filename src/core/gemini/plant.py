@@ -422,6 +422,47 @@ def set_ranges(plant: gm.Plant, module: str, ranges: dict[str, dict[str, Any]]) 
         apply_range(plant, f"{module}.{name}", limits)
 
 
+def top_modules(plant: gm.Plant) -> set[str]:
+    """Return the first part of every module path of a plant."""
+    return {item["id"].split(".")[0] for item in structure(plant)["modules"]}
+
+
+def resized(plant: gm.Plant, name: str, count: int) -> gm.Plant:
+    """Return the plant at a new size, without values of the modules it lost."""
+    document = plant.to_dict()
+    document["size"][name] = {**document["size"][name], "value": count}
+    gone = top_modules(plant) - top_modules(from_dict({**document, "params": {}}))
+    params = {key: item for key, item in document["params"].items() if key not in gone}
+    return from_dict({**document, "params": params})
+
+
+def set_plant_value(plant: gm.Plant, path: str, value: float, unit: str | None) -> None:
+    """Set a plant-level value that gemini keeps as a parameter."""
+    module, _, name = path.rpartition(".")
+    given = bound_of(value, unit)
+    try:
+        plant.set_params(module or None, {name: given})
+    except gm.errors.ValidationError as error:
+        raise plant_invalid(list(error.problems), str(error)) from error
+
+
+def set_plant_values(plant: gm.Plant, values: dict[str, dict[str, Any]]) -> gm.Plant:
+    """Return the plant with its plant-level values set, a size last, as it rebuilds."""
+    known = plant_paths(plant)
+    for path in values:
+        if path not in known:
+            raise plant_invalid([], f"{path}: this is not a plant-level value")
+    sizes = {
+        path: item for path, item in values.items() if path.startswith(SIZE_PREFIX)
+    }
+    for path, item in values.items():
+        if path not in sizes:
+            set_plant_value(plant, path, item["value"], item.get("unit"))
+    for path, item in sizes.items():
+        plant = resized(plant, path.removeprefix(SIZE_PREFIX), int(item["value"]))
+    return plant
+
+
 def set_plant_ranges(plant: gm.Plant, ranges: dict[str, dict[str, Any]]) -> None:
     """Set the search ranges that no module holds."""
     search = plant_search(plant)

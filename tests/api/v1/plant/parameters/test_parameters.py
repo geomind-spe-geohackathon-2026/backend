@@ -311,6 +311,7 @@ async def test_plant_level_ranges_are_read_and_saved(
         json={
             "project": str(project.id),
             "base": 1,
+            "values": {"size.doublets": {"value": 1}},
             "ranges": {"size.doublets": {"min": 1, "max": 2}},
             "note": "fewer doublets",
         },
@@ -320,3 +321,4 @@ async def test_plant_level_ranges_are_read_and_saved(
     assert saved.status_code == 201, saved.text
     found = await client.get(path, params={"project": str(project.id)}, headers=headers)
     assert found.json()["search"]["size.doublets"]["max"] == 2
+    assert found.json()["search"]["size.doublets"]["value"] == 1

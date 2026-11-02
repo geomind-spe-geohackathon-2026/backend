@@ -33,10 +33,16 @@ class RangeUpdate(BaseModel):
     unit: str | None = None
 
 
+class ValueUpdate(BaseModel):
+    value: float
+    unit: str | None = None
+
+
 class PlantRangesUpdate(BaseModel):
     project: UUID
     base: int | None
-    ranges: dict[str, RangeUpdate]
+    values: dict[str, ValueUpdate] = {}
+    ranges: dict[str, RangeUpdate] = {}
     note: str
 
 

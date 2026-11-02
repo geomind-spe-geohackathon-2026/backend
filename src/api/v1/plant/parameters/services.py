@@ -84,10 +84,12 @@ async def save_plant_ranges(
     activity: ActivityRepository,
     users: UserRepository,
 ) -> Version:
-    """Save a new plant version with its plant-level search ranges changed."""
+    """Save a new plant version with its plant-level values and ranges changed."""
     latest = await latest_version(repository, project.id, PlantNotFoundError)
     check_base(latest, payload.base)
     built = plant.from_dict(latest.content)
+    given = {name: item.model_dump() for name, item in payload.values.items()}
+    built = plant.set_plant_values(built, given)
     limits = {name: item.model_dump() for name, item in payload.ranges.items()}
     plant.set_plant_ranges(built, limits)
     version = await repository.save_version(
@@ -97,7 +99,7 @@ async def save_plant_ranges(
         project.id,
         "user",
         user.name,
-        f"Changed the search ranges in plant version {version.number}",
+        f"Changed the plant in plant version {version.number}",
         PLANT_ROUTE,
     )
     return (await describe_versions([version], users))[0]

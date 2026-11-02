@@ -2025,14 +2025,22 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/RangeUpdate"
             },
+            "default": {},
             "title": "Ranges",
+            "type": "object"
+          },
+          "values": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ValueUpdate"
+            },
+            "default": {},
+            "title": "Values",
             "type": "object"
           }
         },
         "required": [
           "project",
           "base",
-          "ranges",
           "note"
         ],
         "title": "PlantRangesUpdate",
@@ -4050,6 +4058,30 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "ValueUpdate": {
+        "properties": {
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "ValueUpdate",
         "type": "object"
       },
       "Version": {
