@@ -183,3 +183,19 @@ def test_a_run_gives_coverage_by_day_and_service() -> None:
     assert day["demand"]["unit"] == "MWh"
     parts = day["geothermal"]["value"] + day["backup"]["value"] + day["short"]["value"]
     assert parts == pytest.approx(day["demand"]["value"])
+
+
+def test_a_kind_is_described_for_a_user_without_markup() -> None:
+    kinds = study.kinds()
+
+    assert all("``" not in kind["description"] for kind in kinds)
+    assert next(kind for kind in kinds if kind["kind"] == "minimize")["title"] == (
+        "Optimise"
+    )
+
+
+def test_prepare_says_what_it_does_and_keeps_gemini_choices() -> None:
+    prepare = properties_of("minimize")["properties"]["prepare"]
+
+    assert "peak demand" in prepare["description"]
+    assert prepare["items"]["enum"] == ["size"]

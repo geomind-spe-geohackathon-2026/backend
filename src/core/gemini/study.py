@@ -22,6 +22,24 @@ METHODS_WITH_ARGUMENTS = ("minimize", "sample", "sensitivity")
 SIZE_KIND = "size"
 SIZE_DOCUMENT = {"method": "run", "prepare": [SIZE_KIND]}
 PREPARE_KEY = "prepare"
+PREPARE_HINT = "Size: size the equipment to the peak demand before the method runs."
+KIND_TITLES = {
+    "run": "Run",
+    "minimize": "Optimise",
+    "sample": "Uncertainty",
+    "sensitivity": "Sensitivity",
+    "size": "Size",
+}
+KIND_TEXTS = {
+    "run": "Simulate the plant as it is on the case.",
+    "minimize": "Search the ranges stated on the plant for the design with the "
+    "best objective.",
+    "sample": "Draw the uncertain values of the case at random and show the spread "
+    "of the metrics.",
+    "sensitivity": "Move each uncertain value of the case in turn and show how each "
+    "metric changes.",
+    "size": "Size the equipment to the peak demand of the case.",
+}
 
 
 class StudyRunError(AppError):
@@ -91,7 +109,9 @@ def metric_names() -> list[str]:
 
 
 def with_choices(key: str, schema: dict[str, Any]) -> dict[str, Any]:
-    """Make the metric settings choices of gemini's metric names."""
+    """Make the metric settings choices of gemini's names, and say what prepare does."""
+    if key == PREPARE_KEY:
+        return {**schema, "title": "Before the method", "description": PREPARE_HINT}
     if key == "objective":
         return {**schema, "enum": metric_names()}
     if key == "metrics":
@@ -105,7 +125,7 @@ def kinds() -> list[dict[str, Any]]:
     return [
         {
             "kind": method,
-            "title": method.capitalize(),
+            "title": KIND_TITLES.get(method, method.capitalize()),
             "description": describe(method),
             "schema": settings_schema(method, full),
         }
@@ -114,9 +134,11 @@ def kinds() -> list[dict[str, Any]]:
 
 
 def describe(method: str) -> str:
-    """Return the first line of the documentation of the function behind a method."""
+    """Return one plain line on a kind; a new gemini method has its own first line."""
+    if method in KIND_TEXTS:
+        return KIND_TEXTS[method]
     function = getattr(gm.study, method, gm.Study.run)
-    return (function.__doc__ or "").strip().splitlines()[0]
+    return (function.__doc__ or "").strip().splitlines()[0].replace("``", "")
 
 
 def document(kind: str, name: str, settings: dict[str, Any]) -> dict[str, Any]:
