@@ -183,6 +183,17 @@
             "title": "Name",
             "type": "string"
           },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -207,7 +218,8 @@
           "name",
           "title",
           "value",
-          "unit"
+          "unit",
+          "reason"
         ],
         "title": "Capacity",
         "type": "object"
@@ -898,6 +910,17 @@
             "title": "Name",
             "type": "string"
           },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -922,7 +945,8 @@
           "name",
           "title",
           "value",
-          "unit"
+          "unit",
+          "reason"
         ],
         "title": "Kpi",
         "type": "object"
