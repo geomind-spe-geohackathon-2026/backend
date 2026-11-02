@@ -31,4 +31,7 @@ cannot give says `missing`.
 PDF library: **fpdf2**. It is pure Python, small (needs only Pillow and fontTools), has
 tables built in, and needs no system packages, unlike WeasyPrint (Pango) or wkhtmltopdf.
 `reporting/design/pdf.py` draws headings, tables, code, bullets and paragraphs from the
-Markdown. It uses the built-in Helvetica font, so characters outside Latin-1 print as `?`.
+Markdown. It embeds the Vazirmatn font (Latin and Arabic-script coverage, SIL OFL, files and licence
+in `src/core/fonts/`, copied into the image with the rest of `src`) and turns on text
+shaping with `uharfbuzz`, so Persian and Arabic names print joined and right to left
+instead of as `?`. Scripts the font lacks (for example CJK) still show missing glyphs.
