@@ -103,3 +103,33 @@ async def test_project_reads_never_touch_the_object_store(
     assert one.status_code == listed.status_code == 200
     assert one.json()["progress"]["case"]["state"] == "ready"
     assert listed.json()["items"][0]["progress"]["case"]["state"] == "ready"
+
+
+async def test_a_project_budget_is_set_and_cleared(
+    client, make_user, make_project
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    url = f"{PROJECTS}/{project.id}"
+
+    response = await client.patch(
+        url, json={"budget": {"max_cost": 2.5}}, headers=bearer(owner)
+    )
+
+    assert response.json()["budget"] == {"max_tokens": None, "max_cost": 2.5}
+    assert response.json()["name"] == project.name
+    response = await client.patch(url, json={"budget": {}}, headers=bearer(owner))
+    assert response.json()["budget"] == {"max_tokens": None, "max_cost": None}
+
+
+async def test_a_budget_cap_must_be_positive(client, make_user, make_project) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+
+    response = await client.patch(
+        f"{PROJECTS}/{project.id}",
+        json={"budget": {"max_tokens": 0}},
+        headers=bearer(owner),
+    )
+
+    assert response.status_code == 422

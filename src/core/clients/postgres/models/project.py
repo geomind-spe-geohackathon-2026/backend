@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import BigInteger, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, query_expression, relationship
 
 from src.core.clients.postgres.client import Base, UtcDateTime, utc_now
@@ -20,6 +20,9 @@ class Project(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+    budget_max_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    budget_max_cost: Mapped[float | None] = mapped_column(Float)
 
     owner: Mapped[User] = relationship(lazy="joined")
     plant_version: Mapped[int | None] = query_expression()

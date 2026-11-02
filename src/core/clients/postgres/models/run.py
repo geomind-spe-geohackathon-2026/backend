@@ -9,6 +9,7 @@ from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
 
 RunStatus = Literal["queued", "running", "waiting", "done", "failed", "cancelled"]
 ACTIVE_RUN_STATUSES = ("queued", "running", "waiting")
+FINISHED_STATUSES = ("done", "failed", "cancelled")
 
 
 class Run(Base):

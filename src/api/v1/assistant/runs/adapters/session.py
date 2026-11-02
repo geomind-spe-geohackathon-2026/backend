@@ -12,10 +12,17 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
-from src.api.v1.assistant.runs.adapters.callbacks import EventPublisher, RunRecorder
+from src.api.v1.assistant.runs.adapters.callbacks import (
+    EventPublisher,
+    RunRecorder,
+    StudyRecorder,
+)
 from src.api.v1.assistant.runs.adapters.errors import AdapterFailedError
 from src.api.v1.assistant.runs.adapters.fake import scripted_llm
-from src.api.v1.assistant.runs.adapters.store import DatabaseRunStore
+from src.api.v1.assistant.runs.adapters.store import (
+    DatabaseRunStore,
+    DatabaseUsageLedger,
+)
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.redis.repositories.job import SyncJobRepository
@@ -40,6 +47,9 @@ class Environment:
     workspace: DatabaseWorkspace
     callbacks: list[Any]
     is_cancelled: Callable[[], bool]
+    ledger: DatabaseUsageLedger
+    project: str
+    budget: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -69,13 +79,15 @@ def build_environment(
     resources: Resources,
     run: Any,
     channel: str,
+    budget: dict[str, Any],
 ) -> Environment:
-    """Connect a run row to geomind: store, workspace and the two callbacks.
+    """Connect a run row to geomind: store, workspace, callbacks and budget.
 
     The recorder comes first, so the row is current before the event is published.
     """
     bridge = LoopBridge(asyncio.get_running_loop(), resources.factory)
     recorder = RunRecorder(resources.factory, run.id)
+    studies = StudyRecorder(resources.factory, run.id, run.chat_id, run.project_id)
     publisher = EventPublisher(
         resources.redis,
         channel,
@@ -87,8 +99,11 @@ def build_environment(
         workspace=DatabaseWorkspace(
             bridge, BlobStore(resources.minio, settings.MINIO_BUCKET_NAME)
         ),
-        callbacks=[recorder, publisher],
+        callbacks=[recorder, studies, publisher],
         is_cancelled=lambda: resources.jobs.is_cancel_requested(str(run.id)),
+        ledger=DatabaseUsageLedger(bridge),
+        project=str(run.project_id),
+        budget=budget,
     )
 
 
@@ -101,9 +116,20 @@ def build_llm(resumed: bool) -> Any:
     )
 
 
+def build_budget(environment: Environment) -> list[Any]:
+    """Return the project budget hook; a project without a cap has none."""
+    caps = {key: cap for key, cap in environment.budget.items() if cap is not None}
+    if not caps:
+        return []
+    return [
+        gd.hooks.ProjectBudget(environment.ledger, environment.project, **caps),
+    ]
+
+
 def build_hooks(environment: Environment) -> list[Any]:
     return [
         gd.hooks.TokenBudget(settings.ASSISTANT_RUN_MAX_TOKENS),
+        *build_budget(environment),
         gd.hooks.Cancellation(environment.is_cancelled),
     ]
 

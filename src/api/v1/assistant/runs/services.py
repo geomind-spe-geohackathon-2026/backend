@@ -11,7 +11,7 @@ from starlette.concurrency import run_in_threadpool
 
 from src.api.v1.assistant.runs import schemas
 from src.api.v1.assistant.runs.adapters.errors import LogUnavailableError
-from src.api.v1.assistant.runs.adapters.replay import to_public, to_runlog
+from src.api.v1.assistant.runs.adapters.replay import rebuilt, to_runlog
 from src.api.v1.assistant.runs.markdown import to_markdown
 from src.core.assistant import schemas as shared
 from src.core.assistant.errors import QueueUnavailableError, RunNotWaitingError
@@ -162,7 +162,12 @@ async def stored_events(
     """
     async with factory() as session:
         rows = await RunEventRepository(session).after(run_id, after, public_only=True)
-    events = [StreamEvent(row.type, to_public(row.data), row.sequence) for row in rows]
+    known = [(row, rebuilt(row.data)) for row in rows]
+    events = [
+        StreamEvent(row.type, event.data(), row.sequence)
+        for row, event in known
+        if event is not None
+    ]
     for delta in await deltas.pending(str(run_id)):
         data = {
             "index": delta.index,

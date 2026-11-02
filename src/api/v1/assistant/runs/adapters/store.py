@@ -6,8 +6,10 @@ import geomind as gd
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
+from src.api.v1.assistant.runs.adapters.replay import known_events
 from src.core.clients.postgres.repositories.chat_state import ChatStateRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
+from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_artifact import (
     RunArtifactRepository,
 )
@@ -72,6 +74,22 @@ async def read_chat_artifact(session: AsyncSession, chat_id: UUID, key: str) -> 
     return None if row is None else row.data
 
 
+async def read_spent(session: AsyncSession, project_id: UUID) -> gd.types.Usage:
+    row = await RunRepository(session).finished_usage(project_id)
+    return gd.types.Usage(input_tokens=row[0], output_tokens=row[1], cost=row[2])
+
+
+class DatabaseUsageLedger:
+    """geomind's ``UsageLedger`` on the runs table; every method blocks."""
+
+    def __init__(self, bridge: LoopBridge) -> None:
+        self.bridge = bridge
+
+    def spent(self, project_id: str) -> gd.types.Usage:
+        """Return the tokens and cost of every finished run of a project."""
+        return self.bridge.call(read_spent, UUID(project_id))
+
+
 class DatabaseRunStore:
     """geomind's ``RunStore`` on the backend's tables.
 
@@ -108,7 +126,7 @@ class DatabaseRunStore:
         if self.warmed is not None and self.bridge.in_loop():
             return self.warmed
         rows = self.bridge.call(read_events, UUID(run_id))
-        return [gd.event_from_dict(row) for row in rows]
+        return known_events(rows)
 
     def load_history(self, chat_id: str) -> list[Any]:
         """Return the chat's user and assistant messages, oldest first."""

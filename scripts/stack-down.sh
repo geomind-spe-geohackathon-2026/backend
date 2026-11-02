@@ -27,6 +27,10 @@ stop() {
 
 for name in frontend worker api; do stop "$name"; done
 
+if [ -f .env.dev ]; then . ./.env.dev; fi
+listener="$(lsof -t -nP -iTCP:"${FRONTEND_PORT:-5173}" -sTCP:LISTEN 2>/dev/null || true)"
+[ -z "$listener" ] || kill $listener
+
 if [ ! -f .env.dev ]; then exit 0; fi
 
 if [ "${1:-}" = "--reset" ]; then

@@ -83,6 +83,10 @@ def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
         progress=build_progress(facts),
         chats=facts.chats,
         runs=facts.runs,
+        budget=schemas.Budget(
+            max_tokens=project.budget_max_tokens,
+            max_cost=project.budget_max_cost,
+        ),
     )
 
 
@@ -159,14 +163,19 @@ async def get_project(
     return await describe_one(project, progress)
 
 
-async def rename_project(
+async def update_project(
     project: Project,
     payload: schemas.ProjectUpdate,
     repository: ProjectRepository,
     progress: ProgressReader,
 ) -> schemas.Project:
-    renamed = await repository.rename(project, payload.name)
-    return await describe_one(renamed, progress)
+    if payload.name is not None:
+        project = await repository.rename(project, payload.name)
+    if payload.budget is not None:
+        project = await repository.set_budget(
+            project, payload.budget.max_tokens, payload.budget.max_cost
+        )
+    return await describe_one(project, progress)
 
 
 async def delete_project(

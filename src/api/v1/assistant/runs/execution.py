@@ -15,6 +15,7 @@ from src.core.clients.postgres.client import create_postgres_client, utc_now
 from src.core.clients.postgres.models.run import Run
 from src.core.clients.postgres.repositories.activity import ActivityRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
+from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.redis.client import create_redis_client
@@ -102,13 +103,26 @@ async def carry_on(
     await carry_out(resources, run, action)
 
 
+async def read_budget(resources: adapters.Resources, run: Run) -> dict[str, Any]:
+    """Return the caps of the run's project; an unset cap is none."""
+    async with resources.factory() as session:
+        project = await ProjectRepository(session).get_by_id(run.project_id)
+    return {
+        "max_tokens": project.budget_max_tokens,
+        "max_cost": project.budget_max_cost,
+    }
+
+
 async def carry_out(
     resources: adapters.Resources,
     run: Run,
     action: Action,
 ) -> None:
     """Run the action and record how the run ended."""
-    environment = adapters.build_environment(resources, run, run_channel(run.id))
+    budget = await read_budget(resources, run)
+    environment = adapters.build_environment(
+        resources, run, run_channel(run.id), budget
+    )
     try:
         outcome = await action(environment)
     except AdapterFailedError as error:

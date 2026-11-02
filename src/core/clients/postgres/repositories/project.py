@@ -89,6 +89,14 @@ class ProjectRepository(BaseRepository):
         await self.session.commit()
         return project
 
+    async def set_budget(
+        self, project: Project, max_tokens: int | None, max_cost: float | None
+    ) -> Project:
+        project.budget_max_tokens = max_tokens
+        project.budget_max_cost = max_cost
+        await self.session.commit()
+        return project
+
     async def create_with_versions(
         self,
         project_id: UUID,

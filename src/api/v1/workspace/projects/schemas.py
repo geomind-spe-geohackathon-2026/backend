@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
 
 from src.core.progress.schemas import Progress
 
@@ -17,8 +17,14 @@ class ProjectCreate(BaseModel):
     case_from: UUID | None = None
 
 
+class Budget(BaseModel):
+    max_tokens: int | None = Field(default=None, gt=0)
+    max_cost: float | None = Field(default=None, gt=0)
+
+
 class ProjectUpdate(BaseModel):
-    name: ProjectName
+    name: ProjectName | None = None
+    budget: Budget | None = None
 
 
 class ProjectFile(BaseModel):
@@ -61,3 +67,4 @@ class Project(BaseModel):
     progress: Progress
     chats: int
     runs: int
+    budget: Budget

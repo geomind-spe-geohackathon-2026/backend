@@ -105,13 +105,13 @@ async def get_project(
 
 
 @router.patch("/{project_id}", response_model=schemas.Project)
-async def rename_project(
+async def update_project(
     payload: schemas.ProjectUpdate,
     project: AccessibleProject,
     repository: ProjectRepositoryDependency,
     progress: ProgressReaderDependency,
 ) -> schemas.Project:
-    return await services.rename_project(project, payload, repository, progress)
+    return await services.update_project(project, payload, repository, progress)
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)

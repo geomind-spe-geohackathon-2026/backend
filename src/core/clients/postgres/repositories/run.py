@@ -3,7 +3,11 @@ from uuid import UUID
 
 from sqlalchemy import func, select, update
 
-from src.core.clients.postgres.models.run import ACTIVE_RUN_STATUSES, Run
+from src.core.clients.postgres.models.run import (
+    ACTIVE_RUN_STATUSES,
+    FINISHED_STATUSES,
+    Run,
+)
 from src.core.clients.postgres.repositories.base import BaseRepository, DatabaseSession
 from src.core.pagination.page import PageRequest
 
@@ -99,6 +103,16 @@ class RunRepository(BaseRepository):
         ).where(Run.project_id == project_id)
         row = (await self.session.execute(statement)).one()
         return row[0], int(row[1]), int(row[2]), float(row[3])
+
+    async def finished_usage(self, project_id: UUID) -> tuple[int, int, float]:
+        """Return input tokens, output tokens and cost of the finished runs."""
+        statement = select(
+            func.coalesce(func.sum(Run.input_tokens), 0),
+            func.coalesce(func.sum(Run.output_tokens), 0),
+            func.coalesce(func.sum(Run.cost), 0.0),
+        ).where(Run.project_id == project_id, Run.status.in_(FINISHED_STATUSES))
+        row = (await self.session.execute(statement)).one()
+        return int(row[0]), int(row[1]), float(row[2])
 
 
 def get_run_repository(session: DatabaseSession) -> RunRepository:

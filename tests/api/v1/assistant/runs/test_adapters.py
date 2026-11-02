@@ -1,18 +1,27 @@
 import asyncio
+from typing import Any
 from uuid import UUID, uuid4
 
 import geomind as gd
 import pytest
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge, LoopBridgeError
-from src.api.v1.assistant.runs.adapters.store import DatabaseRunStore
+from src.api.v1.assistant.runs.adapters.callbacks import StudyRecorder
+from src.api.v1.assistant.runs.adapters.replay import known_events
+from src.api.v1.assistant.runs.adapters.session import Environment, build_budget
+from src.api.v1.assistant.runs.adapters.store import (
+    DatabaseRunStore,
+    DatabaseUsageLedger,
+)
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
 from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
+from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
 from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
+from tests.conftest import bearer
 from tests.plants import example_plant
 
 
@@ -174,3 +183,108 @@ async def test_workspace_names_the_plant_after_its_document(
 
     assert plants == {example_plant()["name"]: example_plant()}
     assert found == (example_case(), {DEMAND_FILE: DEMAND_CSV})
+
+
+def recorded_event() -> dict[str, Any]:
+    return {
+        "type": "study.recorded",
+        "sequence": 4,
+        "run_id": "a" * 32,
+        "agent": "designer",
+        "parent": None,
+        "time": "2026-11-02T00:00:00Z",
+        "run": "a" * 32,
+        "index": 1,
+        "study": "study/first",
+        "tool": "run_study",
+        "method": "minimize",
+        "designs": ["plant"],
+    }
+
+
+def test_a_stored_event_of_an_unknown_type_is_skipped() -> None:
+    assert known_events([{"type": "from.a.newer.version", "sequence": 1}]) == []
+
+
+def test_a_known_event_is_kept_next_to_an_unknown_one() -> None:
+    events = known_events([{"type": "unknown"}, recorded_event()])
+
+    assert [event.type for event in events] == ["study.recorded"]
+
+
+async def test_studies_index_is_rewritten_in_the_chat(
+    session_factory, make_user, make_project, make_chat, make_run
+) -> None:
+    owner = await make_user()
+    chat, first, _, bridge = await seed(
+        session_factory, owner, make_project, make_chat, make_run
+    )
+    store = DatabaseRunStore(bridge, first.id, chat.id)
+
+    def rewrite() -> Any:
+        store.save_chat_artifact(str(chat.id), "studies.index", [{"study": "a"}])
+        store.save_chat_artifact(str(chat.id), "studies.index", [{"study": "b"}])
+        return store.load_chat_artifact(str(chat.id), "studies.index")
+
+    assert await asyncio.to_thread(rewrite) == [{"study": "b"}]
+
+
+async def test_a_recorded_study_joins_the_study_list(
+    client, session_factory, make_user, make_project, make_chat, make_run
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    chat = await make_chat(project, owner)
+    run = await make_run(chat, owner)
+    recorder = StudyRecorder(session_factory, run.id, chat.id, project.id)
+    async with session_factory() as session:
+        await RunArtifactRepository(session).save(
+            None, chat.id, "study/first", {"study": {"method": "minimize"}}
+        )
+
+    await recorder.on_event(None, gd.event_from_dict(recorded_event()))
+
+    response = await client.get(
+        "/api/v1/design/study",
+        params={"project": str(project.id)},
+        headers=bearer(owner),
+    )
+    study = response.json()["items"][0]
+    assert (study["name"], study["kind"]) == ("first", "minimize")
+    assert study["status"] == "done"
+    assert study["settings"] == {"method": "minimize"}
+    assert study["started_by"]["kind"] == "agent"
+    assert study["started_by"]["run"] == str(run.id)
+
+
+async def test_the_ledger_counts_only_finished_runs(
+    session_factory, make_user, make_project, make_chat, make_run
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    chat = await make_chat(project, owner)
+    spent = {"input_tokens": 10, "output_tokens": 5, "cost": 0.5}
+    await make_run(chat, owner, status="done", values=spent)
+    await make_run(chat, owner, status="failed", values=spent)
+    await make_run(chat, owner, status="running", values=spent)
+    bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+
+    usage = await asyncio.to_thread(DatabaseUsageLedger(bridge).spent, str(project.id))
+
+    assert (usage.input_tokens, usage.output_tokens) == (20, 10)
+    assert usage.cost == 1.0
+
+
+def environment_with(budget: dict[str, Any]) -> Environment:
+    return Environment(None, None, [], lambda: False, None, "project", budget)
+
+
+def test_a_project_without_caps_has_no_budget_hook() -> None:
+    assert build_budget(environment_with({"max_tokens": None, "max_cost": None})) == []
+
+
+def test_a_project_with_a_cap_has_a_budget_hook() -> None:
+    hooks = build_budget(environment_with({"max_tokens": None, "max_cost": 2.0}))
+
+    assert isinstance(hooks[0], gd.hooks.ProjectBudget)
+    assert hooks[0].max_cost == 2.0

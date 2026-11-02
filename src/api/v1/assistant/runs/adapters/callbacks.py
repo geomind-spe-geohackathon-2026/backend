@@ -6,15 +6,27 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.core.clients.postgres.client import utc_now
+from src.core.clients.postgres.repositories.activity import ActivityRepository
+from src.core.clients.postgres.repositories.case_version import (
+    CaseVersionRepository,
+)
 from src.core.clients.postgres.repositories.run import RunRepository
+from src.core.clients.postgres.repositories.run_artifact import (
+    RunArtifactRepository,
+)
+from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.clients.redis.models.run_delta import PendingDelta
 from src.core.clients.redis.repositories.run_delta import RunDeltaRepository
+from src.core.routes import STUDY_ROUTE
 from src.core.sse.events import StreamEvent
 from src.core.sse.publish import publish_event_async
 
 TERMINAL_STATUSES = ("done", "failed", "cancelled")
 TEXT_DELTA = "text.delta"
 STEP_FINISHED = "step.finished"
+STUDY_RECORDED = "study.recorded"
+STUDY_PREFIX = "study/"
+AGENT_NAME = "Assistant"
 
 
 class EventPublisher(gd.callbacks.Callback):
@@ -117,3 +129,61 @@ class RunRecorder(gd.callbacks.Callback):
         if event.type == "run.finished":
             return finish_columns(event)
         return {}
+
+
+class StudyRecorder(gd.callbacks.Callback):
+    """Add a study the assistant ran to the project's study list.
+
+    geomind stores the study artifact before it sends ``study.recorded``. The row
+    has no Celery job and no result of its own: it ended before it was listed.
+    """
+
+    def __init__(
+        self,
+        factory: async_sessionmaker[AsyncSession],
+        run_id: UUID,
+        chat_id: UUID,
+        project_id: UUID,
+    ) -> None:
+        self.factory = factory
+        self.run_id = run_id
+        self.chat_id = chat_id
+        self.project_id = project_id
+
+    async def on_event(self, engine: Any, event: Any) -> None:
+        """Add the row of a recorded study."""
+        if event.type != STUDY_RECORDED:
+            return
+        async with self.factory() as session:
+            artifact = await RunArtifactRepository(session).newest_for_chat(
+                self.chat_id, event.study
+            )
+            case = await CaseVersionRepository(session).latest_version(self.project_id)
+            study = await StudyRepository(session).create(
+                self.values(event, artifact, case)
+            )
+            await ActivityRepository(session).add(
+                self.project_id,
+                "agent",
+                "assistant",
+                f"Study {study.name} recorded",
+                STUDY_ROUTE,
+                str(study.id),
+            )
+
+    def values(self, event: Any, artifact: Any, case: Any) -> dict[str, Any]:
+        now = utc_now()
+        return {
+            "project_id": self.project_id,
+            "kind": event.method,
+            "name": event.study.removeprefix(STUDY_PREFIX),
+            "settings": {} if artifact is None else artifact.data["study"],
+            "status": "done",
+            "started_by_kind": "agent",
+            "started_by_name": AGENT_NAME,
+            "started_by_run_id": self.run_id,
+            "case_version": None if case is None else case.number,
+            "plant_version": None,
+            "started": now,
+            "ended": now,
+        }

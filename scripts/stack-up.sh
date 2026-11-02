@@ -48,7 +48,7 @@ export ASSISTANT_LLM
 
 GEMINI_VERSION="$("$PYTHON" -c 'import gemini; print(gemini.__version__)')"
 SANDBOX_IMAGE="gemini-sandbox:$GEMINI_VERSION"
-GEMINI_SOURCE="${GEMINI_SOURCE:-$BACKEND/.tmp/snap/gemini-217625e}"
+GEMINI_SOURCE="${GEMINI_SOURCE:-$BACKEND/../gemini}"
 
 prepare_sandbox() {
   if docker image inspect "$SANDBOX_IMAGE" >/dev/null 2>&1; then return 0; fi

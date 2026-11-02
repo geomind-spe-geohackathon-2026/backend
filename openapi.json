@@ -177,6 +177,36 @@
         "title": "Body_upload_document_api_v1_workspace_documents_post",
         "type": "object"
       },
+      "Budget": {
+        "properties": {
+          "max_cost": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Cost"
+          },
+          "max_tokens": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens"
+          }
+        },
+        "title": "Budget",
+        "type": "object"
+      },
       "Capacity": {
         "properties": {
           "name": {
@@ -1785,6 +1815,9 @@
       },
       "Project": {
         "properties": {
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
           "case_version": {
             "anyOf": [
               {
@@ -1851,7 +1884,8 @@
           "updated",
           "progress",
           "chats",
-          "runs"
+          "runs",
+          "budget"
         ],
         "title": "Project",
         "type": "object"
@@ -1885,16 +1919,30 @@
       },
       "ProjectUpdate": {
         "properties": {
+          "budget": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Budget"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "name": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           }
         },
-        "required": [
-          "name"
-        ],
         "title": "ProjectUpdate",
         "type": "object"
       },
@@ -6083,7 +6131,7 @@
         ]
       },
       "patch": {
-        "operationId": "rename_project_api_v1_workspace_projects__project_id__patch",
+        "operationId": "update_project_api_v1_workspace_projects__project_id__patch",
         "parameters": [
           {
             "in": "path",
@@ -6128,7 +6176,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Rename Project",
+        "summary": "Update Project",
         "tags": [
           "Projects"
         ]
