@@ -34,6 +34,7 @@ def kpis_of(report: dict[str, Any]) -> list[dict[str, Any]]:
             "title": item.get("title", name),
             "value": item["value"],
             "unit": item["unit"],
+            "reason": item.get("reason"),
         }
         for name, item in report.items()
         if is_quantity(item)
@@ -143,6 +144,7 @@ def capacities_of(report: dict[str, Any]) -> list[dict[str, Any]]:
             "title": f"{path} ({item['kind']})",
             "value": item["capacity"]["value"],
             "unit": item["capacity"]["unit"],
+            "reason": None,
         }
         for path, item in report["capacities"].items()
     ]

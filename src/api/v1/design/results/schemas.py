@@ -10,6 +10,7 @@ class Kpi(BaseModel):
     title: str
     value: float | None
     unit: str
+    reason: str | None
 
 
 class Checks(BaseModel):
@@ -34,6 +35,7 @@ class Capacity(BaseModel):
     title: str
     value: float | None
     unit: str
+    reason: str | None
 
 
 class Constraint(BaseModel):
