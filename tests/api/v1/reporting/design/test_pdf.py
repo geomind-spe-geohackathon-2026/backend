@@ -1,6 +1,7 @@
 import base64
 import re
 import zlib
+from pathlib import Path
 
 from src.api.v1.reporting.design import pdf
 
@@ -79,3 +80,11 @@ def test_a_wide_image_has_its_own_landscape_page_and_no_blank_one() -> None:
 
     assert len(PAGE.findall(last)) == 2
     assert len(PAGE.findall(followed)) == 3
+
+
+def test_a_compact_report_fits_four_pages() -> None:
+    markdown = (
+        Path(__file__).parents[3 + 1] / "fixtures" / "report_compact.md"
+    ).read_text()
+
+    assert len(PAGE.findall(pdf.to_pdf(markdown))) <= 4
