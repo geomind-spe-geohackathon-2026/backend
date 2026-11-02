@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -84,6 +85,11 @@ class DatabaseRunStore:
         self.bridge = bridge
         self.run_id = run_id
         self.chat_id = chat_id
+        self.warmed: list[Any] | None = None
+
+    async def warm(self, run_id: str) -> None:
+        """Read a run's events ahead of ``resume``, which reads them on the loop."""
+        self.warmed = await asyncio.to_thread(self.load_events, run_id)
 
     def save_event(self, run_id: str, event: Any) -> None:
         """Store the full ``event.to_dict()``, public or internal."""
@@ -98,6 +104,8 @@ class DatabaseRunStore:
 
     def load_events(self, run_id: str) -> list[Any]:
         """Return the run's events in sequence order, rebuilt by geomind."""
+        if self.warmed is not None and self.bridge.in_loop():
+            return self.warmed
         rows = self.bridge.call(read_events, UUID(run_id))
         return [gd.event_from_dict(row) for row in rows]
 

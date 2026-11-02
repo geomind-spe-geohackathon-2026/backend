@@ -51,6 +51,13 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
 - **SSE:** `src/core/sse/` (`publish_event`, `follow`, `last_event_id`): subscribe to
   Redis first, replay stored events after `Last-Event-ID`, then live, with heartbeat
   comments. Details in the Events over SSE section of `docs/CONVENTIONS.md`.
+- **Assistant:** `assistant/{chat,runs,usage}`; shared schemas, guards and the queue are in
+  `src/core/assistant/`. A message creates a queued `runs` row (id = geomind run id) and
+  sends the Celery task `assistant.runs.start`; the worker (`runs/execution.py`) builds a
+  `gd.Run` through `runs/adapters/` (DB `RunStore` with chat-scoped artifacts, `Workspace`,
+  event publisher, recorder) and answers/cancels resume it with `assistant.runs.resume`.
+  `ASSISTANT_LLM=fake` plays a scripted run (tests and the end-to-end pass only). Details
+  in `docs/ASSISTANT.md`.
 - **Stack:** `../infrastructure/compose.yml` runs everything:
   `cd ../infrastructure && cp .env.example .env && docker compose up -d --build`. The
   backend image also needs the build context `geomind: ../geomind` (the Dockerfile

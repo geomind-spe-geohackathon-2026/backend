@@ -113,6 +113,18 @@ async def answer_run(
     return run
 
 
+def cancel_answer(pending: dict[str, Any]) -> dict[str, Any]:
+    """Return an answer that geomind accepts for a request about to be cancelled.
+
+    geomind resumes only by answering the pending request; the cancellation hook
+    ends the run before the answer is used.
+    """
+    if pending["kind"] == "approval":
+        return {"approved": False, "reason": "cancelled"}
+    options = pending.get("options")
+    return {"text": options[0]["value"] if options else "cancelled"}
+
+
 async def cancel_run(
     run: Run,
     runs: RunRepository,
@@ -122,13 +134,16 @@ async def cancel_run(
     """Ask a run to stop.
 
     A queued or running run reads the flag at its next step. A waiting run has no
-    process, so it is resumed once without an answer and ends as cancelled.
+    process, so it is resumed once with a stand-in answer and ends as cancelled.
     """
     if run.status not in ACTIVE_RUN_STATUSES:
         raise ConflictError("The run has already ended")
     await control.request_cancel(jobs, str(run.id))
     if run.status == "waiting":
-        await hand_over(runs, run, enqueue, (None, None))
+        pending = run.request
+        await hand_over(
+            runs, run, enqueue, (pending["request"], cancel_answer(pending))
+        )
     await runs.session.refresh(run)
     return run
 

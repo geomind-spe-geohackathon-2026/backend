@@ -179,6 +179,7 @@ async def resume(
 ) -> Outcome:
     """Answer a pending request, or with none continue a run that was cancelled."""
     try:
+        await environment.store.warm(run_id.hex)
         run = await asyncio.to_thread(
             gd.Run.load,
             run_id.hex,

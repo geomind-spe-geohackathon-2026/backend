@@ -26,13 +26,16 @@ class LoopBridge:
         self.loop = loop
         self.factory = factory
 
+    def in_loop(self) -> bool:
+        """Say whether the caller runs on the loop, which a blocking call stalls."""
+        try:
+            return asyncio.get_running_loop() is self.loop
+        except RuntimeError:
+            return False
+
     def call(self, operation: Operation, *arguments: Any) -> Any:
         """Await ``operation(session, *arguments)`` on the loop; return its result."""
-        try:
-            running = asyncio.get_running_loop()
-        except RuntimeError:
-            running = None
-        if running is self.loop:
+        if self.in_loop():
             raise LoopBridgeError("called inside its own event loop; use a thread")
         future = asyncio.run_coroutine_threadsafe(
             self.run(operation, arguments),
