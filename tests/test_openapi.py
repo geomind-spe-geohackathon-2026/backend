@@ -37,3 +37,9 @@ def test_shared_schemas_have_plain_names() -> None:
 
     assert {"Chat", "Run"} <= names
     assert not [name for name in names if name.endswith(("__Chat", "__Run"))]
+
+
+def test_no_schema_name_carries_a_module_prefix() -> None:
+    document = load_script().to_json()
+
+    assert "src__" not in document

@@ -1149,7 +1149,7 @@
             "type": "array"
           },
           "progress": {
-            "$ref": "#/components/schemas/src__core__progress__schemas__Progress"
+            "$ref": "#/components/schemas/Progress"
           }
         },
         "required": [
@@ -1689,6 +1689,34 @@
         "title": "Problem",
         "type": "object"
       },
+      "Progress": {
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/ProgressStep"
+          },
+          "plant": {
+            "$ref": "#/components/schemas/ProgressStep"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ProgressStep"
+          },
+          "results": {
+            "$ref": "#/components/schemas/ProgressStep"
+          },
+          "study": {
+            "$ref": "#/components/schemas/ProgressStep"
+          }
+        },
+        "required": [
+          "case",
+          "plant",
+          "study",
+          "results",
+          "report"
+        ],
+        "title": "Progress",
+        "type": "object"
+      },
       "ProgressStep": {
         "properties": {
           "label": {
@@ -1756,7 +1784,7 @@
             "title": "Plant Version"
           },
           "progress": {
-            "$ref": "#/components/schemas/src__core__progress__schemas__Progress"
+            "$ref": "#/components/schemas/Progress"
           },
           "updated": {
             "format": "date-time",
@@ -2532,7 +2560,7 @@
             "title": "Plant Version"
           },
           "progress": {
-            "$ref": "#/components/schemas/src__api__v1__design__study__schemas__Progress"
+            "$ref": "#/components/schemas/StudyProgress"
           },
           "project": {
             "format": "uuid",
@@ -2675,6 +2703,24 @@
           "schema"
         ],
         "title": "StudyKind",
+        "type": "object"
+      },
+      "StudyProgress": {
+        "properties": {
+          "done": {
+            "title": "Done",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "done",
+          "total"
+        ],
+        "title": "StudyProgress",
         "type": "object"
       },
       "Template": {
@@ -2989,52 +3035,6 @@
           "created"
         ],
         "title": "Version",
-        "type": "object"
-      },
-      "src__api__v1__design__study__schemas__Progress": {
-        "properties": {
-          "done": {
-            "title": "Done",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "done",
-          "total"
-        ],
-        "title": "Progress",
-        "type": "object"
-      },
-      "src__core__progress__schemas__Progress": {
-        "properties": {
-          "case": {
-            "$ref": "#/components/schemas/ProgressStep"
-          },
-          "plant": {
-            "$ref": "#/components/schemas/ProgressStep"
-          },
-          "report": {
-            "$ref": "#/components/schemas/ProgressStep"
-          },
-          "results": {
-            "$ref": "#/components/schemas/ProgressStep"
-          },
-          "study": {
-            "$ref": "#/components/schemas/ProgressStep"
-          }
-        },
-        "required": [
-          "case",
-          "plant",
-          "study",
-          "results",
-          "report"
-        ],
-        "title": "Progress",
         "type": "object"
       }
     }

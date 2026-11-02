@@ -145,7 +145,7 @@ def to_study(
         name=study.name,
         settings=study.settings,
         status=study.status,
-        progress=schemas.Progress(done=shown.done, total=shown.total),
+        progress=schemas.StudyProgress(done=shown.done, total=shown.total),
         started_by=schemas.StartedBy(
             kind=study.started_by_kind,
             name=study.started_by_name,

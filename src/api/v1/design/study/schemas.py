@@ -23,7 +23,7 @@ class StudyCreate(BaseModel):
     settings: dict[str, Any]
 
 
-class Progress(BaseModel):
+class StudyProgress(BaseModel):
     done: int
     total: int
 
@@ -52,7 +52,7 @@ class Study(BaseModel):
     name: str
     settings: dict[str, Any]
     status: StudyStatus
-    progress: Progress
+    progress: StudyProgress
     started_by: StartedBy
     case_version: int | None
     plant_version: int | None
