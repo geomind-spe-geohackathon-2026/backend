@@ -15,7 +15,7 @@ class RunArtifactRepository(BaseRepository):
         key: str,
         data: bytes | Any,
     ) -> RunArtifact:
-        """Save bytes or a JSON value; no run id means the chat's space. A later save wins."""
+        """Save bytes or a JSON value; no run id means the chat's space."""
         if isinstance(data, bytes):
             artifact = RunArtifact(
                 run_id=run_id,
@@ -48,7 +48,8 @@ class RunArtifactRepository(BaseRepository):
     async def newest_for_chat(self, chat_id: UUID, key: str) -> RunArtifact | None:
         statement = (
             select(RunArtifact)
-            .where(RunArtifact.chat_id == chat_id,
+            .where(
+                RunArtifact.chat_id == chat_id,
                 RunArtifact.run_id.is_(None),
                 RunArtifact.key == key,
             )

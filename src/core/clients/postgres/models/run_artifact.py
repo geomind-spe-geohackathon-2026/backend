@@ -11,9 +11,9 @@ from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
 class RunArtifact(Base):
     """A value saved under a key: bytes or JSON, in the space of a run or of a chat.
 
-    A run's artifact holds its run and its chat and is read by ``(run_id, key)``. A chat's
-    artifact has no run (``run_id`` is null) and is read by ``(chat_id, key, created)``;
-    the two spaces are separate.
+    A run's artifact holds its run and its chat and is read by ``(run_id, key)``.
+    A chat's artifact has no run (``run_id`` is null) and is read by
+    ``(chat_id, key, created)``; the two spaces are separate.
     """
 
     __tablename__ = "run_artifacts"
