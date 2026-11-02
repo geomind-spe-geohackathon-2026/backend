@@ -90,6 +90,32 @@ def series_paths(node: Any, prefix: str = "") -> list[str]:
     return found
 
 
+def only_series(node: Any, prefix: str = "") -> Any:
+    """Return the document kept down to the time series and what they need."""
+    if not isinstance(node, dict):
+        return None
+    if "file" in node and "column" in node:
+        return node
+    kept = {}
+    for name, child in node.items():
+        found = only_series(child, f"{prefix}.{name}" if prefix else name)
+        if found:
+            kept[name] = found
+    return kept
+
+
+def series_case(content: Any, files: dict[str, bytes] | None) -> gm.Case:
+    """Build a case of the series alone, so other missing values do not hide them."""
+    keep = ("format", "kind", "name", "time")
+    reduced = {key: content[key] for key in keep if key in content}
+    for name, section in content.items():
+        if name not in keep and isinstance(section, dict):
+            found = only_series(section)
+            if found:
+                reduced[name] = found
+    return ensure_complete(reduced, files)
+
+
 def series(case: gm.Case, content: Any) -> list[dict[str, Any]]:
     """Return each series of the case as name, unit and [time, value] points."""
     result = []

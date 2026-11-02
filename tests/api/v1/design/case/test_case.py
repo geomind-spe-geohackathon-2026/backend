@@ -266,6 +266,25 @@ async def test_series_are_read_through_gemini(
     assert series[0]["points"][0] == ["2030-01-01T00:00:00+00:00", 1.5]
 
 
+async def test_series_are_served_while_other_values_are_missing(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    headers = bearer(owner)
+    content = example_case()
+    content["site"] = {"ground": {"gradient": {"unit": "K/m"}}}
+    await save_case(client, headers, project, content=content)
+    await upload(client, headers, project, 1)
+
+    response = await client.get(
+        f"{CASE}/series", params={"project": str(project.id)}, headers=headers
+    )
+
+    assert response.status_code == 200
+    assert response.json()["series"][0]["name"] == "demand.heating.power"
+
+
 async def test_series_of_an_incomplete_case_is_missing_inputs(
     client, make_user, make_project, blobs
 ) -> None:
