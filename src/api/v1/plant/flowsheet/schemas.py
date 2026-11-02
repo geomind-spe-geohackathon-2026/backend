@@ -49,6 +49,7 @@ class Flowsheet(BaseModel):
     project: UUID
     version: int
     spec: dict[str, Any]
+    structure: dict[str, Any]
     layout: dict[str, Any]
     modules: list[FlowsheetModule]
     connections: list[FlowsheetConnection]
@@ -80,6 +81,7 @@ class LayoutUpdate(BaseModel):
 
 class SpecCheck(BaseModel):
     spec: dict[str, Any]
+    project: UUID | None = None
 
 
 class SpecProblems(BaseModel):

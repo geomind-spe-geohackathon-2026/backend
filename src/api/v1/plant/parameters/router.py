@@ -4,9 +4,18 @@ from pydantic import AwareDatetime
 
 from fastapi import APIRouter, Depends, Query, status
 from src.api.v1.plant.parameters import schemas, services
+from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.repositories.activity import (
     ActivityRepository,
     get_activity_repository,
+)
+from src.core.clients.postgres.repositories.case_file import (
+    CaseFileRepository,
+    get_case_file_repository,
+)
+from src.core.clients.postgres.repositories.case_version import (
+    CaseVersionRepository,
+    get_case_version_repository,
 )
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
@@ -16,6 +25,7 @@ from src.core.clients.postgres.repositories.user import (
     UserRepository,
     get_user_repository,
 )
+from src.core.gemini.stored import latest_case
 from src.core.security.access import (
     CurrentUser,
     ProjectRepositoryDependency,
@@ -35,6 +45,14 @@ ActivityRepositoryDependency = Annotated[
     Depends(get_activity_repository),
 ]
 UserRepositoryDependency = Annotated[UserRepository, Depends(get_user_repository)]
+CaseVersionRepositoryDependency = Annotated[
+    CaseVersionRepository,
+    Depends(get_case_version_repository),
+]
+CaseFileRepositoryDependency = Annotated[
+    CaseFileRepository,
+    Depends(get_case_file_repository),
+]
 
 
 @router.get("", response_model=schemas.Parameters)
@@ -42,9 +60,13 @@ async def get_parameters(
     project: QueriedProject,
     module: Annotated[str, Query(min_length=1)],
     repository: PlantVersionRepositoryDependency,
+    cases: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    blobs: BlobStoreDependency,
     at: Annotated[AwareDatetime | None, Query()] = None,
 ) -> schemas.Parameters:
-    return await services.get_parameters(project, module, at, repository)
+    built = await latest_case(project.id, cases, files, blobs)
+    return await services.get_parameters(project, module, at, repository, built)
 
 
 @router.post("", response_model=Version, status_code=status.HTTP_201_CREATED)

@@ -11,6 +11,7 @@ from src.core.clients.postgres.repositories.plant_version import (
 from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.errors import NotImplementedYetError
 from src.core.gemini import plant
+from src.core.gemini.case import BuiltCase
 from src.core.gemini.errors import PlantNotFoundError
 from src.core.routes import PLANT_ROUTE
 from src.core.versioning import (
@@ -28,11 +29,12 @@ async def get_parameters(
     module: str,
     at: datetime | None,
     repository: PlantVersionRepository,
+    case: BuiltCase | None,
 ) -> schemas.Parameters:
     """Return a module's parameters in the latest plant, valid at a time."""
     latest = await latest_version(repository, project.id, PlantNotFoundError)
     built = plant.from_dict(latest.content)
-    return schemas.Parameters(**plant.parameters(built, module, at))
+    return schemas.Parameters(**plant.parameters(built, module, at, case))
 
 
 async def save_parameters(

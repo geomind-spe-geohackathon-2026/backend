@@ -230,7 +230,7 @@ async def get_series(
     files = await stored_files(rows, blobs)
 
     def read() -> list[dict[str, Any]]:
-        built = case.ensure_complete(version.content, files)
+        built = case.series_case(version.content, files)
         return case.series(built, version.content)
 
     return schemas.SeriesList(series=await asyncio.to_thread(read))

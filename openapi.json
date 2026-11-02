@@ -693,6 +693,11 @@
             "title": "Spec",
             "type": "object"
           },
+          "structure": {
+            "additionalProperties": true,
+            "title": "Structure",
+            "type": "object"
+          },
           "version": {
             "title": "Version",
             "type": "integer"
@@ -702,6 +707,7 @@
           "project",
           "version",
           "spec",
+          "structure",
           "layout",
           "modules",
           "connections"
@@ -2436,6 +2442,18 @@
       },
       "SpecCheck": {
         "properties": {
+          "project": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project"
+          },
           "spec": {
             "additionalProperties": true,
             "title": "Spec",

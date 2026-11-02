@@ -154,7 +154,7 @@ async def test_an_old_version_is_read_by_number(
     assert missing.json()["error"]["code"] == "plant_not_found"
 
 
-async def test_validate_lists_structural_problems(client, make_user) -> None:
+async def test_validate_lists_structural_problems(client, make_user, blobs) -> None:
     user = await make_user()
     spec = example_plant()
     spec["params"]["zz_unknown"] = {"value": 1}
@@ -171,6 +171,7 @@ async def test_validate_lists_structural_problems(client, make_user) -> None:
 async def test_validate_lists_missing_values_of_a_good_structure(
     client,
     make_user,
+    blobs,
 ) -> None:
     user = await make_user()
 

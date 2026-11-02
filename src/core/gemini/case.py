@@ -9,6 +9,8 @@ from src.core.problems import problem_of
 
 MISSING_CODE = "missing_value"
 
+BuiltCase = gm.Case
+
 
 def schema() -> dict[str, Any]:
     """Return gemini's JSON schema of a case, with the units of its values."""
@@ -33,6 +35,11 @@ def read(
         return gm.Case.from_dict(content, files=files), []
     except gm.errors.ValidationError as error:
         return None, [problem_of(problem) for problem in error.problems]
+
+
+def build(content: Any, files: dict[str, bytes] | None) -> gm.Case | None:
+    """Return the case a complete document makes, else None."""
+    return read(content, files)[0]
 
 
 def validate(
@@ -81,6 +88,32 @@ def series_paths(node: Any, prefix: str = "") -> list[str]:
     for name, child in node.items():
         found.extend(series_paths(child, f"{prefix}.{name}" if prefix else name))
     return found
+
+
+def only_series(node: Any, prefix: str = "") -> Any:
+    """Return the document kept down to the time series and what they need."""
+    if not isinstance(node, dict):
+        return None
+    if "file" in node and "column" in node:
+        return node
+    kept = {}
+    for name, child in node.items():
+        found = only_series(child, f"{prefix}.{name}" if prefix else name)
+        if found:
+            kept[name] = found
+    return kept
+
+
+def series_case(content: Any, files: dict[str, bytes] | None) -> gm.Case:
+    """Build a case of the series alone, so other missing values do not hide them."""
+    keep = ("format", "kind", "name", "time")
+    reduced = {key: content[key] for key in keep if key in content}
+    for name, section in content.items():
+        if name not in keep and isinstance(section, dict):
+            found = only_series(section)
+            if found:
+                reduced[name] = found
+    return ensure_complete(reduced, files)
 
 
 def series(case: gm.Case, content: Any) -> list[dict[str, Any]]:

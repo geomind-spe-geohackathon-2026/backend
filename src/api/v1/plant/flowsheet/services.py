@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Any
 from uuid import UUID
@@ -14,6 +15,7 @@ from src.core.clients.postgres.repositories.plant_version import (
 )
 from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.gemini import plant
+from src.core.gemini.case import BuiltCase
 from src.core.gemini.errors import PlantNotFoundError
 from src.core.pagination.page import Page
 from src.core.routes import PLANT_ROUTE
@@ -80,6 +82,7 @@ async def build_flowsheet(
         project=version.project_id,
         version=version.number,
         spec=version.content,
+        structure=plant.free_document(built),
         layout=await read_layout(blobs, version.project_id),
         **plant.structure(built),
     )
@@ -148,9 +151,14 @@ async def save_layout(
     return await build_flowsheet(latest, blobs)
 
 
-def validate_spec(spec: dict[str, Any]) -> schemas.SpecProblems:
-    """Return gemini's problems for a plant document."""
-    return schemas.SpecProblems(problems=plant.problems_of(spec))
+async def validate_spec(
+    spec: dict[str, Any],
+    case: BuiltCase | None,
+) -> schemas.SpecProblems:
+    """Return gemini's problems for a plant document, on the case when there is one."""
+    return schemas.SpecProblems(
+        problems=await asyncio.to_thread(plant.problems_of, spec, case)
+    )
 
 
 async def list_versions(
