@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import delete, select
 
+from src.core.clients.postgres.client import utc_now
 from src.core.clients.postgres.models.chat import Chat
 from src.core.clients.postgres.repositories.base import BaseRepository, DatabaseSession
 from src.core.pagination.page import PageRequest, paginate
@@ -34,6 +35,12 @@ class ChatRepository(BaseRepository):
 
     async def rename(self, chat: Chat, title: str) -> Chat:
         chat.title = title
+        await self.session.commit()
+        return chat
+
+    async def touch(self, chat: Chat) -> Chat:
+        """Mark the chat as changed now, so it sorts first among the latest."""
+        chat.updated = utc_now()
         await self.session.commit()
         return chat
 

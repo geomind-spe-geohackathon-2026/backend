@@ -1,0 +1,128 @@
+from uuid import uuid4
+
+from starlette.concurrency import run_in_threadpool
+
+from src.api.v1.assistant.chat import schemas
+from src.core.assistant import schemas as shared
+from src.core.assistant.errors import QueueUnavailableError
+from src.core.assistant.queue import Enqueue
+from src.core.clients.postgres.client import utc_now
+from src.core.clients.postgres.models.chat import Chat
+from src.core.clients.postgres.models.project import Project
+from src.core.clients.postgres.models.run import Run
+from src.core.clients.postgres.models.user import User
+from src.core.clients.postgres.repositories.chat import ChatRepository
+from src.core.clients.postgres.repositories.chat_state import ChatStateRepository
+from src.core.clients.postgres.repositories.message import MessageRepository
+from src.core.clients.postgres.repositories.run import RunRepository
+from src.core.errors import ConflictError
+from src.core.pagination.page import Page, PageRequest, build_page, encode_cursor
+
+DEFAULT_TITLE = "New chat"
+START_TASK = "assistant.runs.start"
+
+
+def to_chat(chat: Chat, last: Run | None) -> schemas.Chat:
+    last_run = None if last is None else schemas.LastRun(id=last.id, status=last.status)
+    return schemas.Chat(
+        id=chat.id,
+        project=chat.project_id,
+        title=chat.title,
+        created=chat.created,
+        last_run=last_run,
+    )
+
+
+async def list_chats(
+    project: Project,
+    page: PageRequest,
+    chats: ChatRepository,
+    runs: RunRepository,
+) -> Page:
+    rows = await chats.list_page(project.id, page)
+    items = rows[: page.limit]
+    last = await runs.last_for_chats([chat.id for chat in items]) if items else {}
+    has_more = len(rows) > page.limit
+    cursor = encode_cursor(items[-1].created, items[-1].id) if has_more else None
+    return Page(
+        items=[to_chat(chat, last.get(chat.id)) for chat in items],
+        next=cursor,
+    )
+
+
+async def create_chat(
+    payload: schemas.ChatCreate,
+    project: Project,
+    user: User,
+    chats: ChatRepository,
+) -> schemas.Chat:
+    chat = await chats.create(project.id, payload.title or DEFAULT_TITLE, user.id)
+    return to_chat(chat, None)
+
+
+async def rename_chat(
+    chat: Chat,
+    payload: schemas.ChatUpdate,
+    chats: ChatRepository,
+    runs: RunRepository,
+) -> schemas.Chat:
+    renamed = await chats.rename(chat, payload.title)
+    last = await runs.last_for_chats([chat.id])
+    return to_chat(renamed, last.get(chat.id))
+
+
+async def delete_chat(chat: Chat, chats: ChatRepository, runs: RunRepository) -> None:
+    if await runs.has_active(chat.id):
+        raise ConflictError("The chat has a run that is not finished")
+    await chats.delete(chat.id)
+
+
+async def list_messages(
+    chat: Chat,
+    page: PageRequest,
+    messages: MessageRepository,
+) -> Page:
+    rows = await messages.list_page(chat.id, page)
+    return build_page(rows, page, schemas.Message)
+
+
+async def read_state(chat: Chat, states: ChatStateRepository) -> schemas.ChatState:
+    latest = await states.latest(chat.id)
+    if latest is None:
+        return schemas.ChatState(version=0, state=None)
+    return schemas.ChatState(version=latest.version, state=latest.state)
+
+
+async def queue_run(run: Run, runs: RunRepository, enqueue: Enqueue) -> None:
+    """Hand a new run to the worker; if the queue is down the run is marked failed."""
+    try:
+        await run_in_threadpool(enqueue, START_TASK, str(run.id))
+    except QueueUnavailableError as error:
+        error_body = {"code": error.code, "message": error.message}
+        await runs.update(
+            run,
+            {"status": "failed", "error": error_body, "ended": utc_now()},
+        )
+        raise
+
+
+async def send_message(
+    chat: Chat,
+    payload: schemas.MessageCreate,
+    user: User,
+    chats: ChatRepository,
+    runs: RunRepository,
+    messages: MessageRepository,
+    enqueue: Enqueue,
+) -> schemas.MessageSent:
+    """Add the user's message and queue a run for it; one run at a time per chat."""
+    if await runs.has_active(chat.id):
+        raise ConflictError("The chat has a run that is not finished")
+    run = await runs.create(uuid4(), chat.id, chat.project_id, user.id)
+    message = await messages.add(chat.id, "user", payload.content, run.id)
+    await chats.touch(chat)
+    await queue_run(run, runs, enqueue)
+    return schemas.MessageSent(
+        message=schemas.Message.model_validate(message),
+        run=shared.Run.model_validate(run),
+    )

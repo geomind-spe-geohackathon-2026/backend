@@ -1,0 +1,185 @@
+import tempfile
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any
+from uuid import UUID
+
+from redis import Redis as SyncRedis
+from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from src.api.v1.assistant.runs.adapters import session as adapters
+from src.api.v1.assistant.runs.adapters.callbacks import TERMINAL_STATUSES
+from src.api.v1.assistant.runs.adapters.errors import AdapterFailedError
+from src.api.v1.assistant.runs.services import run_channel
+from src.core.clients.minio.client import create_minio_client
+from src.core.clients.postgres.client import create_postgres_client, utc_now
+from src.core.clients.postgres.models.run import Run
+from src.core.clients.postgres.repositories.activity import ActivityRepository
+from src.core.clients.postgres.repositories.message import MessageRepository
+from src.core.clients.postgres.repositories.run import RunRepository
+from src.core.clients.postgres.repositories.run_event import RunEventRepository
+from src.core.clients.redis.client import create_redis_client
+from src.core.clients.redis.repositories.job import SyncJobRepository
+from src.core.logging.logger import get_logger
+from src.core.settings import settings
+from src.core.sse.events import StreamEvent
+from src.core.sse.publish import publish_event_async
+
+logger = get_logger(__name__)
+
+Action = Callable[[adapters.Environment], Awaitable[adapters.Outcome]]
+
+
+@asynccontextmanager
+async def open_resources() -> AsyncIterator[adapters.Resources]:
+    """Open the connections of one task and close them when it ends."""
+    engine = create_postgres_client()
+    redis = create_redis_client()
+    sync_redis = SyncRedis.from_url(settings.REDIS_URL, decode_responses=True)
+    factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
+    jobs = SyncJobRepository(sync_redis, settings.JOB_STATE_TTL_SECONDS)
+    try:
+        yield adapters.Resources(factory, redis, jobs, create_minio_client())
+    finally:
+        sync_redis.close()
+        await redis.aclose()
+        await engine.dispose()
+
+
+async def start_run(run_id: UUID) -> None:
+    """Task body: run a queued run."""
+    async with open_resources() as resources:
+        await begin(resources, run_id)
+
+
+async def resume_run(
+    run_id: UUID,
+    request_id: str | None,
+    answer: dict[str, Any] | None,
+) -> None:
+    """Task body: continue a run after an answer, or after a cancel while waiting."""
+    async with open_resources() as resources:
+        await carry_on(resources, run_id, request_id, answer)
+
+
+async def get_run(resources: adapters.Resources, run_id: UUID) -> Run | None:
+    async with resources.factory() as session:
+        return await RunRepository(session).get_by_id(run_id)
+
+
+async def begin(resources: adapters.Resources, run_id: UUID) -> None:
+    """Start a run that is still queued; a second delivery of the task does nothing."""
+    values = {"status": "running", "started": utc_now()}
+    async with resources.factory() as session:
+        claimed = await RunRepository(session).claim(run_id, "queued", values)
+    if not claimed:
+        return
+    run = await get_run(resources, run_id)
+
+    async def action(environment: adapters.Environment) -> adapters.Outcome:
+        async with resources.factory() as session:
+            message = await MessageRepository(session).for_run(run_id, "user")
+        return await adapters.start(
+            environment, run.id, run.chat_id, run.project_id, message.content
+        )
+
+    await carry_out(resources, run, action)
+
+
+async def carry_on(
+    resources: adapters.Resources,
+    run_id: UUID,
+    request_id: str | None,
+    answer: dict[str, Any] | None,
+) -> None:
+    run = await get_run(resources, run_id)
+    if run is None or run.status != "running":
+        return
+
+    async def action(environment: adapters.Environment) -> adapters.Outcome:
+        return await adapters.resume(environment, run_id, request_id, answer)
+
+    await carry_out(resources, run, action)
+
+
+async def carry_out(
+    resources: adapters.Resources,
+    run: Run,
+    action: Action,
+) -> None:
+    """Run the action in a folder of its own and record how the run ended."""
+    channel = run_channel(run.id)
+    with tempfile.TemporaryDirectory() as folder:
+        environment = adapters.build_environment(resources, Path(folder), run, channel)
+        try:
+            outcome = await action(environment)
+        except AdapterFailedError as error:
+            await fail(resources, run, "error", str(error))
+            return
+        except Exception:
+            logger.exception("Run %s failed unexpectedly", run.id)
+            await fail(resources, run, "internal", "The run failed unexpectedly")
+            return
+    await settle(resources, run.id, outcome)
+
+
+async def settle(
+    resources: adapters.Resources,
+    run_id: UUID,
+    outcome: adapters.Outcome,
+) -> None:
+    """Write the final totals, the assistant's message and the activity row."""
+    totals = {
+        "input_tokens": outcome.input_tokens,
+        "output_tokens": outcome.output_tokens,
+        "cost": outcome.cost,
+    }
+    async with resources.factory() as session:
+        runs = RunRepository(session)
+        run = await runs.update(await runs.get_by_id(run_id), totals)
+        if outcome.status == "done" and outcome.answer:
+            await MessageRepository(session).add(
+                run.chat_id, "assistant", outcome.answer, run.id
+            )
+        if outcome.status in TERMINAL_STATUSES:
+            await add_activity(session, run, outcome.status)
+
+
+async def add_activity(session: Any, run: Run, status: str) -> None:
+    await ActivityRepository(session).add(
+        run.project_id,
+        "agent",
+        "assistant",
+        f"Assistant run {status}",
+        "assistant/runs",
+        str(run.id),
+    )
+
+
+async def fail(
+    resources: adapters.Resources,
+    run: Run,
+    code: str,
+    message: str,
+) -> None:
+    """End a run that crashed: log and publish its ``run.finished``, then mark it."""
+    async with resources.factory() as session:
+        events = RunEventRepository(session)
+        last = await events.after(run.id, -1)
+        sequence = last[-1].sequence + 1 if last else 1
+        record = adapters.failure_event(run.id, sequence, message)
+        await events.add(
+            run.id, record.sequence, record.type, record.public, record.full
+        )
+        runs = RunRepository(session)
+        values = {
+            "status": "failed",
+            "request": None,
+            "ended": utc_now(),
+            "error": {"code": code, "message": message},
+        }
+        failed = await runs.update(await runs.get_by_id(run.id), values)
+        await add_activity(session, failed, "failed")
+    event = StreamEvent(record.type, record.data, record.sequence)
+    await publish_event_async(resources.redis, run_channel(run.id), event)
