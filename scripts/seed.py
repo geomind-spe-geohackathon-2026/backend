@@ -22,7 +22,7 @@ def example_case() -> dict:
 
 
 def example_plant() -> dict:
-    content = json.loads((EXAMPLE / "plant.json").read_text())
+    content = json.loads((EXAMPLE / "seed_plant.json").read_text())
     content["name"] = "ExamplePlant"
     return content
 
