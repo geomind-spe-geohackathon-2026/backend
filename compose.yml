@@ -5,6 +5,7 @@ x-service: &service
     context: .
     additional_contexts:
       gemini: ../gemini
+      geomind: ../geomind
   image: swarmax-backend:latest
   restart: unless-stopped
   stop_grace_period: 30s
