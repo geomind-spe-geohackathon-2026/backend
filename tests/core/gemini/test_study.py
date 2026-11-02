@@ -31,6 +31,35 @@ def test_kinds_are_the_method_values_with_the_shared_schema() -> None:
     assert all(item["description"] for item in kinds)
 
 
+def properties_of(kind: str) -> dict:
+    return next(item for item in study.kinds() if item["kind"] == kind)["schema"]
+
+
+def test_each_kind_asks_only_for_the_settings_of_its_method() -> None:
+    assert set(properties_of("minimize")["properties"]) == {
+        "objective",
+        "evaluations",
+        "seed",
+    }
+    assert set(properties_of("sample")["properties"]) == {"metrics", "samples", "seed"}
+    assert set(properties_of("sensitivity")["properties"]) == {"metrics"}
+    assert set(properties_of("run")["properties"]) == {"prepare"}
+
+
+def test_the_required_settings_are_the_arguments_without_a_default() -> None:
+    assert set(properties_of("sample")["required"]) == {"metrics", "samples", "seed"}
+    assert properties_of("sensitivity")["required"] == ["metrics"]
+    assert properties_of("run").get("required", []) == []
+
+
+def test_metrics_and_the_objective_are_choices_of_gemini_metric_names() -> None:
+    sample = properties_of("sample")["properties"]
+    objective = properties_of("minimize")["properties"]["objective"]
+
+    assert "lcts" in sample["metrics"]["items"]["enum"]
+    assert objective["enum"] == sample["metrics"]["items"]["enum"]
+
+
 def test_ready_inputs_miss_nothing() -> None:
     assert missing() == []
 
