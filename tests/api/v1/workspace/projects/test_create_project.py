@@ -14,7 +14,16 @@ async def test_create_returns_the_contract_project(client, make_user) -> None:
 
     assert response.status_code == 201
     body = response.json()
-    assert set(body) == {"id", "name", "owner", "plant_version", "created", "updated"}
+    assert set(body) == {
+        "id",
+        "name",
+        "owner",
+        "plant_version",
+        "case_version",
+        "created",
+        "updated",
+        "progress",
+    }
     assert body["name"] == "Doublet"
     assert body["owner"] == {"id": str(user.id), "name": user.name}
     assert body["plant_version"] is None

@@ -13,8 +13,13 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
 
 - **Features** live in `src/api/v1/<domain>/<feature>/`, with only the files they need
   out of `router.py`, `schemas.py`, `services.py` and `tasks.py`. Today: `system/health`,
-  `identity/{authn,me,users}`, `workspace/projects`. One function in `services.py` per
+  `identity/{authn,me,users}`, `workspace/{projects,overview,documents}`. One function in `services.py` per
   use-case.
+- **Workspace:** project `progress` is computed, never stored, by `src/core/progress/`
+  from `ProgressRepository` (read-only counts over the other tables). Uploaded documents
+  are extracted by the Celery task `workspace.documents.extract`; the assistant searches
+  them with `src/core/documents/search.py:search_documents` (keyword search through
+  `DocumentRepository`). Bytes in MinIO go through `src/core/documents/storage.py`.
 - **Storage:** models and repositories in `src/core/clients/postgres/`.
 - **Access:** `src/core/security/access.py`. `CurrentUser` and `AdminUser` on routes,
   `AccessibleProject` (`require_project`) on every route that takes a project id.
