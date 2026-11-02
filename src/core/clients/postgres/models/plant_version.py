@@ -2,11 +2,10 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, ForeignKey, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.core.clients.postgres.client import Base, UtcDateTime, utc_now
+from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
 
 
 class PlantVersion(Base):
@@ -21,7 +20,7 @@ class PlantVersion(Base):
     )
     number: Mapped[int]
     content: Mapped[dict[str, Any]] = mapped_column(
-        JSON().with_variant(JSONB, "postgresql"),
+        Json,
     )
     digest: Mapped[str] = mapped_column(Text)
     note: Mapped[str] = mapped_column(Text)

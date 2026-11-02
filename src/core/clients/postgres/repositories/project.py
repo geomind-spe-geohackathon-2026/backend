@@ -12,7 +12,7 @@ from src.core.clients.postgres.client import get_db
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.repositories.base import BaseRepository
-from src.core.clients.postgres.repositories.plant_version import content_digest
+from src.core.clients.postgres.repositories.version import content_digest
 from src.core.pagination.page import PageRequest, paginate
 
 DatabaseSession = Annotated[AsyncSession, Depends(get_db)]

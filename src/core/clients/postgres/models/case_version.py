@@ -1,0 +1,28 @@
+from datetime import datetime
+from typing import Any
+from uuid import UUID, uuid4
+
+from sqlalchemy import ForeignKey, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
+
+
+class CaseVersion(Base):
+    """One saved case, exactly as gemini's to_dict writes it. Never updated."""
+
+    __tablename__ = "case_versions"
+    __table_args__ = (UniqueConstraint("project_id", "number"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"),
+    )
+    number: Mapped[int]
+    content: Mapped[dict[str, Any]] = mapped_column(
+        Json,
+    )
+    digest: Mapped[str] = mapped_column(Text)
+    note: Mapped[str] = mapped_column(Text)
+    author_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    created: Mapped[datetime] = mapped_column(UtcDateTime, default=utc_now)

@@ -191,6 +191,35 @@ src/
   versions. The unique `(project_id, number)` constraint settles concurrent saves;
   the loser retries once.
 
+## Tables
+
+One Alembic migration (`0006`) added the tables of the app; each has a model in
+`core/clients/postgres/models/` and a base repository in `.../repositories/`. Feature
+code uses the repository; it does not add tables or queries of its own.
+
+| Table | Holds | List index |
+|---|---|---|
+| `case_versions`, `case_files` | gemini's case document per version (never updated, like `plant_versions`); file name, size and MinIO key per version | `(project_id, number)` unique |
+| `chats`, `messages` | conversations; a message carries its `run_id` | `(project_id, created, id)`, `(chat_id, created, id)` |
+| `runs` | status, loop, pending `request`, `error`, usage totals; the id is the run id geomind uses | `(project_id, created, id)`, `(project_id, status)`, `(chat_id, created)` |
+| `run_events` | geomind's full `event.to_dict()` with `sequence`, `type`, `public` | `(run_id, sequence)` |
+| `run_artifacts` | bytes or JSON per key, with both `run_id` and `chat_id` | `(run_id, key)`, `(chat_id, key, created)` |
+| `chat_states` | the problem state, one row per version | `(chat_id, version)` unique |
+| `studies`, `results` | a Celery job per study (settings, status, progress, `task_id`, `missing`, `error`); its result with a summary and gemini's content | `(project_id, created, id)`, `(project_id, status)`, `results.study_id` |
+| `documents` | uploaded files, MinIO key, extracted `text`, `searchable` | `(project_id, created, id)` |
+| `activity` | one line per change, with an optional `link_route` and `link_id` | `(project_id, created, id)` |
+
+- Case and plant versions share `VersionRepository` (numbering, identical content is
+  `409 conflict` with `details.latest`, one retry when two saves race).
+- A study's result is found through `results.study_id`; `studies` has no result column.
+- A run artifact save adds a row; the newest row for a key wins, per run
+  (`newest_for_run`) or per chat (`newest_for_chat`), so the next message of a chat reads
+  what the first run produced.
+- Progress of a running study is in Redis, not in `progress_done`; the worker writes
+  `progress_done` when the study ends.
+- `tests/test_migrations.py` (marker `postgres`) upgrades, downgrades and runs
+  `alembic check` on an empty database.
+
 ## Export and import
 
 - An export is a zip of `project.json` and one `plant/<number>.json` per version.

@@ -27,6 +27,9 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   subclasses. Stable codes: `unauthorized`, `forbidden`, `not_found`,
   `<thing>_not_found`, `validation_failed`, `conflict`, `plant_invalid`, `rate_limited`,
   `internal`.
+- **Tables:** `docs/CONVENTIONS.md` section Tables lists them. Migration `0006` holds
+  all app tables (case, chat, run, study, result, document, activity); each has a model
+  and a base repository in `src/core/clients/postgres/`. Features add no tables.
 - **Plant versions:** one row per saved plant in `plant_versions`, `content` being
   exactly gemini's `to_dict()` output (`src/core/gemini/plant.py`: `from_dict`,
   `to_dict`, `validate_content`; a bad document is `plant_invalid` with
