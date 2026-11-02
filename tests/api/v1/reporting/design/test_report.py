@@ -97,7 +97,7 @@ async def test_costs_show_source_and_missing(
     assert "case version 3, plant version 4" in sections["costs"]
     assert "| OPEX | missing: no price |" in sections["costs"]
     assert "No assistant run was chosen." in sections["agentlog"]
-    assert "Plant: HeatingPlant" in sections["design"]
+    assert "plant type Heating plant" in sections["design"]
     assert "13 passed" in sections["checks"]
 
 

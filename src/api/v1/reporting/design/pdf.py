@@ -7,6 +7,7 @@ from pathlib import Path
 from fpdf import FPDF
 from fpdf.enums import WrapMode
 
+from src.api.v1.reporting.design import figures
 from src.core import fonts
 
 HEADING_SIZES = {1: 18, 2: 14}
@@ -15,6 +16,7 @@ CODE_SIZE = 7
 LINE_HEIGHT = 5
 FENCE = "```"
 IMAGE = "!["
+WIDE_IMAGE = "![Flowsheet]"
 FONT = "Vazirmatn"
 FONT_DIR = Path(fonts.__file__).parent
 
@@ -88,10 +90,16 @@ def write_heading(pdf: FPDF, line: str) -> None:
 
 
 def write_image(pdf: FPDF, line: str) -> None:
-    """Draw an image line holding an SVG across the width of the page."""
+    """Draw an SVG image line across the page; a flowsheet takes a landscape page."""
     encoded = line.rpartition(",")[2].rstrip(")")
-    pdf.image(BytesIO(base64.b64decode(encoded)), w=pdf.epw)
+    svg = base64.b64decode(encoded).decode().replace(figures.SANS, FONT)
+    wide = line.startswith(WIDE_IMAGE)
+    if wide:
+        pdf.add_page(orientation="L")
+    pdf.image(BytesIO(svg.encode()), w=pdf.epw)
     pdf.ln(2)
+    if wide:
+        pdf.add_page(orientation="P")
 
 
 def write_table(pdf: FPDF, lines: list[str]) -> None:

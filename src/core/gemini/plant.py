@@ -207,6 +207,11 @@ def structure(plant: gm.Plant) -> dict[str, list[dict[str, Any]]]:
     return {"modules": modules, "connections": connections}
 
 
+def type_of(content: dict[str, Any]) -> str:
+    """Return the class of a plant document; a free plant has its name."""
+    return str(content.get("type") or content.get("name") or "Plant")
+
+
 def structure_of(content: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     """Return the modules and connections of a plant document."""
     return structure(from_dict(content))

@@ -1,7 +1,9 @@
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+SVG_LIMIT = 2_000_000
 
 SectionKey = Literal[
     "summary",
@@ -25,6 +27,7 @@ class ReportRequest(BaseModel):
 
 class ReportExport(ReportRequest):
     format: Literal["md", "pdf"]
+    flowsheet_svg: str | None = Field(default=None, max_length=SVG_LIMIT)
 
 
 class ReportSection(BaseModel):
@@ -36,6 +39,7 @@ class ReportSection(BaseModel):
 class Report(BaseModel):
     title: str
     sections: list[ReportSection]
+    flowsheet: dict[str, list[dict[str, Any]]]
 
 
 class ReportPart(BaseModel):

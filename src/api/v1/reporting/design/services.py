@@ -22,6 +22,7 @@ from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.gemini import evaluate as gemini_evaluate
 from src.core.gemini import plant as gemini_plant
+from src.core.gemini import study as gemini_study
 from src.core.routes import REPORT_ROUTE
 from src.core.security.access import require_project
 
@@ -72,7 +73,7 @@ def table(headers: list[str], rows: list[list[str]]) -> str:
 def rating_rows(items: list[dict[str, Any]]) -> list[list[str]]:
     return [
         [
-            item["title"],
+            narrative.module_words(item["title"]),
             item["kind"],
             narrative.figure_text(item),
             "-"
@@ -88,7 +89,7 @@ def rating_rows(items: list[dict[str, Any]]) -> list[list[str]]:
 
 def capacities_markdown(result: Result) -> str:
     parts = gemini_evaluate.summarise(result.content["report"])
-    rows = rating_rows(parts["capacities"] + parts["sizes"])
+    rows = rating_rows(parts["capacities"])
     headers = ["Module", "Kind", "Rated", "Peak", "Used"]
     return table(headers, rows) if rows else "No capacities."
 
@@ -120,9 +121,14 @@ def coverage_markdown(result: Result) -> str:
         rows.append([service.capitalize(), *(str(value) for value in count.values())])
         if days:
             title = f"{service.capitalize()}: demand and supply"
-            charts.append(figures.image_line(figures.supply_chart(title, days), title))
-    days_table = table(["Service", "Geothermal", "Backup", "Short"], rows)
-    return "\n\n".join([*charts, days_table])
+            labels = (figures.source_word(service, "geothermal"), "Backup")
+            chart = figures.supply_chart(title, days, labels)
+            charts.append(figures.image_line(chart, title))
+    days_table = table(["Service", "Geothermal or plant", "Backup", "Short"], rows)
+    note = (
+        "On cooling days the whole supply is the plant: gemini has no cooling backup."
+    )
+    return "\n\n".join([*charts, days_table, note])
 
 
 def findings_markdown(result: Result) -> str:
@@ -177,7 +183,7 @@ def check_row(item: dict[str, Any]) -> list[str]:
         value = narrative.figure_text({"value": item["value"], "unit": item["unit"]})
     margin = "-"
     if item["margin"] is not None:
-        margin = narrative.figure_text({"value": item["margin"], "unit": item["unit"]})
+        margin = narrative.margin_text(item["margin"], item["unit"])
     return [
         module_title(item),
         item["status"],
@@ -189,7 +195,9 @@ def check_row(item: dict[str, Any]) -> list[str]:
 
 
 def module_title(item: dict[str, Any]) -> str:
-    return f"{item['title']} ({item['module']})" if item["module"] else item["title"]
+    if not item["module"]:
+        return item["title"]
+    return f"{item['title']} ({narrative.module_words(item['module'])})"
 
 
 def capex_markdown(result: Result, economics: dict[str, Any]) -> str:
@@ -242,21 +250,18 @@ def design_table(summary: str) -> str:
 
 
 def design_markdown(result: Result, study: Study | None) -> str:
-    lines = [f"Result: {result.name}."]
-    if study is not None:
-        lines.append(f"Study: {study.name} ({study.kind}).")
-        settings = [f"{key} {value}" for key, value in study.settings.items()]
-        if settings:
-            lines.append(f"Settings: {', '.join(settings)}.")
-    summary = gemini_evaluate.describe_plant(result.content["design"]).splitlines()
-    lead = [line for line in summary[:3] if line.startswith("Plant")]
-    sheet = figures.flowsheet(gemini_plant.structure_of(result.content["design"]))
-    return " ".join(lines + lead) + "\n\n" + figures.image_line(sheet, "Flowsheet")
+    kind = gemini_plant.type_of(result.content["design"])
+    kind_title = "" if study is None else gemini_study.KIND_TITLES.get(study.kind, "")
+    origin = f" from a study of kind {kind_title}" if kind_title else ""
+    return f"Design {result.name}{origin}, plant type {narrative.spaced(kind)}."
 
 
 def appendix_markdown(result: Result) -> str:
     plant = gemini_evaluate.describe_plant(result.content["design"])
-    return design_table(plant)
+    parts = gemini_evaluate.summarise(result.content["report"])
+    rows = rating_rows(parts["sizes"])
+    sizes = table(["Module", "Kind", "Size", "Peak", "Used"], rows) if rows else ""
+    return "\n\n".join(filter(None, [sizes, design_table(plant)]))
 
 
 def agentlog_markdown(run: Run | None) -> str:
@@ -361,7 +366,27 @@ async def preview_report(
         for key, title in SECTION_TITLES.items()
         if key in wanted
     ]
-    return schemas.Report(title=f"{project.name}: {result.name}", sections=sections)
+    return schemas.Report(
+        title=f"{project.name}: {result.name}",
+        sections=sections,
+        flowsheet=gemini_plant.structure_of(result.content["design"]),
+    )
+
+
+def with_flowsheet(report: schemas.Report, svg: str | None) -> schemas.Report:
+    """Put the picture the page drew under the Plant section of an export."""
+    if svg is None or not svg.startswith("<svg"):
+        return report
+    line = figures.image_line(svg, "Flowsheet")
+    keys = [item.key for item in report.sections]
+    place = "capacities" if "capacities" in keys else "design"
+    sections = [
+        item.model_copy(update={"markdown": f"{item.markdown}\n\n{line}"})
+        if item.key == place
+        else item
+        for item in report.sections
+    ]
+    return report.model_copy(update={"sections": sections})
 
 
 def to_markdown(report: schemas.Report) -> str:
@@ -377,7 +402,7 @@ async def export_report(
     blobs: BlobStore,
 ) -> Export:
     report = await preview_report(request, user, repositories, blobs)
-    markdown = to_markdown(report)
+    markdown = to_markdown(with_flowsheet(report, request.flowsheet_svg))
     content = markdown.encode() if request.format == "md" else pdf.to_pdf(markdown)
     await repositories.activity.add(
         request.project,

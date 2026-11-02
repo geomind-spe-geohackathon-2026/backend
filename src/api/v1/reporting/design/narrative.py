@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from src.core.gemini import evaluate as gemini_evaluate
@@ -11,6 +12,8 @@ ENERGY_UNITS = ("MWh", "GWh")
 EMISSION_UNITS = ("kt", "t")
 THOUSAND = 1000
 PERCENT = 100
+SHORT_ID = 3
+NOISE = 1e-3
 TILE_FIGURES = ("lcts", "capex", "opex", "co2", "heat_delivered", "cold_delivered")
 
 
@@ -28,6 +31,12 @@ def figure_text(item: dict[str, Any]) -> str:
     if unit == ENERGY_UNITS[0] and abs(value) >= THOUSAND:
         return f"{number_text(value / THOUSAND)} {ENERGY_UNITS[1]}"
     return f"{number_text(value)} {unit}" if unit != "-" else number_text(value)
+
+
+def margin_text(margin: float, unit: str) -> str:
+    """Write a margin; floating point noise on a bound is no margin at all."""
+    shown = 0.0 if abs(margin) < NOISE else margin
+    return figure_text({"value": shown, "unit": unit})
 
 
 def group_of(unit: str) -> str:
@@ -64,6 +73,20 @@ def share_text(coverage: dict[str, Any] | None) -> str | None:
     return f"Geothermal covers {share * PERCENT:.0f}% of the heating demand."
 
 
+def module_words(name: str) -> str:
+    """Write a module id in words; a short id such as d0 stays as it is."""
+    if len(name) <= SHORT_ID:
+        return name
+    words = name.replace(".", " ").replace("_", " ")
+    return words[0].upper() + words[1:]
+
+
+def spaced(name: str) -> str:
+    """Write a class name in words."""
+    words = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", name)
+    return words[:1] + words[1:].lower()
+
+
 def largest_text(capacities: list[dict[str, Any]]) -> str | None:
     """Name the largest rated units in the unit most of the plant uses."""
     power = [item for item in capacities if item["unit"] == "MW"]
@@ -71,7 +94,8 @@ def largest_text(capacities: list[dict[str, Any]]) -> str | None:
     if not largest:
         return None
     names = ", ".join(
-        f"{item['title']} {number_text(item['value'])} MW" for item in largest
+        f"{module_words(item['title'])} {number_text(item['value'])} MW"
+        for item in largest
     )
     return f"The largest rated units are {names}."
 

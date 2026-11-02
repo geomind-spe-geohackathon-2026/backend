@@ -2181,6 +2181,17 @@
       },
       "Report": {
         "properties": {
+          "flowsheet": {
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "title": "Flowsheet",
+            "type": "object"
+          },
           "sections": {
             "items": {
               "$ref": "#/components/schemas/ReportSection"
@@ -2195,13 +2206,26 @@
         },
         "required": [
           "title",
-          "sections"
+          "sections",
+          "flowsheet"
         ],
         "title": "Report",
         "type": "object"
       },
       "ReportExport": {
         "properties": {
+          "flowsheet_svg": {
+            "anyOf": [
+              {
+                "maxLength": 2000000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flowsheet Svg"
+          },
           "format": {
             "enum": [
               "md",
