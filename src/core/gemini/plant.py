@@ -207,6 +207,11 @@ def structure(plant: gm.Plant) -> dict[str, list[dict[str, Any]]]:
     return {"modules": modules, "connections": connections}
 
 
+def structure_of(content: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Return the modules and connections of a plant document."""
+    return structure(from_dict(content))
+
+
 def set_parameters(
     plant: gm.Plant,
     module: str,

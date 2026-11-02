@@ -1,14 +1,18 @@
+import json
 import re
 from dataclasses import dataclass
 from typing import Any
 
-from src.api.v1.reporting.design import errors, narrative, pdf, schemas
+from src.api.v1.reporting.design import errors, figures, narrative, pdf, schemas
+from src.core.clients.minio.blobs import BlobStore
+from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.result import Result
 from src.core.clients.postgres.models.run import Run
 from src.core.clients.postgres.models.study import Study
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.activity import ActivityRepository
+from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
@@ -17,6 +21,7 @@ from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.gemini import evaluate as gemini_evaluate
+from src.core.gemini import plant as gemini_plant
 from src.core.routes import REPORT_ROUTE
 from src.core.security.access import require_project
 
@@ -42,6 +47,7 @@ class Repositories:
     runs: RunRepository
     activity: ActivityRepository
     cases: CaseVersionRepository
+    files: CaseFileRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,16 +96,15 @@ def capacities_markdown(result: Result) -> str:
 def summary_markdown(result: Result) -> str:
     report = result.content["report"]
     parts = gemini_evaluate.summarise(report)
+    coverage = result.content.get("coverage")
     sentences = narrative.summary_sentences(
-        report,
-        parts["capacities"],
-        result.content.get("coverage"),
-        result.summary["checks"],
+        report, parts["capacities"], coverage, result.summary["checks"]
     )
-    groups = narrative.grouped_figures(report)
-    rows = groups.get(narrative.ECONOMICS_GROUP, [])
+    tiles = narrative.tiles_of(report, coverage)
     lead = " ".join(sentences)
-    return lead + "\n\n" + table(["Figure", "Value"], rows) if rows else lead
+    if not tiles:
+        return lead
+    return figures.image_line(figures.kpi_tiles(tiles), "Key figures") + "\n\n" + lead
 
 
 def coverage_markdown(result: Result) -> str:
@@ -107,12 +112,17 @@ def coverage_markdown(result: Result) -> str:
     if coverage is None:
         return "Made before daily coverage existed."
     rows = []
+    charts = [figures.image_line(figures.day_strips(coverage), "Days covered")]
     for service, days in coverage.items():
         count = {name: 0 for name in ("geothermal", "backup", "short")}
         for day in days:
             count[day["source"]] += 1
         rows.append([service.capitalize(), *(str(value) for value in count.values())])
-    return table(["Service", "Geothermal", "Backup", "Short"], rows)
+        if days:
+            title = f"{service.capitalize()}: demand and supply"
+            charts.append(figures.image_line(figures.supply_chart(title, days), title))
+    days_table = table(["Service", "Geothermal", "Backup", "Short"], rows)
+    return "\n\n".join([*charts, days_table])
 
 
 def findings_markdown(result: Result) -> str:
@@ -157,7 +167,7 @@ def checks_markdown(result: Result, limits: dict[str, dict[str, Any]]) -> str:
     )
     parts = gemini_evaluate.summarise(result.content["report"], limits)
     rows = [check_row(item) for item in parts["constraints"]]
-    headers = ["Check", "Status", "Value", "Limit", "Worst day"]
+    headers = ["Check", "Status", "Value", "Limit", "Margin", "Worst day"]
     return line + "\n\n" + table(headers, rows) if rows else line
 
 
@@ -165,11 +175,15 @@ def check_row(item: dict[str, Any]) -> list[str]:
     value = item["message"]
     if item["value"] is not None:
         value = narrative.figure_text({"value": item["value"], "unit": item["unit"]})
+    margin = "-"
+    if item["margin"] is not None:
+        margin = narrative.figure_text({"value": item["margin"], "unit": item["unit"]})
     return [
         module_title(item),
         item["status"],
         value,
         item["limit"],
+        margin,
         item["worst"] or "-",
     ]
 
@@ -178,7 +192,15 @@ def module_title(item: dict[str, Any]) -> str:
     return f"{item['title']} ({item['module']})" if item["module"] else item["title"]
 
 
-def costs_markdown(result: Result) -> str:
+def capex_markdown(result: Result, economics: dict[str, Any]) -> str:
+    rows = narrative.capex_rows(result.content["report"], economics)
+    if not rows:
+        return ""
+    headers = ["Item", "Amount", "Unit cost", "Source"]
+    return f"### Capital cost by kind\n\n{table(headers, rows)}"
+
+
+def costs_markdown(result: Result, economics: dict[str, Any]) -> str:
     source = (
         f"From case version {result.case_version}, "
         f"plant version {result.plant_version}."
@@ -190,7 +212,8 @@ def costs_markdown(result: Result) -> str:
         f"### {name}\n\n{table(['Figure', 'Value'], rows)}"
         for name, rows in groups.items()
     ]
-    return "\n\n".join([source, *tables])
+    capex = capex_markdown(result, economics)
+    return "\n\n".join([source, *tables, *([capex] if capex else [])])
 
 
 def design_table(summary: str) -> str:
@@ -222,12 +245,13 @@ def design_markdown(result: Result, study: Study | None) -> str:
     lines = [f"Result: {result.name}."]
     if study is not None:
         lines.append(f"Study: {study.name} ({study.kind}).")
-        settings = [f"- {key}: {value}" for key, value in study.settings.items()]
+        settings = [f"{key} {value}" for key, value in study.settings.items()]
         if settings:
-            lines += ["", "Settings:", *settings]
+            lines.append(f"Settings: {', '.join(settings)}.")
     summary = gemini_evaluate.describe_plant(result.content["design"]).splitlines()
     lead = [line for line in summary[:3] if line.startswith("Plant")]
-    return "\n".join(lines + lead)
+    sheet = figures.flowsheet(gemini_plant.structure_of(result.content["design"]))
+    return " ".join(lines + lead) + "\n\n" + figures.image_line(sheet, "Flowsheet")
 
 
 def appendix_markdown(result: Result) -> str:
@@ -254,6 +278,7 @@ def section_markdown(
     study: Study | None,
     run: Run | None,
     limits: dict[str, dict[str, Any]],
+    economics: dict[str, Any],
 ) -> str:
     builders = {
         "summary": lambda: summary_markdown(result),
@@ -263,7 +288,7 @@ def section_markdown(
         "appendix": lambda: appendix_markdown(result),
         "design": lambda: design_markdown(result, study),
         "checks": lambda: checks_markdown(result, limits),
-        "costs": lambda: costs_markdown(result),
+        "costs": lambda: costs_markdown(result, economics),
         "agentlog": lambda: agentlog_markdown(run),
     }
     return builders[key]()
@@ -296,10 +321,27 @@ async def load_inputs(
     return project, result, study, run
 
 
+async def economics_of(
+    case: CaseVersion | None,
+    repositories: Repositories,
+    blobs: BlobStore,
+) -> dict[str, Any]:
+    """Return the economics of a case, inline or from the file it names."""
+    found = None if case is None else case.content.get("economics")
+    if isinstance(found, dict):
+        return {**found, "file": None}
+    if not isinstance(found, str):
+        return {}
+    row = await repositories.files.get(case.id, found)
+    data = None if row is None else await blobs.get(row.object_key)
+    return {} if data is None else {**json.loads(data), "file": found}
+
+
 async def preview_report(
     request: schemas.ReportRequest,
     user: User,
     repositories: Repositories,
+    blobs: BlobStore,
 ) -> schemas.Report:
     project, result, study, run = await load_inputs(request, user, repositories)
     wanted = set(request.include)
@@ -309,11 +351,12 @@ async def preview_report(
             project.id, result.case_version
         )
     limits = gemini_evaluate.case_limits(None if case is None else case.content)
+    economics = await economics_of(case, repositories, blobs)
     sections = [
         schemas.ReportSection(
             key=key,
             title=title,
-            markdown=section_markdown(key, result, study, run, limits),
+            markdown=section_markdown(key, result, study, run, limits, economics),
         )
         for key, title in SECTION_TITLES.items()
         if key in wanted
@@ -331,8 +374,9 @@ async def export_report(
     request: schemas.ReportExport,
     user: User,
     repositories: Repositories,
+    blobs: BlobStore,
 ) -> Export:
-    report = await preview_report(request, user, repositories)
+    report = await preview_report(request, user, repositories, blobs)
     markdown = to_markdown(report)
     content = markdown.encode() if request.format == "md" else pdf.to_pdf(markdown)
     await repositories.activity.add(

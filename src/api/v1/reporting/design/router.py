@@ -4,8 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, Depends, Response
 from src.api.v1.reporting.design import schemas, services
+from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.client import get_db
 from src.core.clients.postgres.repositories.activity import ActivityRepository
+from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
@@ -28,6 +30,7 @@ def get_repositories(
         RunRepository(session),
         ActivityRepository(session),
         CaseVersionRepository(session),
+        CaseFileRepository(session),
     )
 
 
@@ -44,8 +47,9 @@ async def preview_report(
     payload: schemas.ReportRequest,
     user: CurrentUser,
     repositories: RepositoriesDependency,
+    blobs: BlobStoreDependency,
 ) -> schemas.Report:
-    return await services.preview_report(payload, user, repositories)
+    return await services.preview_report(payload, user, repositories, blobs)
 
 
 @router.post(
@@ -57,8 +61,9 @@ async def export_report(
     payload: schemas.ReportExport,
     user: CurrentUser,
     repositories: RepositoriesDependency,
+    blobs: BlobStoreDependency,
 ) -> Response:
-    export = await services.export_report(payload, user, repositories)
+    export = await services.export_report(payload, user, repositories, blobs)
     return Response(
         content=export.content,
         media_type=export.media_type,

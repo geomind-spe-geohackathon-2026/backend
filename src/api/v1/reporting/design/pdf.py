@@ -1,5 +1,7 @@
+import base64
 from collections.abc import Iterator
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 
 from fpdf import FPDF
@@ -12,6 +14,7 @@ TEXT_SIZE = 10
 CODE_SIZE = 7
 LINE_HEIGHT = 5
 FENCE = "```"
+IMAGE = "!["
 FONT = "Vazirmatn"
 FONT_DIR = Path(fonts.__file__).parent
 
@@ -49,6 +52,8 @@ def blocks_of(markdown: str) -> Iterator[Block]:
 
 
 def block_kind(line: str) -> str:
+    if line.startswith(IMAGE):
+        return "image"
     if line.startswith(FENCE):
         return "code"
     if line.startswith("#"):
@@ -59,7 +64,7 @@ def block_kind(line: str) -> str:
 
 
 def block_end(lines: list[str], start: int, kind: str) -> int:
-    if kind in ("heading", "bullet"):
+    if kind in ("heading", "bullet", "image"):
         return start + 1
     end = start + 1
     while end < len(lines) and continues(lines[end], kind):
@@ -80,6 +85,13 @@ def write_heading(pdf: FPDF, line: str) -> None:
     pdf.set_font(FONT, "B", HEADING_SIZES.get(level, 12))
     pdf.multi_cell(0, 8, line.lstrip("# "), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
+
+
+def write_image(pdf: FPDF, line: str) -> None:
+    """Draw an image line holding an SVG across the width of the page."""
+    encoded = line.rpartition(",")[2].rstrip(")")
+    pdf.image(BytesIO(base64.b64decode(encoded)), w=pdf.epw)
+    pdf.ln(2)
 
 
 def write_table(pdf: FPDF, lines: list[str]) -> None:
@@ -124,7 +136,9 @@ def to_pdf(markdown: str) -> bytes:
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     for block in blocks_of(markdown):
-        if block.kind == "heading":
+        if block.kind == "image":
+            write_image(pdf, block.lines[0])
+        elif block.kind == "heading":
             write_heading(pdf, block.lines[0])
         elif block.kind == "table":
             write_table(pdf, block.lines)

@@ -11,6 +11,7 @@ ENERGY_UNITS = ("MWh", "GWh")
 EMISSION_UNITS = ("kt", "t")
 THOUSAND = 1000
 PERCENT = 100
+TILE_FIGURES = ("lcts", "capex", "opex", "co2", "heat_delivered", "cold_delivered")
 
 
 def number_text(value: float) -> str:
@@ -57,11 +58,9 @@ def grouped_figures(report: dict[str, Any]) -> dict[str, list[list[str]]]:
 
 def share_text(coverage: dict[str, Any] | None) -> str | None:
     """Write how much of the heating demand came from the geothermal plant."""
-    days = (coverage or {}).get("heating") or []
-    demand = sum(day["demand"]["value"] for day in days)
-    if demand == 0:
+    share = geothermal_share(coverage)
+    if share is None:
         return None
-    share = sum(day["geothermal"]["value"] for day in days) / demand
     return f"Geothermal covers {share * PERCENT:.0f}% of the heating demand."
 
 
@@ -108,3 +107,52 @@ def summary_sentences(
     lines += [line for line in found if line is not None]
     lines.append(verdict_text(checks))
     return lines
+
+
+def geothermal_share(coverage: dict[str, Any] | None) -> float | None:
+    """Return the share of the heating demand the geothermal plant gave."""
+    days = (coverage or {}).get("heating") or []
+    demand = sum(day["demand"]["value"] for day in days)
+    if demand == 0:
+        return None
+    return sum(day["geothermal"]["value"] for day in days) / demand
+
+
+def tiles_of(
+    report: dict[str, Any], coverage: dict[str, Any] | None
+) -> list[tuple[str, str]]:
+    """Return the title and value of each key figure a report has."""
+    tiles = [
+        (gemini_evaluate.title_of(name), figure_text(report[name]))
+        for name in TILE_FIGURES
+        if gemini_evaluate.is_quantity(report.get(name))
+        and report[name]["value"] is not None
+    ]
+    share = geothermal_share(coverage)
+    if share is not None:
+        tiles.append(("Geothermal share of heat", f"{share * PERCENT:.0f}%"))
+    return tiles
+
+
+def capex_rows(report: dict[str, Any], economics: dict[str, Any]) -> list[list[str]]:
+    """Return the capital cost by kind, with its unit cost and where that is from."""
+    modules = (report.get("capex") or {}).get("modules") or {}
+    totals: dict[str, float] = {}
+    for item in modules.values():
+        totals[item["kind"]] = totals.get(item["kind"], 0) + item["value"]
+    prices = economics.get("capex") or {}
+    origin = economics.get("file") or "case economics"
+    rows = []
+    for kind, total in sorted(totals.items(), key=lambda pair: -pair[1]):
+        price = prices.get(kind)
+        rows.append(
+            [
+                gemini_evaluate.title_of(kind),
+                f"{number_text(total)} MEUR",
+                "-"
+                if price is None
+                else f"{number_text(price['value'])} {price['unit']}",
+                "-" if price is None else f"{origin}, capex.{kind}",
+            ]
+        )
+    return rows

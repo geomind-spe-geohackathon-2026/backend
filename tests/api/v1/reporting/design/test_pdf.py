@@ -1,3 +1,4 @@
+import base64
 import re
 import zlib
 
@@ -55,3 +56,12 @@ def test_persian_text_is_embedded_without_question_marks() -> None:
     codepoints = printed_codepoints(document)
     assert {ord(character) for character in name if character != " "} <= codepoints
     assert ord("?") not in codepoints
+
+
+def test_an_svg_image_line_is_drawn_into_the_pdf() -> None:
+    svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'></svg>"
+    encoded = base64.b64encode(svg.encode()).decode()
+
+    data = pdf.to_pdf(f"![Figure](data:image/svg+xml;base64,{encoded})\n")
+
+    assert data.startswith(b"%PDF")
