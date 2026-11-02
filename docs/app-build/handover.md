@@ -16,10 +16,10 @@ Folder layout (siblings, because `requirements.txt` and compose use relative pat
 
 ```
 geomind-spe-geohackathon-2026/
-├── backend/          git@github.com:SahandNZ/backend.git
+├── backend/          git@github.com:geomind-spe-geohackathon-2026/backend.git
 ├── frontend/         git@github.com:geomind-spe-geohackathon-2026/frontend.git
 ├── gemini/           git@github.com:geomind-spe-geohackathon-2026/gemini.git   branch dev, 0.5.4 (a3b1471)
-├── geomind/          git@github.com:crust-team/geomind.git                     branch main, 0.4.1 (c9a5c1c)
+├── geomind/          git@github.com:geomind-spe-geohackathon-2026/geomind.git                     branch main, 0.4.1 (c9a5c1c)
 ├── infrastructure/   git@github.com:geomind-spe-geohackathon-2026/infrastructure.git
 └── docs/             copy contracts.md and ui-mockup.html here so the prompt's paths work
 ```
