@@ -1,5 +1,8 @@
+from celery.signals import worker_ready
+
 from celery import Celery
 from src.api import TASK_MODULES
+from src.core.clients.minio.client import create_minio_client, prepare_bucket
 from src.core.settings import settings
 
 app = Celery(
@@ -15,6 +18,11 @@ app.conf.update(
     task_time_limit=settings.TASK_TIME_LIMIT_SECONDS,
     timezone="UTC",
 )
+
+
+@worker_ready.connect
+def prepare_storage(**_details: object) -> None:
+    prepare_bucket(create_minio_client())
 
 
 def run() -> None:

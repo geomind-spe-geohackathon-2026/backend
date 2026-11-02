@@ -6,10 +6,10 @@ from minio import Minio
 from minio.error import S3Error
 
 from fastapi import Depends, Request
-from src.core.clients.minio.client import get_minio
+from src.core.clients.minio.client import ensure_bucket, get_minio
 from src.core.settings import settings
 
-MISSING_OBJECT_CODES = {"NoSuchKey", "NoSuchObject"}
+MISSING_OBJECT_CODES = {"NoSuchKey", "NoSuchObject", "NoSuchBucket"}
 
 
 class BlobStore:
@@ -20,8 +20,7 @@ class BlobStore:
         self.bucket = bucket
 
     def put_sync(self, key: str, data: bytes) -> None:
-        if not self.client.bucket_exists(self.bucket):
-            self.client.make_bucket(self.bucket)
+        ensure_bucket(self.client, self.bucket)
         self.client.put_object(self.bucket, key, BytesIO(data), len(data))
 
     def get_sync(self, key: str) -> bytes | None:
@@ -38,7 +37,11 @@ class BlobStore:
             response.release_conn()
 
     def delete_sync(self, key: str) -> None:
-        self.client.remove_object(self.bucket, key)
+        try:
+            self.client.remove_object(self.bucket, key)
+        except S3Error as error:
+            if error.code not in MISSING_OBJECT_CODES:
+                raise
 
     async def put(self, key: str, data: bytes) -> None:
         """Write the object, creating the bucket on first use."""

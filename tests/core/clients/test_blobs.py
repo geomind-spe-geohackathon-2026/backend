@@ -87,3 +87,33 @@ async def test_delete_removes_the_object() -> None:
     await store.delete("a")
 
     assert await store.get("a") is None
+
+
+class NoBucket(FakeMinio):
+    def __init__(self) -> None:
+        super().__init__(bucket_exists=False)
+
+    def remove_object(self, _bucket, _key):
+        raise s3_error("NoSuchBucket")
+
+    def get_object(self, _bucket, _key):
+        raise s3_error("NoSuchBucket")
+
+
+async def test_delete_without_a_bucket_is_nothing_to_delete() -> None:
+    await BlobStore(NoBucket(), "bucket").delete("k")
+
+
+async def test_get_without_a_bucket_is_none() -> None:
+    assert await BlobStore(NoBucket(), "bucket").get("k") is None
+
+
+async def test_a_bucket_another_process_made_first_is_fine() -> None:
+    class Late(FakeMinio):
+        def __init__(self) -> None:
+            super().__init__(bucket_exists=False)
+
+        def make_bucket(self, _bucket):
+            raise s3_error("BucketAlreadyOwnedByYou")
+
+    await BlobStore(Late(), "bucket").put("k", b"x")
