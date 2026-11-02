@@ -72,3 +72,10 @@ def save_inputs(
 def study_body(project: Project, **changes: Any) -> dict[str, Any]:
     body = {"project": str(project.id), "kind": "run", "name": "Base", "settings": {}}
     return {**body, **changes}
+
+
+@pytest.fixture
+def killed_later(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    found: list[str] = []
+    monkeypatch.setattr(control, "terminate_later", found.append)
+    return found

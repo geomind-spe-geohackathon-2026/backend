@@ -217,7 +217,14 @@ async def test_other_users_study_is_not_found(
 
 
 async def test_cancel_flags_the_study_without_killing_the_worker(
-    client, make_user, make_project, save_inputs, queued, terminated, redis
+    client,
+    make_user,
+    make_project,
+    save_inputs,
+    queued,
+    terminated,
+    killed_later,
+    redis,
 ) -> None:
     user = await make_user()
     project = await make_project(user)
@@ -230,6 +237,7 @@ async def test_cancel_flags_the_study_without_killing_the_worker(
     assert response.json()["status"] == "cancelled"
     assert response.json()["ended"] is not None
     assert terminated == []
+    assert killed_later == ["task-1"]
     assert await redis.exists(f"job:{study_id}:cancel")
     again = await client.post(f"{URL}/{study_id}/cancel", headers=bearer(user))
     assert again.status_code == 409

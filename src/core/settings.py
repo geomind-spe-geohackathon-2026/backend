@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://default:replace-with-redis-password@redis:6379/0"
     CELERY_BROKER_URL: str = "redis://default:replace-with-redis-password@redis:6379/1"
     JOB_STATE_TTL_SECONDS: int = 86_400
+    JOB_CANCEL_GRACE_SECONDS: int = 60
     TASK_SOFT_TIME_LIMIT_SECONDS: int = 3_600
     TASK_TIME_LIMIT_SECONDS: int = 3_900
     SSE_HEARTBEAT_SECONDS: int = 10

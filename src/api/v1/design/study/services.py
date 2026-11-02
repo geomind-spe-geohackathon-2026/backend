@@ -319,6 +319,8 @@ async def cancel_study(
         study, {"status": "cancelled", "ended": utc_now()}
     )
     await control.request_cancel(jobs, str(study.id))
+    if study.task_id:
+        await asyncio.to_thread(control.terminate_later, study.task_id)
     await record(study, stores, f"Cancelled study {study.name}", STUDY_ROUTE)
     return to_study(study, None, None)
 

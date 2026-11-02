@@ -8,6 +8,7 @@ from src.api.v1.design.study import services
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.minio.client import create_minio_client
 from src.core.clients.postgres.client import create_postgres_client
+from src.core.jobs import control
 from src.core.settings import settings
 
 TASK_MODULES = (__name__,)
@@ -31,6 +32,12 @@ async def execute(task: Task, study_id: UUID) -> None:
 @shared_task(bind=True, name="design.study.run")
 def run_study(self: Task, study_id: str) -> None:
     asyncio.run(execute(self, UUID(study_id)))
+
+
+@shared_task(name=control.TERMINATE_TASK)
+def terminate_task(task_id: str) -> None:
+    """Kill a cancelled task that is still running after the grace time."""
+    control.terminate(task_id)
 
 
 def enqueue(study_id: UUID) -> str:
