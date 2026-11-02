@@ -89,6 +89,8 @@ class TornadoRow(BaseModel):
     at_high: float | None
     effect: float | None
     unit: str
+    feasible_low: bool | None = None
+    feasible_high: bool | None = None
 
 
 class SpreadRow(BaseModel):
@@ -100,6 +102,7 @@ class SpreadRow(BaseModel):
     p95: float | None
     unit: str
     draws: int
+    feasible: int | None = None
 
 
 class AdoptedDesign(BaseModel):

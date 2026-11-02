@@ -1,7 +1,7 @@
 import gemini
 import geomind
 
-GEMINI_NEEDED = (0, 5, 3)
+GEMINI_NEEDED = (0, 5, 4)
 GEOMIND_NEEDED = (0, 4, 1)
 
 

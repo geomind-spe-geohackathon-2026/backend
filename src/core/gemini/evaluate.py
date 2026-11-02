@@ -308,6 +308,8 @@ def tornado_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
             "at_high": item["at_high"]["value"],
             "effect": item["effect"]["value"],
             "unit": item["effect"]["unit"],
+            "feasible_low": item.get("feasible_low"),
+            "feasible_high": item.get("feasible_high"),
         }
         for item in found["rows"]
     ]
@@ -319,6 +321,9 @@ def spread_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
     found = run.get("found") or {}
     if "summary" not in found:
         return None
+    samples = found.get("samples", [])
+    flags = [item["feasible"] for item in samples if "feasible" in item]
+    feasible = sum(flags) if flags else None
     return [
         {
             "name": name,
@@ -328,7 +333,8 @@ def spread_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
             "p50": item["p50"]["value"],
             "p95": item["p95"]["value"],
             "unit": item["mean"]["unit"],
-            "draws": len(found.get("samples", [])),
+            "draws": len(samples),
+            "feasible": feasible,
         }
         for name, item in found["summary"].items()
     ]

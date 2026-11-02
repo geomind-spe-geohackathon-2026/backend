@@ -241,7 +241,7 @@ def test_a_spread_has_its_percentiles_and_draws() -> None:
     figure = {"value": 2.0, "unit": "kt"}
     summary = {"co2": {"mean": figure, "p5": figure, "p50": figure, "p95": figure}}
 
-    rows = evaluate.spread_of({"found": {"summary": summary, "samples": [1, 2]}})
+    rows = evaluate.spread_of({"found": {"summary": summary, "samples": [{}, {}]}})
 
     assert rows[0]["draws"] == 2
     assert rows[0]["p95"] == 2.0
@@ -269,3 +269,19 @@ def test_a_design_states_its_doublets_and_depth() -> None:
         "depth": 2500,
         "depth_unit": "m",
     }
+
+
+def test_a_spread_counts_the_feasible_draws() -> None:
+    found = {
+        "summary": {
+            "lcts": {
+                key: {"value": 1.0, "unit": "EUR/MWh"}
+                for key in ("mean", "p5", "p50", "p95")
+            }
+        },
+        "samples": [{"feasible": True}, {"feasible": False}, {"feasible": True}],
+    }
+
+    assert evaluate.spread_of({"found": found})[0]["feasible"] == 2
+    found["samples"] = [{}, {}]
+    assert evaluate.spread_of({"found": found})[0]["feasible"] is None

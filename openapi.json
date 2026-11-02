@@ -3048,6 +3048,17 @@
             "title": "Draws",
             "type": "integer"
           },
+          "feasible": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feasible"
+          },
           "mean": {
             "anyOf": [
               {
@@ -3538,6 +3549,28 @@
               }
             ],
             "title": "Effect"
+          },
+          "feasible_high": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feasible High"
+          },
+          "feasible_low": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feasible Low"
           },
           "high": {
             "title": "High",
