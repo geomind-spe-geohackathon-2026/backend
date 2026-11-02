@@ -33,7 +33,8 @@ from src.core.clients.postgres.repositories.project import (
     ImportedVersion,
     ProjectRepository,
 )
-from src.core.errors import ValidationFailedError
+from src.core.errors import CaseInvalidError, ValidationFailedError
+from src.core.gemini import case as case_document
 from src.core.gemini.errors import PlantInvalidError
 from src.core.gemini.plant import validate_content
 from src.core.gemini.stored import stored_files
@@ -45,7 +46,7 @@ EXPORT_FORMAT = 1
 PROJECT_FILE = "project.json"
 PLANT_FILE = re.compile(r"plant/([1-9][0-9]*)\.json")
 CASE_FILE = re.compile(r"case/([1-9][0-9]*)\.json")
-CASE_ATTACHMENT = re.compile(r"case/files/([1-9][0-9]*)/([^/]+)")
+CASE_ATTACHMENT = re.compile(r"case/files/([1-9][0-9]*)/(.+)")
 WINDOWS_DRIVE = re.compile(r"[A-Za-z]:")
 ARCHIVE_ERRORS = (BadZipFile, EOFError, NotImplementedError, RuntimeError, zlib.error)
 
@@ -240,6 +241,14 @@ def read_case(name: str, number: int, data: bytes) -> ParsedCase:
     return ParsedCase(number, stored.note, stored.created, stored.content, {})
 
 
+def check_case(parsed: ParsedCase) -> None:
+    """Refuse a case version that gemini finds structurally wrong; gaps are allowed."""
+    _, problems = case_document.validate(parsed.content, parsed.files)
+    if problems:
+        name = f"case/{parsed.number}.json"
+        raise CaseInvalidError([{**problem, "file": name} for problem in problems])
+
+
 def read_cases(archive: ZipFile) -> list[ParsedCase]:
     cases = {
         int(match[1]): read_case(name, int(match[1]), archive.read(name))
@@ -253,7 +262,10 @@ def read_cases(archive: ZipFile) -> list[ParsedCase]:
         if int(match[1]) not in cases:
             raise refuse_file(f"{name} belongs to a case version that is missing")
         cases[int(match[1])].files[match[2]] = archive.read(name)
-    return sorted(cases.values(), key=lambda case: case.number)
+    ordered = sorted(cases.values(), key=lambda case: case.number)
+    for parsed in ordered:
+        check_case(parsed)
+    return ordered
 
 
 def read_archive(

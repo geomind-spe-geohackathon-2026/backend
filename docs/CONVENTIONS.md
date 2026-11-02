@@ -265,6 +265,9 @@ code uses the repository; it does not add tables or queries of its own.
 - Import checks every version with `validate_content` before writing and writes in
   one transaction. One bad version refuses the import with `422 plant_invalid` and
   the file name in `details`; a bad archive is `422 validation_failed` on `file`.
+- Each case version is checked by `gm.Case.from_dict` with its files (`core/gemini/case.py`);
+  a structural problem is `422 case_invalid` with `file` on each problem, missing
+  values are allowed. Case files keep their folder (`case/files/<n>/<name>`).
 - Archives with `..` or absolute paths, or above `PROJECT_IMPORT_MAX_BYTES` uploaded or
   unpacked, are refused. Only `project.json` and `plant/<number>.json` are read.
 - Imported versions keep their number, note and creation time; the importer becomes

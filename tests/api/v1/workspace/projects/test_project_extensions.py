@@ -6,17 +6,24 @@ from zipfile import ZipFile
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
 from tests.api.v1.workspace.projects.archives import PROJECT_FILE, archive_of
+from tests.cases import DEMAND_CSV, DEMAND_FILE, broken_case, example_case
 from tests.conftest import bearer
 
 PROJECTS = "/api/v1/workspace/projects"
-CASE_FILE = json.dumps(
-    {
-        "number": 1,
-        "note": "Demand",
-        "created": "2026-10-30T12:00:00+00:00",
-        "content": {"demand": {"file": "demand.csv"}},
-    }
-)
+
+
+def case_file(content: dict) -> str:
+    return json.dumps(
+        {
+            "number": 1,
+            "note": "Demand",
+            "created": "2026-10-30T12:00:00+00:00",
+            "content": content,
+        }
+    )
+
+
+CASE_FILE = case_file(example_case())
 
 
 async def test_search_filters_by_name(client, make_user, make_project) -> None:
@@ -118,11 +125,11 @@ async def test_export_has_case_versions_and_files(
     owner = await make_user()
     project = await make_project(owner)
     version = await CaseVersionRepository(session).save_version(
-        project.id, {"demand": {"file": "demand.csv"}}, "Demand", owner.id
+        project.id, example_case(), "Demand", owner.id
     )
-    await blobs.put("key-1", b"time,value\n0,1\n")
+    await blobs.put("key-1", DEMAND_CSV)
     await CaseFileRepository(session).add(
-        project.id, version.id, "demand.csv", 15, "key-1"
+        project.id, version.id, DEMAND_FILE, 15, "key-1"
     )
 
     response = await client.get(
@@ -132,10 +139,10 @@ async def test_export_has_case_versions_and_files(
     with ZipFile(BytesIO(response.content)) as archive:
         assert sorted(archive.namelist()) == [
             "case/1.json",
-            "case/files/1/demand.csv",
+            f"case/files/1/{DEMAND_FILE}",
             "project.json",
         ]
-        assert archive.read("case/files/1/demand.csv") == b"time,value\n0,1\n"
+        assert archive.read(f"case/files/1/{DEMAND_FILE}") == DEMAND_CSV
         assert json.loads(archive.read("case/1.json"))["content"] == version.content
 
 
@@ -150,7 +157,7 @@ async def test_import_restores_case_versions_and_files(
         {
             "project.json": PROJECT_FILE,
             "case/1.json": CASE_FILE,
-            "case/files/1/demand.csv": "time,value\n0,1\n",
+            f"case/files/1/{DEMAND_FILE}": DEMAND_CSV.decode(),
         }
     )
 
@@ -165,8 +172,8 @@ async def test_import_restores_case_versions_and_files(
     assert body["case_version"] == 1
     stored = await CaseVersionRepository(session).latest_version(UUID(body["id"]))
     files = await CaseFileRepository(session).list_for_version(stored.id)
-    assert [file.name for file in files] == ["demand.csv"]
-    assert blobs.objects[files[0].object_key] == b"time,value\n0,1\n"
+    assert [file.name for file in files] == [DEMAND_FILE]
+    assert blobs.objects[files[0].object_key] == DEMAND_CSV
 
 
 async def test_import_refuses_a_file_without_its_case_version(
@@ -210,3 +217,25 @@ async def test_import_refuses_a_case_version_that_is_not_a_document(
     )
 
     assert response.status_code == 422
+
+
+async def test_import_refuses_a_case_gemini_calls_invalid(client, make_user) -> None:
+    user = await make_user()
+    archive = archive_of(
+        {
+            "project.json": PROJECT_FILE,
+            "case/1.json": case_file(broken_case()),
+            f"case/files/1/{DEMAND_FILE}": DEMAND_CSV.decode(),
+        }
+    )
+
+    response = await client.post(
+        f"{PROJECTS}/import",
+        files={"file": ("project.zip", archive, "application/zip")},
+        headers=bearer(user),
+    )
+
+    assert response.status_code == 422
+    error = response.json()["error"]
+    assert error["code"] == "case_invalid"
+    assert error["details"]["problems"][0]["file"] == "case/1.json"
