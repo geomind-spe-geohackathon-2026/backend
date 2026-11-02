@@ -1,7 +1,5 @@
-import tempfile
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -109,19 +107,17 @@ async def carry_out(
     run: Run,
     action: Action,
 ) -> None:
-    """Run the action in a folder of its own and record how the run ended."""
-    channel = run_channel(run.id)
-    with tempfile.TemporaryDirectory() as folder:
-        environment = adapters.build_environment(resources, Path(folder), run, channel)
-        try:
-            outcome = await action(environment)
-        except AdapterFailedError as error:
-            await fail(resources, run, "error", str(error))
-            return
-        except Exception:
-            logger.exception("Run %s failed unexpectedly", run.id)
-            await fail(resources, run, "internal", "The run failed unexpectedly")
-            return
+    """Run the action and record how the run ended."""
+    environment = adapters.build_environment(resources, run, run_channel(run.id))
+    try:
+        outcome = await action(environment)
+    except AdapterFailedError as error:
+        await fail(resources, run, "error", str(error))
+        return
+    except Exception:
+        logger.exception("Run %s failed unexpectedly", run.id)
+        await fail(resources, run, "internal", "The run failed unexpectedly")
+        return
     await settle(resources, run.id, outcome)
 
 

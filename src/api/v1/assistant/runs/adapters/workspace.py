@@ -1,12 +1,11 @@
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from minio import Minio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
 from src.api.v1.assistant.runs.adapters.documents import search_documents
+from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
@@ -14,17 +13,19 @@ from src.core.clients.postgres.repositories.case_version import (
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
-from src.core.gemini import plant as gemini_plant
-from src.core.settings import settings
+
+DEFAULT_PLANT_NAME = "plant"
 
 
-class WorkspaceFileError(ValueError):
-    """A case file name that is not a bare file name."""
-
-
-async def read_plant(session: AsyncSession, project_id: UUID) -> dict[str, Any] | None:
+async def read_plants(
+    session: AsyncSession,
+    project_id: UUID,
+) -> dict[str, dict[str, Any]]:
     row = await PlantVersionRepository(session).latest_version(project_id)
-    return None if row is None else row.content
+    if row is None:
+        return {}
+    name = row.content.get("name")
+    return {name if isinstance(name, str) and name else DEFAULT_PLANT_NAME: row.content}
 
 
 async def read_case(
@@ -38,49 +39,37 @@ async def read_case(
     return version.content, [(file.name, file.object_key) for file in files]
 
 
-def write_case_files(
-    minio: Minio,
-    files: list[tuple[str, str]],
-    folder: Path,
-) -> None:
-    folder.mkdir(parents=True, exist_ok=True)
-    for name, object_key in files:
-        if Path(name).name != name:
-            raise WorkspaceFileError(f"case file {name!r} is not a bare file name")
-        response = minio.get_object(settings.MINIO_BUCKET_NAME, object_key)
-        try:
-            (folder / name).write_bytes(response.read())
-        finally:
-            response.close()
-            response.release_conn()
-
-
 class DatabaseWorkspace:
     """geomind's ``Workspace`` on the backend's tables; every method blocks.
 
-    The files of a case are copied from MinIO into a folder of this run, which the
-    caller removes when the run ends.
+    ``plants`` holds the project's latest plant under the name in its document. ``case``
+    returns the case as written with the bytes of every file it holds.
     """
 
-    def __init__(self, bridge: LoopBridge, minio: Minio, folder: Path) -> None:
+    def __init__(self, bridge: LoopBridge, blobs: BlobStore) -> None:
         self.bridge = bridge
-        self.minio = minio
-        self.folder = folder
+        self.blobs = blobs
 
-    def plant(self, project_id: str) -> Any:
-        """Return the project's latest plant as a gemini plant, or ``None``."""
-        content = self.bridge.call(read_plant, UUID(project_id))
-        return None if content is None else gemini_plant.from_dict(content)
+    def plants(self, project_id: str) -> dict[str, dict[str, Any]]:
+        """Return ``{name: plant file dict}`` of the project, ``{}`` without a plant."""
+        return self.bridge.call(read_plants, UUID(project_id))
 
-    def case(self, project_id: str) -> tuple[dict[str, Any], Path] | None:
-        """Return the latest case as written and the folder holding its files."""
+    def case(
+        self,
+        project_id: str,
+    ) -> tuple[dict[str, Any], dict[str, bytes]] | None:
+        """Return the latest case as written and ``{name: bytes}``, or ``None``."""
         found = self.bridge.call(read_case, UUID(project_id))
         if found is None:
             return None
-        content, files = found
-        folder = self.folder / project_id
-        write_case_files(self.minio, files, folder)
-        return content, folder
+        content, rows = found
+        return content, {name: self.read(key) for name, key in rows}
+
+    def read(self, key: str) -> bytes:
+        data = self.blobs.get_sync(key)
+        if data is None:
+            raise FileNotFoundError(f"case file {key!r} is missing from storage")
+        return data
 
     def documents(self, project_id: str, query: str) -> list[dict[str, Any]]:
         """Return matching documents as ``[{id, title, text, score}]``, best first."""

@@ -1,5 +1,4 @@
 import asyncio
-from pathlib import Path
 from uuid import UUID, uuid4
 
 import geomind as gd
@@ -10,8 +9,10 @@ from src.api.v1.assistant.runs.adapters.store import DatabaseRunStore
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
+from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
+from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
 from tests.plants import example_plant
 
 
@@ -122,56 +123,54 @@ async def test_store_refuses_to_block_its_own_loop(
         DatabaseRunStore(bridge, first.id, chat.id).load_state(str(chat.id))
 
 
-class FakeObject:
-    def __init__(self, data: bytes) -> None:
-        self.data = data
+async def seed_workspace(session, owner, project, blobs) -> None:
+    await PlantVersionRepository(session).save_version(
+        project.id, example_plant(), "first", owner.id
+    )
+    case = await CaseVersionRepository(session).save_version(
+        project.id, example_case(), "first", owner.id
+    )
+    key = f"{project.id}/demand"
+    blobs.objects[key] = DEMAND_CSV
+    await CaseFileRepository(session).add(
+        project.id, case.id, DEMAND_FILE, len(DEMAND_CSV), key
+    )
+    documents = DocumentRepository(session)
+    text = "Brine salinity is high"
+    document = await documents.create(project.id, "notes.txt", len(text), "k", owner.id)
+    await documents.set_text(document, text)
 
-    def read(self) -> bytes:
-        return self.data
 
-    def close(self) -> None:
-        return None
-
-    def release_conn(self) -> None:
-        return None
-
-
-class FakeMinio:
-    def get_object(self, bucket: str, key: str) -> FakeObject:
-        return FakeObject(f"bytes of {key}".encode())
-
-
-async def test_workspace_gives_plant_and_case_with_files(
-    session_factory, session, make_user, make_project, tmp_path: Path
+async def test_workspace_passes_geomind_conformance(
+    session_factory, session, make_user, make_project, blobs
 ) -> None:
     owner = await make_user()
     project = await make_project(owner)
-    versions = PlantVersionRepository(session)
-    await versions.save_version(project.id, example_plant(), "first", owner.id)
-    case = await CaseVersionRepository(session).save_version(
-        project.id, {"time": {}}, "first", owner.id
-    )
-    await CaseFileRepository(session).add(
-        project.id, case.id, "demand.csv", 3, "objects/demand"
-    )
+    await seed_workspace(session, owner, project, blobs)
     bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
-    workspace = DatabaseWorkspace(bridge, FakeMinio(), tmp_path)
 
-    def read() -> tuple:
-        return (
-            workspace.plant(str(project.id)),
-            workspace.case(str(project.id)),
-            workspace.plant(str(uuid4())),
-            workspace.case(str(uuid4())),
-            workspace.documents(str(project.id), "anything"),
+    def check() -> None:
+        gd.testing.check_workspace(
+            lambda: DatabaseWorkspace(bridge, blobs),
+            project=str(project.id),
+            query="salinity",
+            missing_project=str(uuid4()),
         )
 
-    plant, found, no_plant, no_case, documents = await asyncio.to_thread(read)
+    await asyncio.to_thread(check)
 
-    content, folder = found
-    assert plant.to_dict() == example_plant()
-    assert content == {"time": {}}
-    assert (folder / "demand.csv").read_text() == "bytes of objects/demand"
-    assert no_plant is None
-    assert no_case is None
-    assert documents == []
+
+async def test_workspace_names_the_plant_after_its_document(
+    session_factory, session, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    await seed_workspace(session, owner, project, blobs)
+    bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+    workspace = DatabaseWorkspace(bridge, blobs)
+
+    plants = await asyncio.to_thread(workspace.plants, str(project.id))
+    found = await asyncio.to_thread(workspace.case, str(project.id))
+
+    assert plants == {example_plant()["name"]: example_plant()}
+    assert found == (example_case(), {DEMAND_FILE: DEMAND_CSV})

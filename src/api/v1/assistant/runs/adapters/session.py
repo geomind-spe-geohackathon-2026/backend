@@ -3,7 +3,6 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -18,6 +17,7 @@ from src.api.v1.assistant.runs.adapters.errors import AdapterFailedError
 from src.api.v1.assistant.runs.adapters.fake import scripted_llm
 from src.api.v1.assistant.runs.adapters.store import DatabaseRunStore
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
+from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.redis.repositories.job import SyncJobRepository
 from src.core.settings import settings
 
@@ -67,7 +67,6 @@ class EventRecord:
 
 def build_environment(
     resources: Resources,
-    folder: Path,
     run: Any,
     channel: str,
 ) -> Environment:
@@ -85,7 +84,9 @@ def build_environment(
     )
     return Environment(
         store=DatabaseRunStore(bridge, run.id, run.chat_id),
-        workspace=DatabaseWorkspace(bridge, resources.minio, folder),
+        workspace=DatabaseWorkspace(
+            bridge, BlobStore(resources.minio, settings.MINIO_BUCKET_NAME)
+        ),
         callbacks=[recorder, publisher],
         is_cancelled=lambda: resources.jobs.is_cancel_requested(str(run.id)),
     )

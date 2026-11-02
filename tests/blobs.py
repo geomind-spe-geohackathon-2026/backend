@@ -12,6 +12,9 @@ class MemoryBlobStore(BlobStore):
     def __init__(self) -> None:
         self.objects: dict[str, bytes] = {}
 
+    def get_sync(self, key: str) -> bytes | None:
+        return self.objects.get(key)
+
     async def put(self, key: str, data: bytes) -> None:
         self.objects[key] = data
 
