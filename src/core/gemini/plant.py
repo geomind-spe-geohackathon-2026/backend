@@ -152,11 +152,21 @@ def module_ids(tree: dict[str, Any], prefix: str = "") -> list[str]:
 
 
 def free_document(plant: gm.Plant) -> dict[str, Any]:
-    """Return the plant as a free structure, without class type and size."""
+    """Return the plant as a free structure, without class type and size.
+
+    A class-level parameter such as ``depth`` is left out: its value is already on the
+    modules, and gemini refuses it on a plant without a class.
+    """
     document = plant.to_dict(structure=True)
-    return {
+    free = {
         key: value for key, value in document.items() if key not in {"type", "size"}
     }
+    free["params"] = {
+        key: value
+        for key, value in document["params"].items()
+        if key in document["modules"]
+    }
+    return free
 
 
 def structure(plant: gm.Plant) -> dict[str, list[dict[str, Any]]]:

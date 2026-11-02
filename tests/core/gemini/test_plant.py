@@ -1,10 +1,16 @@
+import json
 from copy import deepcopy
+from pathlib import Path
 
+import gemini as gm
 import pytest
 
+from src.core.gemini import plant
 from src.core.gemini.errors import PlantInvalidError
 from src.core.gemini.plant import from_dict, to_dict, validate_content
 from tests.plants import changed_plant, example_plant
+
+EXAMPLE = Path(__file__).parents[2] / "fixtures" / "hackathon"
 
 
 def assert_plant_invalid(content: object) -> PlantInvalidError:
@@ -64,3 +70,20 @@ def test_values_json_cannot_hold_are_invalid(monkeypatch) -> None:
 
     with pytest.raises(PlantInvalidError):
         validate_content(example_plant())
+
+
+@pytest.mark.parametrize("name", plant.template_names())
+def test_the_free_document_of_a_template_builds_again(name: str) -> None:
+    document = plant.free_document(gm.plants.get(name))
+
+    assert gm.Plant.from_dict(document)
+
+
+def test_the_free_document_of_the_seeded_plant_keeps_the_module_depth() -> None:
+    content = json.loads((EXAMPLE / "seed_plant.json").read_text())
+
+    document = plant.free_document(gm.Plant.from_dict(content))
+
+    assert "depth" not in document["params"]
+    assert document["params"]["d0"]["depth"]["value"] == 2500
+    assert gm.Plant.from_dict(document)

@@ -8,7 +8,11 @@ import pytest
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge, LoopBridgeError
 from src.api.v1.assistant.runs.adapters.callbacks import StudyRecorder
 from src.api.v1.assistant.runs.adapters.replay import known_events
-from src.api.v1.assistant.runs.adapters.session import Environment, build_budget
+from src.api.v1.assistant.runs.adapters.session import (
+    Environment,
+    build_budget,
+    seed_problem,
+)
 from src.api.v1.assistant.runs.adapters.store import (
     DatabaseRunStore,
     DatabaseUsageLedger,
@@ -20,6 +24,7 @@ from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
+from tests import design_inputs
 from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
 from tests.conftest import bearer
 from tests.plants import example_plant
@@ -288,3 +293,61 @@ def test_a_project_with_a_cap_has_a_budget_hook() -> None:
 
     assert isinstance(hooks[0], gd.hooks.ProjectBudget)
     assert hooks[0].max_cost == 2.0
+
+
+class SeedStore:
+    def __init__(self, state: Any = None) -> None:
+        self.state = state
+        self.artifacts: dict[str, bytes] = {}
+
+    def load_state(self, _chat: str) -> Any:
+        return self.state
+
+    def save_state(self, _chat: str, state: dict[str, Any]) -> None:
+        self.state = state
+
+    def save_chat_artifact(self, _chat: str, key: str, data: bytes) -> None:
+        self.artifacts[key] = data
+
+
+class SeedWorkspace:
+    def __init__(self, found: Any) -> None:
+        self.found = found
+
+    def case(self, _project: str) -> Any:
+        return self.found
+
+
+def seeded(store: SeedStore, found: Any) -> SeedStore:
+    environment = Environment(
+        store, SeedWorkspace(found), [], lambda: False, None, "project", {}
+    )
+    seed_problem(environment, uuid4(), uuid4())
+    return store
+
+
+def test_a_new_chat_starts_with_the_complete_case_of_the_project() -> None:
+    content, files = design_inputs.case_content(), design_inputs.case_files()
+
+    store = seeded(SeedStore(), (content, files))
+
+    assert store.state == {"version": 1, "case": content}
+    assert set(store.artifacts) == {f"case/{name}" for name in files}
+
+
+def test_a_chat_with_a_state_keeps_it() -> None:
+    state = {"version": 3}
+    found = (design_inputs.case_content(), design_inputs.case_files())
+
+    assert seeded(SeedStore(state), found).state == state
+
+
+def test_a_project_without_a_case_leaves_the_chat_empty() -> None:
+    assert seeded(SeedStore(), None).state is None
+
+
+def test_an_incomplete_case_is_not_given_to_the_chat() -> None:
+    content = design_inputs.case_content()
+    del content["site"]["reservoir"]["thickness"]["value"]
+
+    assert seeded(SeedStore(), (content, design_inputs.case_files())).state is None

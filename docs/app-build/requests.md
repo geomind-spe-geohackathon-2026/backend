@@ -129,3 +129,13 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
 - gemini: give the range of an `out_of_bounds` problem as data
   Today: the message holds `{'min': 0.0} (SI)`; the backend rewords it by matching the text
   Needed by: Problem validation messages
+
+- gemini: `Plant.to_dict(structure=True)` keeps class-level parameters that `from_dict` refuses
+  Today: a document without `type` and with `params.depth` fails with "unknown parameter or control 'depth'"; the backend drops the key, which also drops its search range
+  Needed by: editing a template plant in the flowsheet editor
+
+- geomind: a chat should start with the project's case without the backend writing the state
+  Today: only `set_case(source='project')` loads it, and the analyst agent lacks that tool, so `save_profile` and `read_case` fail in a tool-loop chat; the backend writes `case` into a new chat's state (`seed_problem`), without `case_origin`
+  Wanted: `set_case` on the analyst, or a public way to start a run with the project's case
+  Needed by: chat, "What it knows"
+

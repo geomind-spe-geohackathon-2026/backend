@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -26,7 +27,10 @@ from src.api.v1.assistant.runs.adapters.store import (
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.redis.repositories.job import SyncJobRepository
+from src.core.gemini import case as gemini_case
 from src.core.settings import settings
+
+CASE_ARTIFACT = "case/"
 
 
 @dataclass(frozen=True)
@@ -175,6 +179,26 @@ def keywords(environment: Environment, resumed: bool) -> dict[str, Any]:
     }
 
 
+def seed_problem(environment: Environment, chat_id: UUID, project_id: UUID) -> None:
+    """Give a chat without a state the project's case, when that case is complete.
+
+    The analyst agent has no ``set_case``, so a chat that started empty could never
+    read or change the case the project already has.
+    """
+    store = environment.store
+    if store.load_state(str(chat_id)) is not None:
+        return
+    found = environment.workspace.case(str(project_id))
+    if found is None:
+        return
+    content, files = found
+    if gemini_case.build(copy.deepcopy(content), files) is None:
+        return
+    for name, data in files.items():
+        store.save_chat_artifact(str(chat_id), f"{CASE_ARTIFACT}{name}", data)
+    store.save_state(str(chat_id), {"version": 1, "case": content})
+
+
 async def start(
     environment: Environment,
     run_id: UUID,
@@ -184,6 +208,7 @@ async def start(
 ) -> Outcome:
     """Start a run under the id the backend gave it; geomind chooses loop and agent."""
     history = await asyncio.to_thread(environment.store.load_history, str(chat_id))
+    await asyncio.to_thread(seed_problem, environment, chat_id, project_id)
     try:
         run = gd.Run(
             message=message,
