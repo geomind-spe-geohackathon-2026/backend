@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 
 from src.api.v1.reporting.design import errors, pdf, schemas
@@ -22,7 +23,6 @@ SECTION_TITLES = {
     "costs": "Costs",
     "agentlog": "Agent log",
 }
-COST_NAMES = ("capex", "opex", "lcts", "lcoh", "lcoc")
 MEDIA_TYPES = {"md": "text/markdown", "pdf": "application/pdf"}
 
 
@@ -55,9 +55,9 @@ def table(headers: list[str], rows: list[list[str]]) -> str:
 
 
 def capacities_markdown(result: Result) -> str:
+    parts = gemini_evaluate.summarise(result.content["report"])
     rows = [
-        [item["title"], gemini_evaluate.amount(item)]
-        for item in result.content["capacities"]
+        [item["title"], gemini_evaluate.amount(item)] for item in parts["capacities"]
     ]
     return table(["Module", "Capacity"], rows) if rows else "No capacities."
 
@@ -68,30 +68,54 @@ def checks_markdown(result: Result) -> str:
         f"{checks['passed']} passed, {checks['failed']} failed, "
         f"{checks['not_assessed']} not assessed."
     )
+    parts = gemini_evaluate.summarise(result.content["report"])
     rows = [
         [item["title"], item["status"], item["message"]]
-        for item in result.content["constraints"]
+        for item in parts["constraints"]
     ]
     return line + "\n\n" + table(["Check", "Status", "Detail"], rows) if rows else line
 
 
 def costs_markdown(result: Result) -> str:
     source = f"case version {result.case_version}, plant version {result.plant_version}"
-    report = result.content["report"]
     rows = []
-    for name in COST_NAMES:
-        item = report.get(name)
-        if item is None:
+    for name, item in result.content["report"].items():
+        if not gemini_evaluate.is_quantity(item):
             continue
         found = item["value"] is not None
         rows.append(
             [
-                gemini_evaluate.title_of(name),
+                item.get("title", name),
                 gemini_evaluate.amount(item),
                 source if found else "missing",
             ]
         )
     return table(["Figure", "Value", "Source"], rows) if rows else "No costs."
+
+
+def design_table(summary: str) -> str:
+    """Turn gemini's fixed-width module table into a Markdown table."""
+    lines = summary.splitlines()
+    header = next((line for line in lines if line.startswith("Module")), None)
+    if header is None:
+        return f"```\n{summary}\n```"
+    names = re.findall(r"\S+(?: \S+)*", header)
+    starts = [header.index(name) for name in names]
+    bounds = [*starts, None]
+    first = lines.index(header)
+
+    def is_row(line: str) -> bool:
+        return line[starts[1] - 1 : starts[1]] == " " and bool(line.strip())
+
+    body = [line for line in lines[first + 1 :] if line.strip()]
+    rows = [
+        [line[bounds[i] : bounds[i + 1]].strip() for i in range(len(names))]
+        for line in body
+        if is_row(line)
+    ]
+    notes = [line for line in body if not is_row(line)]
+    lead = [line for line in lines[:first] if line.strip()]
+    return "\n\n".join([*lead, table(names, rows), *notes])
 
 
 def design_markdown(result: Result, study: Study | None) -> str:
@@ -101,7 +125,7 @@ def design_markdown(result: Result, study: Study | None) -> str:
         settings = [f"- {key}: {value}" for key, value in study.settings.items()]
         lines += ["", "Settings:", *(settings or ["- none"])]
     plant = gemini_evaluate.describe_plant(result.content["design"])
-    return "\n".join(lines) + f"\n\n```\n{plant}\n```"
+    return "\n".join(lines) + "\n\n" + design_table(plant)
 
 
 def agentlog_markdown(run: Run | None) -> str:

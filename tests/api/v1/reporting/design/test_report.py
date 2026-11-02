@@ -85,10 +85,60 @@ async def test_costs_show_source_and_missing(
 
     sections = {item["key"]: item["markdown"] for item in response.json()["sections"]}
     assert "case version 3, plant version 4" in sections["costs"]
-    assert "| Opex | missing (no price) | missing |" in sections["costs"]
+    assert "| opex | missing: no price | missing |" in sections["costs"]
     assert "No assistant run was chosen." in sections["agentlog"]
     assert "Plant: HeatingPlant" in sections["design"]
     assert "13 passed" in sections["checks"]
+
+
+async def test_costs_list_the_figures_of_the_report_not_a_fixed_list(
+    client, make_user, make_project, make_result
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    result = await make_result(project)
+
+    response = await client.post(
+        PREVIEW, json=body(project, result, include=["costs"]), headers=bearer(user)
+    )
+
+    costs = response.json()["sections"][0]["markdown"]
+    assert "| heat_delivered |" in costs
+    assert "| co2 |" in costs
+
+
+async def test_design_is_a_table_with_the_columns_of_the_summary(
+    client, make_user, make_project, make_result
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    result = await make_result(project)
+
+    response = await client.post(
+        PREVIEW, json=body(project, result, include=["design"]), headers=bearer(user)
+    )
+
+    design = response.json()["sections"][0]["markdown"]
+    assert "| Module | Type | Category | Connected to | Parameters |" in design
+    assert "| gas_grid | GasGrid | grids |  | 1 |" in design
+    assert "```" not in design
+
+
+async def test_checks_read_cleanly(
+    client, make_user, make_project, make_result
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    result = await make_result(project)
+
+    response = await client.post(
+        PREVIEW, json=body(project, result, include=["checks"]), headers=bearer(user)
+    )
+
+    checks = response.json()["sections"][0]["markdown"]
+    assert "| Pump efficiency (d0) | pass | 0.7 against the limit 0.7 |" in checks
+    assert "Doublet count |" in checks
+    assert "T00:00" not in checks
 
 
 async def test_agent_log_describes_the_chosen_run(

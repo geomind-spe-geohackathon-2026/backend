@@ -20,7 +20,7 @@ def to_summary(result: Result) -> dict[str, Any]:
         "study": result.study_id,
         "case_version": result.case_version,
         "plant_version": result.plant_version,
-        "kpis": result.summary["kpis"],
+        "kpis": gemini_evaluate.kpis_of(result.content["report"]),
         "checks": result.summary["checks"],
         "created": result.created,
     }
@@ -28,11 +28,12 @@ def to_summary(result: Result) -> dict[str, Any]:
 
 def to_detail(result: Result) -> schemas.ResultDetail:
     content = result.content
+    parts = gemini_evaluate.summarise(content["report"])
     return schemas.ResultDetail(
         **to_summary(result),
-        capacities=content["capacities"],
+        capacities=parts["capacities"],
         coverage=content["coverage"],
-        constraints=content["constraints"],
+        constraints=parts["constraints"],
         series=content["series"],
     )
 

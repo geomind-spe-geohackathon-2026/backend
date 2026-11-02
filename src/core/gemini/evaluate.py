@@ -1,5 +1,7 @@
 """The wrapper around gemini's evaluate report: figures, checks and Pareto."""
 
+import math
+from datetime import datetime, time, timedelta
 from typing import Any
 
 import gemini as gm
@@ -10,6 +12,8 @@ from src.core.gemini import plant as plant_document
 PASSED = "pass"
 FAILED = "fail"
 NOT_ASSESSED = "not_assessed"
+DIMENSIONLESS = "-"
+FULL_DIGITS = 12
 
 
 def title_of(name: str) -> str:
@@ -27,7 +31,7 @@ def kpis_of(report: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "name": name,
-            "title": title_of(name),
+            "title": item.get("title", name),
             "value": item["value"],
             "unit": item["unit"],
         }
@@ -51,28 +55,79 @@ def checks_of(report: dict[str, Any]) -> dict[str, int]:
     }
 
 
-def amount(item: dict[str, Any] | None) -> str:
+def number(value: float, digits: int = 6) -> str:
+    """Write a number in plain digits, or as mantissa x 10^exponent when extreme."""
+    if value == 0:
+        return "0"
+    exponent = math.floor(math.log10(abs(value)))
+    if exponent < -4 or exponent >= digits + 3:
+        mantissa, _, power = f"{value:.{digits}e}".partition("e")
+        return f"{float(mantissa):.{digits}g} x 10^{int(power)}"
+    return f"{value:.{digits}g}" if exponent < digits else f"{value:.0f}"
+
+
+def unit_text(unit: str) -> str:
+    """Write a unit; a dimensionless one is written as nothing."""
+    return "" if unit == DIMENSIONLESS else f" {unit}"
+
+
+def reason_text(reason: str) -> str:
+    """Write the reason a figure is missing without gemini's code prefix."""
+    code, separator, rest = reason.partition(": ")
+    return rest if separator and code.replace("_", "").isalpha() else reason
+
+
+def amount(item: dict[str, Any] | None, digits: int = 6) -> str:
     """Write a figure with its unit; a missing one says why."""
     if item is None or item["value"] is None:
-        reason = (item or {}).get("reason", "no value")
-        return f"missing ({reason})"
-    return f"{item['value']:.6g} {item['unit']}"
+        reason = reason_text((item or {}).get("reason", "no value"))
+        return f"missing: {reason}"
+    return f"{number(item['value'], digits)}{unit_text(item['unit'])}"
+
+
+def date_text(moment: str) -> str:
+    """Write a timestamp as a date, with the time only when it is not midnight UTC."""
+    stamp = datetime.fromisoformat(moment)
+    if stamp.utcoffset() in (None, timedelta(0)) and stamp.time() == time(0):
+        return stamp.date().isoformat()
+    return stamp.strftime("%Y-%m-%d %H:%M") + (
+        "" if stamp.utcoffset() in (None, timedelta(0)) else f" {stamp:%z}"
+    )
+
+
+def measured(requirement: dict[str, Any]) -> tuple[str, str]:
+    """Write the value and limit of a requirement, with more digits when equal."""
+    value, limit = requirement.get("value"), requirement.get("limit")
+    texts = amount(value), amount(limit)
+    same = texts[0] == texts[1]
+    if same and value and limit and value["value"] != limit["value"]:
+        return amount(value, FULL_DIGITS), amount(limit, FULL_DIGITS)
+    return texts
 
 
 def message_of(requirement: dict[str, Any]) -> str:
     """Write what a requirement measured against its limit, and where it was worst."""
-    text = f"{amount(requirement.get('value'))} against the limit "
-    text += amount(requirement.get("limit"))
+    value, limit = measured(requirement)
+    if value.startswith("missing"):
+        text = f"{value}; limit {limit}"
+    else:
+        text = f"{value} against the limit {limit}"
     worst = requirement.get("worst_step")
-    return f"{text} at {worst}" if worst else text
+    return f"{text} at {date_text(worst)}" if worst else text
+
+
+def subject_of(item: dict[str, Any]) -> str:
+    """Return the unit path of a requirement, empty when it has none."""
+    return item.get("unit_path") or ""
 
 
 def constraints_of(report: dict[str, Any]) -> list[dict[str, str]]:
     """Return the requirements of the report as constraints."""
     return [
         {
-            "name": f"{item['unit_path']}.{item['name']}",
-            "title": f"{title_of(item['name'])} ({item['unit_path']})",
+            "name": ".".join(filter(None, [subject_of(item), item["name"]])),
+            "title": title_of(item["name"])
+            + (f" ({subject_of(item)})" if subject_of(item) else ""),
             "status": status_of(item),
             "message": message_of(item),
         }
