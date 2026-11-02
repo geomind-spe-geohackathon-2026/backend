@@ -20,6 +20,14 @@ class MessageRepository(BaseRepository):
         await self.session.commit()
         return message
 
+    async def for_run(self, run_id: UUID, role: str) -> Message | None:
+        """Return the message of a role that belongs to a run."""
+        statement = select(Message).where(
+            Message.run_id == run_id,
+            Message.role == role,
+        )
+        return await self.session.scalar(statement.limit(1))
+
     async def list_page(self, chat_id: UUID, page: PageRequest) -> list[Message]:
         """List messages, oldest first."""
         statement = select(Message).where(Message.chat_id == chat_id)

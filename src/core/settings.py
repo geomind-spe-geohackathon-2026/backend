@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_API_KEY: str = ""
 
+    ASSISTANT_LLM: Literal["openrouter", "fake"] = "openrouter"
+    ASSISTANT_SANDBOX: Literal["none", "docker"] = "none"
+    ASSISTANT_RUN_MAX_TOKENS: int = 2_000_000
+    ASSISTANT_DELTA_TTL_SECONDS: int = 600
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -77,6 +82,15 @@ class Settings(BaseSettings):
                 raise SettingsValidationError(
                     "APP_CORS_ORIGINS entries must be exact HTTP or HTTPS origins"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def validate_assistant_llm(self) -> "Settings":
+        """Refuse the scripted test LLM in production."""
+        if self.ASSISTANT_LLM == "fake" and self.APP_ENV == "production":
+            raise SettingsValidationError(
+                "ASSISTANT_LLM=fake is for tests and end-to-end passes only"
+            )
         return self
 
     @model_validator(mode="after")

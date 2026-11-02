@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from src.core.clients.postgres.models.run import ACTIVE_RUN_STATUSES, Run
 from src.core.clients.postgres.repositories.base import BaseRepository, DatabaseSession
@@ -36,6 +36,23 @@ class RunRepository(BaseRepository):
             setattr(run, name, value)
         await self.session.commit()
         return run
+
+    async def claim(
+        self,
+        run_id: UUID,
+        expected: str,
+        values: dict[str, Any],
+    ) -> bool:
+        """Change a run only while it has the ``expected`` status; say whether it did.
+
+        Two requests that race for the same run cannot both win.
+        """
+        statement = (
+            update(Run).where(Run.id == run_id, Run.status == expected).values(**values)
+        )
+        result = await self.session.execute(statement)
+        await self.session.commit()
+        return result.rowcount == 1
 
     async def list_page(
         self,
