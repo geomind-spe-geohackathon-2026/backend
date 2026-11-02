@@ -59,6 +59,39 @@ class ValidationFailedError(AppError):
         super().__init__("Request validation failed", details={"fields": fields})
 
 
+class CaseInvalidError(AppError):
+    """A case document gemini refuses; ``details.problems`` is gemini's list."""
+
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+    code = "case_invalid"
+
+    def __init__(self, problems: list[dict[str, Any]]) -> None:
+        super().__init__("Case is invalid", details={"problems": problems})
+
+
+class MissingInputsError(AppError):
+    """A request that needs values nobody has given; each item is path and message."""
+
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+    code = "missing_inputs"
+
+    def __init__(self, missing: list[dict[str, str]]) -> None:
+        super().__init__("Inputs are missing", details={"missing": missing})
+
+
+class NotImplementedYetError(AppError):
+    """A route whose gemini or geomind part does not exist yet."""
+
+    status_code = status.HTTP_501_NOT_IMPLEMENTED
+    code = "not_implemented"
+
+    def __init__(self, missing: str) -> None:
+        super().__init__(
+            "This is not available yet",
+            details={"missing": missing},
+        )
+
+
 class HTTPFailureError(AppError):
     def __init__(self, error: HTTPException) -> None:
         super().__init__(str(error.detail), headers=error.headers)

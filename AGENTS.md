@@ -25,8 +25,9 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   `tests/test_boundaries.py` enforces all of this.
 - **Errors:** `{"error": {"code", "message", "details"}}`, raised as `AppError`
   subclasses. Stable codes: `unauthorized`, `forbidden`, `not_found`,
-  `<thing>_not_found`, `validation_failed`, `conflict`, `plant_invalid`, `rate_limited`,
-  `internal`.
+  `<thing>_not_found`, `validation_failed`, `conflict`, `plant_invalid`, `case_invalid`,
+  `missing_inputs` (`details.missing`), `rate_limited`, `not_implemented` (501,
+  `details.missing` names the gemini or geomind part that does not exist), `internal`.
 - **Tables:** `docs/CONVENTIONS.md` section Tables lists them. Migration `0006` holds
   all app tables (case, chat, run, study, result, document, activity); each has a model
   and a base repository in `src/core/clients/postgres/`. Features add no tables.

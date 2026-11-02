@@ -282,7 +282,12 @@ code uses the repository; it does not add tables or queries of its own.
 ## Errors
 
 - All project-defined errors inherit from `core.errors.AppError` and set `code`.
-- Keep shared HTTP application errors in `core/errors.py`.
+- Keep shared HTTP application errors in `core/errors.py`: `ConflictError`,
+  `ForbiddenError`, `NotFoundError`, `ValidationFailedError`, `CaseInvalidError`
+  (`case_invalid`, 422, `details.problems`), `MissingInputsError` (`missing_inputs`, 422,
+  `details.missing = [{path, message}]`) and `NotImplementedYetError` (`not_implemented`,
+  501, `details.missing` = the gemini or geomind name that does not exist). A route whose
+  part is missing raises `NotImplementedYetError`; it never fakes the answer.
 - Define errors used by one area close to that area, such as
   `core/security/errors.py`, `core/ratelimit/errors.py`, or
   `core/clients/errors.py`.

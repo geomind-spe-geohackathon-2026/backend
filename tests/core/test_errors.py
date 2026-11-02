@@ -3,8 +3,11 @@ from pydantic import BaseModel
 
 from fastapi import FastAPI
 from src.core.errors import (
+    CaseInvalidError,
     ConflictError,
     ErrorMiddleware,
+    MissingInputsError,
+    NotImplementedYetError,
     include_exception_handlers,
 )
 from src.core.settings import settings
@@ -24,6 +27,22 @@ def error_app() -> FastAPI:
     @app.get("/conflict")
     async def conflict() -> None:
         raise ConflictError("Already there", details={"id": 1})
+
+    @app.get("/not-implemented")
+    async def not_implemented() -> None:
+        raise NotImplementedYetError("gm.evaluate.coverage")
+
+    @app.get("/case-invalid")
+    async def case_invalid() -> None:
+        raise CaseInvalidError(
+            [{"path": "time", "code": "invalid_value", "message": "x"}]
+        )
+
+    @app.get("/missing-inputs")
+    async def missing_inputs() -> None:
+        raise MissingInputsError(
+            [{"path": "demand.heating.power", "message": "missing"}]
+        )
 
     @app.get("/crash")
     async def crash() -> None:
@@ -48,6 +67,38 @@ async def test_app_error_uses_contract_body() -> None:
     assert response.json() == {
         "error": {"code": "conflict", "message": "Already there", "details": {"id": 1}}
     }
+
+
+async def test_not_implemented_names_what_is_missing() -> None:
+    async with client_for(error_app()) as client:
+        response = await client.get("/not-implemented")
+
+    assert response.status_code == 501
+    assert response.json()["error"] == {
+        "code": "not_implemented",
+        "message": "This is not available yet",
+        "details": {"missing": "gm.evaluate.coverage"},
+    }
+
+
+async def test_case_invalid_carries_gemini_problems() -> None:
+    async with client_for(error_app()) as client:
+        response = await client.get("/case-invalid")
+
+    error = response.json()["error"]
+    assert (response.status_code, error["code"]) == (422, "case_invalid")
+    assert error["details"]["problems"][0]["path"] == "time"
+
+
+async def test_missing_inputs_lists_path_and_message() -> None:
+    async with client_for(error_app()) as client:
+        response = await client.get("/missing-inputs")
+
+    error = response.json()["error"]
+    assert (response.status_code, error["code"]) == (422, "missing_inputs")
+    assert error["details"]["missing"] == [
+        {"path": "demand.heating.power", "message": "missing"}
+    ]
 
 
 async def test_validation_error_names_each_field() -> None:
