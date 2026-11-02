@@ -133,7 +133,7 @@ def test_parameters_view_has_schema_values_missing_and_history() -> None:
     later = {"thermal_conductance": {"value": 7, "unit": "W/K"}}
     plant.set_parameters(built, MODULE, later, datetime(2030, 1, 1, tzinfo=UTC))
 
-    view = plant.parameters(built, MODULE, None)
+    view = plant.parameters(built, MODULE, None, None)
 
     assert view["module"] == MODULE
     assert view["type"] == "HeatExchanger"
@@ -147,4 +147,6 @@ def test_parameters_view_has_schema_values_missing_and_history() -> None:
 def test_missing_parameters_are_the_modules_own_only() -> None:
     built = plant.from_dict(example_plant())
 
-    assert all("." not in name for name in plant.missing_parameters(built, MODULE))
+    assert all(
+        "." not in name for name in plant.missing_parameters(built, MODULE, None)
+    )

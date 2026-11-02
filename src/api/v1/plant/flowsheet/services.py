@@ -3,8 +3,6 @@ import json
 from typing import Any
 from uuid import UUID
 
-import gemini as gm
-
 from src.api.v1.plant.flowsheet import schemas
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.minio.keys import layout_key
@@ -17,6 +15,7 @@ from src.core.clients.postgres.repositories.plant_version import (
 )
 from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.gemini import plant
+from src.core.gemini.case import BuiltCase
 from src.core.gemini.errors import PlantNotFoundError
 from src.core.pagination.page import Page
 from src.core.routes import PLANT_ROUTE
@@ -154,7 +153,7 @@ async def save_layout(
 
 async def validate_spec(
     spec: dict[str, Any],
-    case: gm.Case | None,
+    case: BuiltCase | None,
 ) -> schemas.SpecProblems:
     """Return gemini's problems for a plant document, on the case when there is one."""
     return schemas.SpecProblems(

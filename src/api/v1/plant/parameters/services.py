@@ -1,8 +1,6 @@
 from datetime import datetime
 from typing import NoReturn
 
-import gemini as gm
-
 from src.api.v1.plant.parameters import schemas
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
@@ -13,6 +11,7 @@ from src.core.clients.postgres.repositories.plant_version import (
 from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.errors import NotImplementedYetError
 from src.core.gemini import plant
+from src.core.gemini.case import BuiltCase
 from src.core.gemini.errors import PlantNotFoundError
 from src.core.routes import PLANT_ROUTE
 from src.core.versioning import (
@@ -30,7 +29,7 @@ async def get_parameters(
     module: str,
     at: datetime | None,
     repository: PlantVersionRepository,
-    case: gm.Case | None,
+    case: BuiltCase | None,
 ) -> schemas.Parameters:
     """Return a module's parameters in the latest plant, valid at a time."""
     latest = await latest_version(repository, project.id, PlantNotFoundError)

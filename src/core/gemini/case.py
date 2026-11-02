@@ -9,6 +9,8 @@ from src.core.problems import problem_of
 
 MISSING_CODE = "missing_value"
 
+BuiltCase = gm.Case
+
 
 def schema() -> dict[str, Any]:
     """Return gemini's JSON schema of a case, with the units of its values."""
