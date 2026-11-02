@@ -54,6 +54,13 @@ def list_palette(category: str | None) -> list[schemas.Palette]:
     return cards
 
 
+def list_ports() -> list[schemas.ModulePorts]:
+    """List the inlets and outlets of every module in gemini's registry."""
+    return [
+        schemas.ModulePorts(**plant.ports_of(name)) for name in plant.module_names(None)
+    ]
+
+
 def list_templates() -> list[schemas.Template]:
     """List gemini's plant classes as templates."""
     templates = []

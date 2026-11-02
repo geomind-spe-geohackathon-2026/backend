@@ -1,6 +1,6 @@
 # Contracts between the repos
 
-Version 20 (2026-11-02). Version 20: fitted to gemini 0.5.0, which has no spec format 2: `spec` is gemini's own plant document (`gm.plants.schema()`, checked with `Plant.from_dict` and `check()`), templates are `gm.plants.names()`, palette and template `title` is the gemini class name; case sections are the schema's top-level properties; `study/kinds` lists gemini's `method` values and all share `Study.schema()`; `progress` stays `{done: 0, total: 1}` until the study ends because gemini has no progress callback, and cancel terminates the worker; `coverage` is `null` until gemini publishes daily coverage by source; chat-scoped artifacts implemented by the backend ahead of geomind. Version 19: HTTP API section from the app-build prompt (versions 16 to 19): plant on gemini spec format 2 (module `id`, `spec`, `layout`, palette, validate), new domains `design/case`, `design/study`, `design/results`, `reporting/design`, `workspace/overview`, `workspace/documents`, `assistant/usage`, run log export, project `progress` and `case_version`, codes `case_invalid`, `missing_inputs`, `not_implemented`, `Workspace.case` and chat-scoped artifact methods in section 3 (2.6). Version 15: internal `compaction` event (geomind S2). Version 14: `step.finished` carries `text`, the step's full assistant text. Version 13: how `RunStore` stores events (full `event.to_dict()`, not `data()`), nested runs share the root run's log, `text.delta` is stream-only from S2. Version 12: flowsheet modules carry `category`, connections carry `stream`. Version 11: plant domain routes (backend B3a, frontend F3) in section 1. Version 10: creates answer 201, code `unavailable` (503), refresh tokens rotate (from the B1 report). Version 9: geomind drops checkpoints (the event log is the only run state): `save_checkpoint`/`load_checkpoint` and the internal `checkpoint` event are removed. Version 8: `step.started.model`, option answers and `run.error` from geomind defined. Version 7: assistant routes for B2 (runs list per project, chat problem state, the user message carries its run). File version, raised on every change: section 1 from the backend design (refresh, `active`, project owner and plant version, run request and error, chat edit and delete, error codes, `?cursor=`, validation details); sections 2 and 3 from the geomind design (section 3 keeps its own interface version, now 2.2). Covers steps 1 and 2 of every repo. Later steps add their routes here before they start.
+Version 21 (2026-11-02). Version 21 (additive): `GET /plant/flowsheet/ports`; `POST /workspace/projects` takes optional `case_from`; a buffered `text.delta` carries `buffered: true` and replaces the step's streamed text; `activity.link.route` is a project-relative frontend route. Version 20: fitted to gemini 0.5.0, which has no spec format 2: `spec` is gemini's own plant document (`gm.plants.schema()`, checked with `Plant.from_dict` and `check()`), templates are `gm.plants.names()`, palette and template `title` is the gemini class name; case sections are the schema's top-level properties; `study/kinds` lists gemini's `method` values and all share `Study.schema()`; `progress` stays `{done: 0, total: 1}` until the study ends because gemini has no progress callback, and cancel terminates the worker; `coverage` is `null` until gemini publishes daily coverage by source; chat-scoped artifacts implemented by the backend ahead of geomind. Version 19: HTTP API section from the app-build prompt (versions 16 to 19): plant on gemini spec format 2 (module `id`, `spec`, `layout`, palette, validate), new domains `design/case`, `design/study`, `design/results`, `reporting/design`, `workspace/overview`, `workspace/documents`, `assistant/usage`, run log export, project `progress` and `case_version`, codes `case_invalid`, `missing_inputs`, `not_implemented`, `Workspace.case` and chat-scoped artifact methods in section 3 (2.6). Version 15: internal `compaction` event (geomind S2). Version 14: `step.finished` carries `text`, the step's full assistant text. Version 13: how `RunStore` stores events (full `event.to_dict()`, not `data()`), nested runs share the root run's log, `text.delta` is stream-only from S2. Version 12: flowsheet modules carry `category`, connections carry `stream`. Version 11: plant domain routes (backend B3a, frontend F3) in section 1. Version 10: creates answer 201, code `unavailable` (503), refresh tokens rotate (from the B1 report). Version 9: geomind drops checkpoints (the event log is the only run state): `save_checkpoint`/`load_checkpoint` and the internal `checkpoint` event are removed. Version 8: `step.started.model`, option answers and `run.error` from geomind defined. Version 7: assistant routes for B2 (runs list per project, chat problem state, the user message carries its run). File version, raised on every change: section 1 from the backend design (refresh, `active`, project owner and plant version, run request and error, chat edit and delete, error codes, `?cursor=`, validation details); sections 2 and 3 from the geomind design (section 3 keeps its own interface version, now 2.2). Covers steps 1 and 2 of every repo. Later steps add their routes here before they start.
 
 ## 1. HTTP API (frontend ↔ backend)
 
@@ -32,7 +32,7 @@ Version 20 (2026-11-02). Version 20: fitted to gemini 0.5.0, which has no spec f
 | Method | Path | Body → Response |
 |---|---|---|
 | GET | `/workspace/projects?search=` | → list of `project` (`search` filters by name) |
-| POST | `/workspace/projects` | `{name}` → `project` |
+| POST | `/workspace/projects` | `{name, case_from?}` → `201 project`; `case_from` is a project id you may read: its latest case and the files it names become version 1 of the new project (`404 project_not_found` otherwise, `404 case_not_found` if it has no case) |
 | GET | `/workspace/projects/{id}` | → `project` |
 | PATCH | `/workspace/projects/{id}` | `{name}` → `project` |
 | DELETE | `/workspace/projects/{id}` | → `204` |
@@ -85,6 +85,7 @@ problem    = {path, message, code}
 | Method | Path | Body → Response |
 |---|---|---|
 | GET | `/plant/flowsheet/palette?category=` | → list of `palette` |
+| GET | `/plant/flowsheet/ports` | → `[{type, inlets: [{port, kind}], outlets: [{port, kind}]}]` from gemini's module registry; `kind` is gemini's stream kind |
 | GET | `/plant/flowsheet/templates` | → list of `template` |
 | GET | `/plant/flowsheet?project={id}` | → `flowsheet` of the latest version; `404 plant_not_found` if none |
 | POST | `/plant/flowsheet` | `{project, base, note, spec, layout?}` or `{project, base, note, template, parameters?}` → `201 flowsheet` |
@@ -205,7 +206,7 @@ Each event: `event: <type>`, `data: <json>`, `id: <sequence number>`. The stream
 |---|---|
 | `run.started` | `{run, loop}` |
 | `step.started` | `{index, model}` (`model`: the agent's primary model id, e.g. `anthropic/claude-sonnet-4.5`; if a fallback model answers, that model appears in the `retry` event and in `runlog` `llm_call.model`) |
-| `text.delta` | `{index, text}` |
+| `text.delta` | `{index, text, buffered?}` (`buffered: true` on the one event a reconnect receives for a running step: it holds the step's text so far and replaces what the client has for that step, and has no `id`) |
 | `tool.started` | `{index, call_id, tool, input}` |
 | `tool.finished` | `{index, call_id, output_summary, duration, error?}` |
 | `step.finished` | `{index, usage, text}` (usage of this step; `text` is the step's full assistant text, `""` if none; a client replaces the step's streamed `text.delta` with it, so replay after a reload and the live view match) |
@@ -238,29 +239,50 @@ Version 2.6 (2026-11-02: `Workspace.case`, chat-scoped artifacts; 2.5: `step.fin
 
 ```python
 class LLM(Protocol):
-    async def complete(self, messages, tools, *, model, settings, on_text=None) -> Completion: ...
+    async def complete(
+        self, messages, tools, *, model, settings, on_text=None
+    ) -> Completion: ...
+
     # Completion: text, tool_calls, usage (input_tokens, output_tokens, cost), model, raw
     # on_text(delta) streams text; settings = temperature, max_tokens
+
 
 class RunStore(Protocol):
     def save_event(self, run_id, event): ...
     def load_history(self, chat_id) -> list[Message]: ...
-    def save_state(self, chat_id, state): ...          # problem state across messages
-    def load_state(self, chat_id): ...                 # None when the chat has none
-    def save_artifact(self, run_id, key, data): ...    # large tool results (bytes or JSON)
+    def save_state(self, chat_id, state): ...  # problem state across messages
+    def load_state(self, chat_id): ...  # None when the chat has none
+    def save_artifact(
+        self, run_id, key, data
+    ): ...  # large tool results (bytes or JSON)
     def load_artifact(self, run_id, key): ...
-    def save_chat_artifact(self, chat_id, key, data): ...  # chat-scoped: the next message of the chat reads them
-    def load_chat_artifact(self, chat_id, key): ...        # semantics as in geomind's RunStore docstrings
-    def load_events(self, run_id) -> list[Event]: ...   # in sequence order; recovery and replay
+    def save_chat_artifact(
+        self, chat_id, key, data
+    ): ...  # chat-scoped: the next message of the chat reads them
+    def load_chat_artifact(
+        self, chat_id, key
+    ): ...  # semantics as in geomind's RunStore docstrings
+    def load_events(
+        self, run_id
+    ) -> list[Event]: ...  # in sequence order; recovery and replay
+
 
 # RunStore and Workspace are sync; geomind calls them from a worker thread.
 
-class Workspace(Protocol):
-    def plant(self, project_id): ...            # the stored plant as a gemini plant
-    def case(self, project_id): ...             # -> (case dict, folder with its files); files written to a per-run temp folder
-    def documents(self, project_id, query): ... # document search: [{id, title, text, score}]
 
-class SandboxProvider(Protocol):               # optional; geomind ships LocalSandbox and DockerSandbox
+class Workspace(Protocol):
+    def plant(self, project_id): ...  # the stored plant as a gemini plant
+    def case(
+        self, project_id
+    ): ...  # -> (case dict, folder with its files); files written to a per-run temp folder
+    def documents(
+        self, project_id, query
+    ): ...  # document search: [{id, title, text, score}]
+
+
+class SandboxProvider(
+    Protocol
+):  # optional; geomind ships LocalSandbox and DockerSandbox
     async def provision(self, manifest) -> Sandbox: ...
 ```
 
@@ -272,22 +294,40 @@ Entry point used by the backend:
 import geomind as gd
 
 run = gd.Run(
-    message=content, chat=chat_id, project=project_id,
+    message=content,
+    chat=chat_id,
+    project=project_id,
     history=store.load_history(chat_id),
-    llm=llm, store=store, workspace=workspace,
-    sandbox=gd.sandbox.DockerSandbox(), permissions=gd.Permissions(mode="ask"),
+    llm=llm,
+    store=store,
+    workspace=workspace,
+    sandbox=gd.sandbox.DockerSandbox(),
+    permissions=gd.Permissions(mode="ask"),
     callbacks=[publisher],
-    hooks=[gd.hooks.TokenBudget(...), gd.hooks.RequireApproval(...),
-           gd.hooks.Cancellation(is_cancelled)],
+    hooks=[
+        gd.hooks.TokenBudget(...),
+        gd.hooks.RequireApproval(...),
+        gd.hooks.Cancellation(is_cancelled),
+    ],
 )
-result = run.start()                  # or await run.astart(); RunResult: run_id, status, answer, request, usage, stop_reason
+result = run.start()  # or await run.astart(); RunResult: run_id, status, answer, request, usage, stop_reason
 
-run = gd.Run.load(run_id, llm=llm, store=store, workspace=workspace, sandbox=...,
-                  permissions=..., callbacks=[publisher], hooks=[...])
-result = run.resume(request_id, answer)   # or await run.aresume(...); in another process; hooks and callbacks are passed again
-result = run.resume()                     # continue a run whose process died while running
+run = gd.Run.load(
+    run_id,
+    llm=llm,
+    store=store,
+    workspace=workspace,
+    sandbox=...,
+    permissions=...,
+    callbacks=[publisher],
+    hooks=[...],
+)
+result = run.resume(
+    request_id, answer
+)  # or await run.aresume(...); in another process; hooks and callbacks are passed again
+result = run.resume()  # continue a run whose process died while running
 
-run.cancel()                          # same process; across processes use gd.hooks.Cancellation
+run.cancel()  # same process; across processes use gd.hooks.Cancellation
 ```
 
 `answer` is `{"approved": true}`, `{"approved": false, "reason": "..."}` or `{"text": "..."}` for a question. `status` values are those of `run` in section 1. A `Message` is `{role, content, tool_calls?, tool_call_id?}` with `role` `user`, `assistant`, `tool` or `system`; `load_history` returns only `user` and `assistant` messages.

@@ -84,6 +84,22 @@ def describe_class(name: str) -> dict[str, Any]:
     return gm.modules.get(name)().describe()
 
 
+def ports_of(name: str) -> dict[str, Any]:
+    """Return a module class's type with its inlets and outlets and their kinds."""
+    description = describe_class(name)
+    return {
+        "type": description["type"],
+        "inlets": [
+            {"port": port, "kind": declared["kind"]}
+            for port, declared in description["inlets"].items()
+        ],
+        "outlets": [
+            {"port": port, "kind": declared["kind"]}
+            for port, declared in description["outlets"].items()
+        ],
+    }
+
+
 @cache
 def describe_template(name: str) -> dict[str, Any]:
     """Return a template's summary as its description, and its purpose."""

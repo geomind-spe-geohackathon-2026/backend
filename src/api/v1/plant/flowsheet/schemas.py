@@ -13,6 +13,17 @@ class Palette(BaseModel):
     summary: str
 
 
+class PortKind(BaseModel):
+    port: str
+    kind: str | None
+
+
+class ModulePorts(BaseModel):
+    type: str
+    inlets: list[PortKind]
+    outlets: list[PortKind]
+
+
 class Template(BaseModel):
     name: str
     title: str

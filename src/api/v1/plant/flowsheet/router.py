@@ -45,6 +45,11 @@ async def list_palette(
     return services.list_palette(category)
 
 
+@router.get("/ports", response_model=list[schemas.ModulePorts])
+async def list_ports(_user: CurrentUser) -> list[schemas.ModulePorts]:
+    return services.list_ports()
+
+
 @router.get("/templates", response_model=list[schemas.Template])
 async def list_templates(_user: CurrentUser) -> list[schemas.Template]:
     return services.list_templates()

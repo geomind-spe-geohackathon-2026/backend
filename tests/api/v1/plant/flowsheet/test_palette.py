@@ -63,3 +63,29 @@ async def test_palette_needs_a_token(client) -> None:
     response = await client.get(f"{FLOWSHEET}/palette")
 
     assert response.status_code == 401
+
+
+async def test_ports_list_every_module_inlets_and_outlets(client, make_user) -> None:
+    user = await make_user()
+
+    response = await client.get(f"{FLOWSHEET}/ports", headers=bearer(user))
+
+    assert response.status_code == 200
+    cards = {card["type"]: card for card in response.json()}
+    for name in gm.modules.names():
+        description = gm.modules.get(name)().describe()
+        card = cards[description["type"]]
+        assert card["inlets"] == [
+            {"port": port, "kind": declared["kind"]}
+            for port, declared in description["inlets"].items()
+        ]
+        assert card["outlets"] == [
+            {"port": port, "kind": declared["kind"]}
+            for port, declared in description["outlets"].items()
+        ]
+
+
+async def test_ports_need_a_token(client) -> None:
+    response = await client.get(f"{FLOWSHEET}/ports")
+
+    assert response.status_code == 401

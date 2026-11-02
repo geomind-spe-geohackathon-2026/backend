@@ -1096,6 +1096,35 @@
         "title": "Missing",
         "type": "object"
       },
+      "ModulePorts": {
+        "properties": {
+          "inlets": {
+            "items": {
+              "$ref": "#/components/schemas/PortKind"
+            },
+            "title": "Inlets",
+            "type": "array"
+          },
+          "outlets": {
+            "items": {
+              "$ref": "#/components/schemas/PortKind"
+            },
+            "title": "Outlets",
+            "type": "array"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "inlets",
+          "outlets"
+        ],
+        "title": "ModulePorts",
+        "type": "object"
+      },
       "Overview": {
         "properties": {
           "active_runs": {
@@ -1610,6 +1639,31 @@
           "note"
         ],
         "title": "ParametersUpdate",
+        "type": "object"
+      },
+      "PortKind": {
+        "properties": {
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "port": {
+            "title": "Port",
+            "type": "string"
+          }
+        },
+        "required": [
+          "port",
+          "kind"
+        ],
+        "title": "PortKind",
         "type": "object"
       },
       "Problem": {
@@ -5040,6 +5094,31 @@
           }
         },
         "summary": "List Palette",
+        "tags": [
+          "Flowsheet"
+        ]
+      }
+    },
+    "/api/v1/plant/flowsheet/ports": {
+      "get": {
+        "operationId": "list_ports_api_v1_plant_flowsheet_ports_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModulePorts"
+                  },
+                  "title": "Response List Ports Api V1 Plant Flowsheet Ports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Ports",
         "tags": [
           "Flowsheet"
         ]
