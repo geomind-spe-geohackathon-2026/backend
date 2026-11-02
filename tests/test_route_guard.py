@@ -1,5 +1,6 @@
 """Every route needs a signed-in user, unless its path is explicitly public."""
 
+import re
 from collections.abc import Iterable, Iterator
 from typing import Any
 
@@ -46,7 +47,10 @@ def test_every_route_needs_a_user_or_is_public() -> None:
 
 
 def test_guard_sees_every_documented_route() -> None:
-    checked = {route.path for route in api_routes(app.routes)}
+    checked = {
+        re.sub(r"\{(\w+):path\}", r"{\1}", route.path)
+        for route in api_routes(app.routes)
+    }
 
     assert checked >= set(app.openapi()["paths"])
     assert "/api/v1/workspace/projects/{project_id}" in checked

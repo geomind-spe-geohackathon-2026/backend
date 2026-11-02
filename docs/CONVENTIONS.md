@@ -75,8 +75,9 @@ src/
     │   └── errors.py          # Shared client errors
     ├── errors.py             # Application errors and error middleware
     ├── gemini/               # The only package that imports gemini
+    │   ├── case.py           # schema, validate (missing vs structural), series
     │   ├── errors.py
-    │   └── plant.py          # from_dict, to_dict, validate_content
+    │   └── plant.py          # from_dict, to_dict, validate_content, templates, structure, parameters
     ├── logging/
     │   ├── logger.py         # Logger configuration
     │   └── middleware.py     # Request logging middleware
@@ -195,6 +196,26 @@ src/
   names every problem with a path. Older documents fail with `old_format`.
 - Every gemini validation error on a plant becomes `422 plant_invalid` with
   `details.problems` (gemini's `path`, `code`, `message`) and a joined `details.message`.
+
+## Plant and case routes
+
+- `plant/flowsheet` and `plant/parameters` read and write `plant_versions`;
+  `design/case` reads and writes `case_versions` and `case_files`. A save takes `base`
+  and answers `409 conflict` with `details.latest` when it is stale
+  (`core/versioning.py:check_base`).
+- The flowsheet's `modules` and `connections` are read from a plant gemini builds from
+  the stored document; `stream` is the connection's kind, else the target's or source's
+  port kind. The palette title and template title are gemini's class name.
+- The layout (node positions, UI only) is one JSON object per project in MinIO
+  (`plant/<project>/layout.json`); saving it makes no version.
+- A case is validated by `gm.Case.from_dict` with the files of its version. gemini's
+  code `missing_value` is "missing" (saved, listed in `missing`); any other code is
+  structural (`422 case_invalid`). A case version's digest covers its content and the
+  hash of every file, so a new file is a new version. Files are stored once per content
+  (`case/<project>/<sha256>`) and later versions point at the same object.
+- `GET /plant/parameters` takes `missing` from `plant.check()`; `POST
+  /plant/parameters/fill` answers `501 not_implemented` (`details.missing` is
+  `plant.catalogue`) until the catalogue is built.
 
 ## Plant versions
 
