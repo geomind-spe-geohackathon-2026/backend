@@ -22,6 +22,7 @@ class CaseVersion(Base):
     content: Mapped[dict[str, Any]] = mapped_column(
         Json,
     )
+    missing: Mapped[int] = mapped_column(default=0)
     digest: Mapped[str] = mapped_column(Text)
     note: Mapped[str] = mapped_column(Text)
     author_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))

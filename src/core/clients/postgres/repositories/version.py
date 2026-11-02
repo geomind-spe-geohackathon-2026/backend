@@ -74,19 +74,26 @@ class VersionRepository(BaseRepository):
         note: str,
         author_id: UUID,
         digest: str | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> Any:
         """Save the next version; a save that loses the number retries once.
 
         ``digest`` stands for the content when the version also holds other data
         (a case with its files); it defaults to the hash of the content.
+        ``extra`` holds other columns of the version row.
         """
         digest = digest or content_digest(content)
+        extra = extra or {}
         try:
-            return await self._insert_next(project_id, content, note, author_id, digest)
+            return await self._insert_next(
+                project_id, content, note, author_id, digest, extra
+            )
         except IntegrityError:
             await self.session.rollback()
         try:
-            return await self._insert_next(project_id, content, note, author_id, digest)
+            return await self._insert_next(
+                project_id, content, note, author_id, digest, extra
+            )
         except IntegrityError as error:
             await self.session.rollback()
             raise ConflictError(f"{self.label} version number is taken") from error
@@ -98,6 +105,7 @@ class VersionRepository(BaseRepository):
         note: str,
         author_id: UUID,
         digest: str,
+        extra: dict[str, Any],
     ) -> Any:
         latest = await self.latest_version(project_id)
         if latest is not None and latest.digest == digest:
@@ -113,6 +121,7 @@ class VersionRepository(BaseRepository):
             digest=digest,
             note=note,
             author_id=author_id,
+            **extra,
         )
         self.session.add(version)
         await self.session.flush()

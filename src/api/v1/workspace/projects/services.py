@@ -2,7 +2,7 @@ import asyncio
 import json
 import re
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import PurePosixPath
@@ -68,6 +68,7 @@ class ParsedCase:
     created: datetime
     content: dict
     files: dict[str, bytes]
+    missing: int = 0
 
 
 def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
@@ -119,7 +120,7 @@ async def copy_case(
     latest = await latest_version(cases, source.id, CaseNotFoundError)
     data = await stored_files(await files.list_for_version(latest.id), blobs)
     note = f"Copied from {source.name}"
-    return ParsedCase(1, note, datetime.now(UTC), latest.content, data)
+    return ParsedCase(1, note, datetime.now(UTC), latest.content, data, latest.missing)
 
 
 async def create_project(
@@ -289,12 +290,13 @@ def read_case(name: str, number: int, data: bytes) -> ParsedCase:
     return ParsedCase(number, stored.note, stored.created, stored.content, {})
 
 
-def check_case(parsed: ParsedCase) -> None:
-    """Refuse a case version that gemini finds structurally wrong; gaps are allowed."""
-    _, problems = case_document.validate(parsed.content, parsed.files)
+def check_case(parsed: ParsedCase) -> ParsedCase:
+    """Refuse a case version gemini finds structurally wrong; gaps are counted."""
+    missing, problems = case_document.validate(parsed.content, parsed.files)
     if problems:
         name = f"case/{parsed.number}.json"
         raise CaseInvalidError([{**problem, "file": name} for problem in problems])
+    return replace(parsed, missing=len(missing))
 
 
 def read_cases(archive: ZipFile) -> list[ParsedCase]:
@@ -311,9 +313,7 @@ def read_cases(archive: ZipFile) -> list[ParsedCase]:
             raise refuse_file(f"{name} belongs to a case version that is missing")
         cases[int(match[1])].files[match[2]] = archive.read(name)
     ordered = sorted(cases.values(), key=lambda case: case.number)
-    for parsed in ordered:
-        check_case(parsed)
-    return ordered
+    return [check_case(parsed) for parsed in ordered]
 
 
 def read_archive(
@@ -349,7 +349,9 @@ async def store_cases(
             await blobs.put(key, data)
             files.append(ImportedCaseFile(name, len(data), key))
         cases.append(
-            ImportedCase(case.number, case.note, case.created, case.content, files)
+            ImportedCase(
+                case.number, case.note, case.created, case.content, files, case.missing
+            )
         )
     return cases
 

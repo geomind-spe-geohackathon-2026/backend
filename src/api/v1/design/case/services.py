@@ -91,11 +91,16 @@ async def save_version(
     repository: CaseVersionRepository,
 ) -> CaseVersion:
     """Check the case with its files, then save it as the next version."""
-    _, problems = await asyncio.to_thread(case.validate, content, files)
+    missing, problems = await asyncio.to_thread(case.validate, content, files)
     if problems:
         raise CaseInvalidError(problems)
     return await repository.save_version(
-        project.id, content, note, user.id, files_digest(content, files)
+        project.id,
+        content,
+        note,
+        user.id,
+        files_digest(content, files),
+        {"missing": len(missing)},
     )
 
 

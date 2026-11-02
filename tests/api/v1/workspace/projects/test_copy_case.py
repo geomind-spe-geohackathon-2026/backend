@@ -96,3 +96,19 @@ async def test_case_from_a_project_the_user_cannot_see_is_not_found(
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "project_not_found"
+
+
+async def test_copy_keeps_the_missing_count_of_the_source(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    source = await make_project(owner, "Source")
+    await save_case(client, bearer(owner), source)
+
+    response = await client.post(
+        PROJECTS,
+        json={"name": "Copy", "case_from": str(source.id)},
+        headers=bearer(owner),
+    )
+
+    assert response.json()["progress"]["case"]["state"] == "incomplete"

@@ -238,7 +238,7 @@ code uses the repository; it does not add tables or queries of its own.
 
 | Table | Holds | List index |
 |---|---|---|
-| `case_versions`, `case_files` | gemini's case document per version (never updated, like `plant_versions`); file name, size and MinIO key per version | `(project_id, number)` unique |
+| `case_versions`, `case_files` | gemini's case document per version (never updated, like `plant_versions`); file name, size and MinIO key per version; `case_versions.missing` is the count of values gemini finds missing, stored at save so project reads do not touch MinIO | `(project_id, number)` unique |
 | `chats`, `messages` | conversations; a message carries its `run_id` | `(project_id, created, id)`, `(chat_id, created, id)` |
 | `runs` | status, loop, pending `request`, `error`, usage totals; the id is the run id geomind uses | `(project_id, created, id)`, `(project_id, status)`, `(chat_id, created)` |
 | `run_events` | geomind's full `event.to_dict()` with `sequence`, `type`, `public` | `(run_id, sequence)` |

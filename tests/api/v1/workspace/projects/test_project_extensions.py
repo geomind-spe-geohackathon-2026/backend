@@ -174,6 +174,29 @@ async def test_import_restores_case_versions_and_files(
     files = await CaseFileRepository(session).list_for_version(stored.id)
     assert [file.name for file in files] == [DEMAND_FILE]
     assert blobs.objects[files[0].object_key] == DEMAND_CSV
+    assert stored.missing == 0
+
+
+async def test_import_stores_the_missing_count_of_a_case_without_its_file(
+    client,
+    make_user,
+    session,
+    blobs,
+) -> None:
+    user = await make_user()
+    archive = archive_of({"project.json": PROJECT_FILE, "case/1.json": CASE_FILE})
+
+    response = await client.post(
+        f"{PROJECTS}/import",
+        files={"file": ("project.zip", archive, "application/zip")},
+        headers=bearer(user),
+    )
+
+    stored = await CaseVersionRepository(session).latest_version(
+        UUID(response.json()["id"])
+    )
+    assert stored.missing > 0
+    assert response.json()["progress"]["case"]["state"] == "incomplete"
 
 
 async def test_import_refuses_a_file_without_its_case_version(

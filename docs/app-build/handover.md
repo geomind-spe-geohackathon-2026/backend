@@ -71,7 +71,7 @@ Never exercised against each other; the frontend was built on mocks.
 
 ## Known risks
 
-- Project reads call MinIO through `ProgressReader`: a missing blob fails the read, and the project list reads case files per project, which may be slow. Consider computing `missing` at save.
+- Done: the missing count is stored on each case version (`case_versions.missing`, migration 0007); project reads no longer call MinIO. Versions saved before 0007 count as 0 missing until the next save.
 - A failed MinIO delete on project delete raises after the rows are gone.
 - Nothing creates the MinIO bucket at startup; it is created on first write.
 - Document extraction reads plain-text formats only. PDF and docx end `failed`.

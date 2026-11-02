@@ -45,13 +45,32 @@ class ProgressRepository(BaseRepository):
             counts.setdefault(project_id, {})[status] = count
         return counts
 
-    async def facts(self, project_ids: list[UUID]) -> dict[UUID, ProjectFacts]:
-        """Return the facts of each project, empty ones included."""
-        case = await self.grouped(
-            select(CaseVersion.project_id, func.max(CaseVersion.number))
+    async def latest_cases(
+        self, project_ids: list[UUID]
+    ) -> dict[UUID, tuple[int, int]]:
+        """Return the latest case number and its missing count for each project."""
+        latest = (
+            select(
+                CaseVersion.project_id.label("project_id"),
+                func.max(CaseVersion.number).label("number"),
+            )
             .where(CaseVersion.project_id.in_(project_ids))
             .group_by(CaseVersion.project_id)
+            .subquery()
         )
+        statement = select(
+            CaseVersion.project_id, CaseVersion.number, CaseVersion.missing
+        ).join(
+            latest,
+            (CaseVersion.project_id == latest.c.project_id)
+            & (CaseVersion.number == latest.c.number),
+        )
+        rows = await self.session.execute(statement)
+        return {row[0]: (row[1], row[2]) for row in rows}
+
+    async def facts(self, project_ids: list[UUID]) -> dict[UUID, ProjectFacts]:
+        """Return the facts of each project, empty ones included."""
+        case = await self.latest_cases(project_ids)
         plant = await self.grouped(
             select(PlantVersion.project_id, func.max(PlantVersion.number))
             .where(PlantVersion.project_id.in_(project_ids))
@@ -73,7 +92,8 @@ class ProgressRepository(BaseRepository):
         studies = await self.study_counts(project_ids)
         return {
             project_id: ProjectFacts(
-                case_version=case.get(project_id),
+                case_version=case[project_id][0] if project_id in case else None,
+                case_missing=case[project_id][1] if project_id in case else 0,
                 plant_version=plant.get(project_id),
                 studies=studies.get(project_id, {}),
                 results=results.get(project_id, 0),

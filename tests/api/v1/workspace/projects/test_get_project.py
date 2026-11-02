@@ -1,11 +1,9 @@
 from uuid import uuid4
 
-from src.core.clients.postgres.repositories.case_file import CaseFileRepository
-from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
-from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
+from tests.api.v1.design.case.test_case import save_case, upload
 from tests.conftest import bearer
 from tests.plants import example_plant
 
@@ -61,13 +59,11 @@ async def test_project_shows_its_latest_plant_version(
 
 
 async def test_case_with_missing_values_is_incomplete(
-    client, make_user, make_project, session, blobs
+    client, make_user, make_project, blobs
 ) -> None:
     owner = await make_user()
     project = await make_project(owner)
-    await CaseVersionRepository(session).save_version(
-        project.id, example_case(), "Case", owner.id
-    )
+    await save_case(client, bearer(owner), project)
 
     response = await client.get(f"{PROJECTS}/{project.id}", headers=bearer(owner))
 
@@ -77,21 +73,33 @@ async def test_case_with_missing_values_is_incomplete(
 
 
 async def test_case_with_all_its_values_is_ready(
-    client, make_user, make_project, session, blobs
+    client, make_user, make_project, blobs
 ) -> None:
     owner = await make_user()
     project = await make_project(owner)
-    version = await CaseVersionRepository(session).save_version(
-        project.id, example_case(), "Case", owner.id
-    )
-    await blobs.put("key", DEMAND_CSV)
-    await CaseFileRepository(session).add(
-        project.id, version.id, DEMAND_FILE, len(DEMAND_CSV), "key"
-    )
+    await save_case(client, bearer(owner), project)
+    await upload(client, bearer(owner), project, 1)
 
     response = await client.get(f"{PROJECTS}/{project.id}", headers=bearer(owner))
 
     assert response.json()["progress"]["case"] == {
         "state": "ready",
-        "label": "Version 1",
+        "label": "Version 2",
     }
+
+
+async def test_project_reads_never_touch_the_object_store(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    await save_case(client, bearer(owner), project)
+    await upload(client, bearer(owner), project, 1)
+    blobs.objects.clear()
+
+    one = await client.get(f"{PROJECTS}/{project.id}", headers=bearer(owner))
+    listed = await client.get(PROJECTS, headers=bearer(owner))
+
+    assert one.status_code == listed.status_code == 200
+    assert one.json()["progress"]["case"]["state"] == "ready"
+    assert listed.json()["items"][0]["progress"]["case"]["state"] == "ready"

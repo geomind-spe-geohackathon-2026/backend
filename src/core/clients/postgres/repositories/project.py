@@ -49,6 +49,7 @@ class ImportedCase:
     created: datetime
     content: dict[str, Any]
     files: list[ImportedCaseFile]
+    missing: int
 
 
 class ProjectRepository(BaseRepository):
@@ -128,6 +129,7 @@ class ProjectRepository(BaseRepository):
             project_id=project_id,
             number=case.number,
             content=case.content,
+            missing=case.missing,
             digest=content_digest(case.content),
             note=case.note,
             author_id=owner_id,
