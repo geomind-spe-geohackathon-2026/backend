@@ -35,6 +35,8 @@ class CaseCheck(BaseModel):
 class CaseProblems(BaseModel):
     missing: list[Missing]
     problems: list[Problem]
+    plant_missing: list[Missing] = []
+    has_plant: bool = False
 
 
 class Series(BaseModel):

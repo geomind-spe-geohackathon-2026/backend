@@ -335,11 +335,19 @@ def test_a_new_chat_starts_with_the_complete_case_of_the_project() -> None:
     assert set(store.artifacts) == {f"case/{name}" for name in files}
 
 
-def test_a_chat_with_a_state_keeps_it() -> None:
-    state = {"version": 3}
+def test_a_chat_with_a_case_keeps_it() -> None:
+    state = {"version": 3, "case": {"name": "own"}}
     found = (design_inputs.case_content(), design_inputs.case_files())
 
     assert seeded(SeedStore(state), found).state == state
+
+
+def test_a_chat_with_a_state_but_no_case_takes_the_project_case() -> None:
+    content, files = design_inputs.case_content(), design_inputs.case_files()
+
+    state = seeded(SeedStore({"version": 3, "goal": "x"}), (content, files)).state
+
+    assert state == {"version": 4, "goal": "x", "case": content}
 
 
 def test_a_project_without_a_case_leaves_the_chat_empty() -> None:

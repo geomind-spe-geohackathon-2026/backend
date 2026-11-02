@@ -1,13 +1,22 @@
+import asyncio
 from typing import Any
 from uuid import UUID
 
 from src.api.v1.design.results import errors, schemas
+from src.core.clients.minio.blobs import BlobStore
+from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.result import Result
 from src.core.clients.postgres.models.user import User
+from src.core.clients.postgres.repositories.case_file import CaseFileRepository
+from src.core.clients.postgres.repositories.case_version import (
+    CaseVersionRepository,
+)
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.errors import ValidationFailedError
 from src.core.gemini import evaluate as gemini_evaluate
+from src.core.gemini import study as gemini_study
+from src.core.gemini.stored import stored_files
 from src.core.pagination.page import Page, PageRequest, encode_cursor
 from src.core.security.access import require_project
 from src.core.security.errors import ProjectNotFoundError
@@ -26,9 +35,12 @@ def to_summary(result: Result) -> dict[str, Any]:
     }
 
 
-def to_detail(result: Result) -> schemas.ResultDetail:
+def to_detail(
+    result: Result,
+    limits: dict[str, dict[str, Any]] | None = None,
+) -> schemas.ResultDetail:
     content = result.content
-    parts = gemini_evaluate.summarise(content["report"])
+    parts = gemini_evaluate.summarise(content["report"], limits)
     return schemas.ResultDetail(
         **to_summary(result),
         capacities=parts["capacities"],
@@ -56,11 +68,30 @@ async def list_results(
     )
 
 
+async def add_coverage(
+    result: Result,
+    case: CaseVersion,
+    files: CaseFileRepository,
+    blobs: BlobStore,
+    results: ResultRepository,
+) -> None:
+    """Compute the coverage of a result stored before it existed, and keep it."""
+    data = await stored_files(await files.list_for_version(case.id), blobs)
+    coverage = await asyncio.to_thread(
+        gemini_study.stored_coverage, result.content["design"], case.content, data
+    )
+    if coverage is not None:
+        await results.set_content(result, {**result.content, "coverage": coverage})
+
+
 async def get_result(
     result_id: UUID,
     user: User,
     projects: ProjectRepository,
     results: ResultRepository,
+    cases: CaseVersionRepository,
+    files: CaseFileRepository,
+    blobs: BlobStore,
 ) -> schemas.ResultDetail:
     result = await results.get_by_id(result_id)
     if result is None:
@@ -69,7 +100,12 @@ async def get_result(
         await require_project(result.project_id, user, projects)
     except ProjectNotFoundError as error:
         raise errors.ResultNotFoundError("Result not found") from error
-    return to_detail(result)
+    case = await cases.version_by_number(result.project_id, result.case_version)
+    if case is None:
+        return to_detail(result)
+    if result.content.get("coverage") is None:
+        await add_coverage(result, case, files, blobs, results)
+    return to_detail(result, gemini_evaluate.case_limits(case.content))
 
 
 def parse_ids(text: str) -> list[UUID]:

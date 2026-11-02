@@ -120,7 +120,8 @@ async def test_validate_with_a_project_finds_its_saved_files(
         json={"content": example_case(), "project": str(project.id)},
     )
 
-    assert response.json() == {"missing": [], "problems": []}
+    assert response.json()["missing"] == []
+    assert response.json()["problems"] == []
 
 
 async def test_validate_refuses_the_project_of_another_user(

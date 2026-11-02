@@ -10,6 +10,9 @@ import gemini as gm
 from src.core.gemini.errors import PlantInvalidError, PlantModuleNotFoundError
 from src.core.problems import problem_of
 
+MISSING_CODE = "missing_value"
+CASE_SECTIONS = frozenset(gm.Case.schema()["properties"])
+
 
 def plant_invalid(
     problems: list[dict[str, Any]],
@@ -63,6 +66,15 @@ def from_template(name: str) -> gm.Plant:
         return gm.plants.get(name)
     except gm.errors.ValidationError as error:
         raise plant_invalid(list(error.problems), str(error)) from error
+
+
+def case_needs(content: Any, case: gm.Case) -> list[dict[str, str]]:
+    """Return the values of the case a plant still needs, from gemini's check."""
+    return [
+        {"path": item["path"], "message": item["message"]}
+        for item in problems_of(content, case)
+        if item["code"] == MISSING_CODE and item["path"].split(".")[0] in CASE_SECTIONS
+    ]
 
 
 def template_names() -> list[str]:

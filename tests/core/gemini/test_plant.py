@@ -87,3 +87,13 @@ def test_the_free_document_of_the_seeded_plant_keeps_the_module_depth() -> None:
     assert "depth" not in document["params"]
     assert document["params"]["d0"]["depth"]["value"] == 2500
     assert gm.Plant.from_dict(document)
+
+
+def test_a_plant_names_what_it_needs_from_a_nearly_empty_case() -> None:
+    content = json.loads((EXAMPLE / "seed_plant.json").read_text())
+    time = json.loads((EXAMPLE / "case.json").read_text())["time"]
+    case = gm.Case.from_dict({"format": 1, "kind": "case", "name": "c", "time": time})
+
+    needs = plant.case_needs(content, case)
+
+    assert needs[0]["path"].startswith("site.")

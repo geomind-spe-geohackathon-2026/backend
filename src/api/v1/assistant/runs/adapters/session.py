@@ -182,13 +182,15 @@ def keywords(
 
 
 def seed_problem(environment: Environment, chat_id: UUID, project_id: UUID) -> None:
-    """Give a chat without a state the project's case, when that case is complete.
+    """Give a chat whose state has no case the project's case, when that is complete.
 
     The analyst agent has no ``set_case``, so a chat that started empty could never
-    read or change the case the project already has.
+    read or change the case the project already has. A case in the state is kept: it
+    may hold the assistant's own changes.
     """
     store = environment.store
-    if store.load_state(str(chat_id)) is not None:
+    state = store.load_state(str(chat_id)) or {}
+    if state.get("case") is not None:
         return
     found = environment.workspace.case(str(project_id))
     if found is None:
@@ -198,7 +200,8 @@ def seed_problem(environment: Environment, chat_id: UUID, project_id: UUID) -> N
         return
     for name, data in files.items():
         store.save_chat_artifact(str(chat_id), f"{CASE_ARTIFACT}{name}", data)
-    store.save_state(str(chat_id), {"version": 1, "case": content})
+    version = state.get("version", 0) + 1
+    store.save_state(str(chat_id), {**state, "version": version, "case": content})
 
 
 async def start(

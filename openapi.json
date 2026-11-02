@@ -434,11 +434,24 @@
       },
       "CaseProblems": {
         "properties": {
+          "has_plant": {
+            "default": false,
+            "title": "Has Plant",
+            "type": "boolean"
+          },
           "missing": {
             "items": {
               "$ref": "#/components/schemas/Missing"
             },
             "title": "Missing",
+            "type": "array"
+          },
+          "plant_missing": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Missing"
+            },
+            "title": "Plant Missing",
             "type": "array"
           },
           "problems": {
@@ -614,13 +627,43 @@
       },
       "Constraint": {
         "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "string"
+          },
+          "margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin"
+          },
           "message": {
             "title": "Message",
             "type": "string"
           },
+          "module": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Module"
+          },
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "near": {
+            "title": "Near",
+            "type": "boolean"
           },
           "status": {
             "enum": [
@@ -634,13 +677,46 @@
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "worst": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worst"
           }
         },
         "required": [
           "name",
           "title",
+          "module",
           "status",
-          "message"
+          "message",
+          "value",
+          "unit",
+          "limit",
+          "margin",
+          "near",
+          "worst"
         ],
         "title": "Constraint",
         "type": "object"

@@ -25,6 +25,12 @@ ABBREVIATIONS = {
 }
 KIND_MEANINGS = {"cooler": "heat rejected"}
 LENGTH_UNIT = "m"
+CLEAN_DIGITS = 6
+PERCENT = 100
+PERCENT_UNIT = "%"
+FRACTION_UNITS = ("-", "")
+COUNT_QUANTITY = "count"
+NEAR_SHARE = 0.05
 CONDUCTANCE_UNIT = "W/K"
 CONDUCTANCE_SCALES = ((1e6, "MW/K"), (1e3, "kW/K"))
 
@@ -137,18 +143,101 @@ def subject_of(item: dict[str, Any]) -> str:
     return item.get("unit_path") or ""
 
 
-def constraints_of(report: dict[str, Any]) -> list[dict[str, str]]:
+def clean(value: float) -> float:
+    """Return a value without floating point noise."""
+    rounded = round(value, CLEAN_DIGITS)
+    return 0.0 if rounded == 0 else rounded
+
+
+def is_fraction(item: dict[str, Any], unit: str, sides: list[float]) -> bool:
+    """Tell whether a dimensionless requirement reads as a share of one."""
+    plain = unit in FRACTION_UNITS and item.get("quantity") != COUNT_QUANTITY
+    return plain and bool(sides) and all(abs(side) <= 1 for side in sides)
+
+
+def sides_of(
+    item: dict[str, Any], limits: dict[str, dict[str, Any]]
+) -> tuple[float | None, float | None]:
+    """Return a requirement's bounds from the case, in the report's unit."""
+    given = limits.get(item["name"], {})
+    unit = (item.get("value") or {}).get("unit")
+    if given.get("unit") not in (None, unit):
+        return None, None
+    return given.get("min"), given.get("max")
+
+
+def limit_text(low: float | None, high: float | None, unit: str, fallback: Any) -> str:
+    """Write the bounds with their direction; without them the limit gemini reported."""
+    if low is not None and high is not None and low != high:
+        return f"{number(low)} to {number(high)}{unit_text(unit)}"
+    if low is not None and high is not None:
+        return f"= {number(low)}{unit_text(unit)}"
+    if low is not None:
+        return f"≥ {number(low)}{unit_text(unit)}"
+    if high is not None:
+        return f"≤ {number(high)}{unit_text(unit)}"
+    return amount(fallback)
+
+
+def margin_of(
+    value: float | None, low: float | None, high: float | None
+) -> tuple[float | None, bool]:
+    """Return the distance to the nearest bound, and whether that is a near share."""
+    sides = [side for side in (low, high) if side is not None]
+    if value is None or not sides or low == high:
+        return None, False
+    margin = min(abs(value - side) for side in sides)
+    width = (
+        abs(high - low)
+        if low is not None and high is not None
+        else max(abs(sides[0]), 1)
+    )
+    return clean(margin), margin < NEAR_SHARE * width
+
+
+def checked(item: dict[str, Any], limits: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Return the figures of one requirement, a share of one as a percentage."""
+    figure = item.get("value") or {}
+    value, unit = figure.get("value"), figure.get("unit", "")
+    low, high = sides_of(item, limits)
+    sides = [side for side in (value, low, high) if side is not None]
+    scale = PERCENT if is_fraction(item, unit, sides) else 1
+    shown = PERCENT_UNIT if scale == PERCENT else unit
+    scaled = [None if side is None else side * scale for side in (value, low, high)]
+    margin, near = margin_of(*scaled)
+    return {
+        "value": None if scaled[0] is None else clean(scaled[0]),
+        "unit": shown,
+        "limit": limit_text(scaled[1], scaled[2], shown, item.get("limit")),
+        "margin": margin,
+        "near": near,
+    }
+
+
+def constraints_of(
+    report: dict[str, Any],
+    limits: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     """Return the requirements of the report as constraints."""
     return [
         {
             "name": ".".join(filter(None, [subject_of(item), item["name"]])),
-            "title": title_of(item["name"])
-            + (f" ({subject_of(item)})" if subject_of(item) else ""),
+            "title": title_of(item["name"]),
+            "module": subject_of(item) or None,
             "status": status_of(item),
             "message": message_of(item),
+            "worst": (item.get("worst_step") or "")[:10] or None,
+            **checked(item, limits or {}),
         }
         for item in report["requirements"]
     ]
+
+
+def case_limits(content: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    """Return the bounds of each requirement of a case document by name."""
+    if content is None:
+        return {}
+    return {item["name"]: item for item in content.get("requirements", [])}
 
 
 def readable(figure: dict[str, Any]) -> dict[str, Any]:
@@ -204,13 +293,16 @@ def sizes_of(report: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def summarise(report: dict[str, Any]) -> dict[str, Any]:
+def summarise(
+    report: dict[str, Any],
+    limits: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Return the figures a result keeps from gemini's report in display units."""
     return {
         "summary": {"kpis": kpis_of(report), "checks": checks_of(report)},
         "capacities": capacities_of(report),
         "sizes": sizes_of(report),
-        "constraints": constraints_of(report),
+        "constraints": constraints_of(report, limits),
     }
 
 

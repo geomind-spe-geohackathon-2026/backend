@@ -17,6 +17,10 @@ from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
     get_case_version_repository,
 )
+from src.core.clients.postgres.repositories.plant_version import (
+    PlantVersionRepository,
+    get_plant_version_repository,
+)
 from src.core.clients.postgres.repositories.user import (
     UserRepository,
     get_user_repository,
@@ -37,6 +41,10 @@ router = APIRouter(prefix="/case", tags=["Case"])
 CaseVersionRepositoryDependency = Annotated[
     CaseVersionRepository,
     Depends(get_case_version_repository),
+]
+PlantVersionRepositoryDependency = Annotated[
+    PlantVersionRepository,
+    Depends(get_plant_version_repository),
 ]
 CaseFileRepositoryDependency = Annotated[
     CaseFileRepository,
@@ -88,12 +96,16 @@ async def validate_case(
     repository: CaseVersionRepositoryDependency,
     files: CaseFileRepositoryDependency,
     blobs: BlobStoreDependency,
+    plants: PlantVersionRepositoryDependency,
 ) -> schemas.CaseProblems:
     stored: dict[str, bytes] | None = None
+    plant_content = None
     if payload.project is not None:
         project = await require_project(payload.project, user, projects)
         stored = await services.saved_files(project, repository, files, blobs)
-    return services.check_case(payload.content, stored)
+        latest = await plants.latest_version(project.id)
+        plant_content = None if latest is None else latest.content
+    return services.check_case(payload.content, stored, plant_content)
 
 
 @router.post("/files", response_model=schemas.Case, status_code=status.HTTP_201_CREATED)

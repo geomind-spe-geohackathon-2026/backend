@@ -255,6 +255,24 @@ def coverage_of(outcome: Any, case_content: dict[str, Any], files: Any) -> dict:
     }
 
 
+def stored_coverage(
+    design: dict[str, Any],
+    case_content: dict[str, Any],
+    case_files: dict[str, bytes],
+) -> dict[str, Any] | None:
+    """Compute the coverage of a stored design again; a design that fails gives none."""
+    try:
+        built = case.build(case_content, case_files)
+        plant = gm.Plant.from_dict(design)
+        results = gm.simulate(plant, built)
+        coverage = gm.evaluate.daily_coverage(plant, built, results)
+    except gm.errors.GeminiError:
+        return None
+    return {
+        service: [plain_day(day) for day in days] for service, days in coverage.items()
+    }
+
+
 def run(
     kind: str,
     name: str,

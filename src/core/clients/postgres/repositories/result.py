@@ -18,6 +18,11 @@ class ResultRepository(BaseRepository):
     async def get_by_id(self, result_id: UUID) -> Result | None:
         return await self.session.get(Result, result_id)
 
+    async def set_content(self, result: Result, content: dict[str, Any]) -> Result:
+        result.content = content
+        await self.session.commit()
+        return result
+
     async def get_for_study(self, study_id: UUID) -> Result | None:
         statement = select(Result).where(Result.study_id == study_id).limit(1)
         return await self.session.scalar(statement)

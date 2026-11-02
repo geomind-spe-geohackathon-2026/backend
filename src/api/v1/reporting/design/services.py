@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from src.api.v1.reporting.design import errors, pdf, schemas
 from src.core.clients.postgres.models.project import Project
@@ -70,10 +71,14 @@ def checks_markdown(result: Result) -> str:
     )
     parts = gemini_evaluate.summarise(result.content["report"])
     rows = [
-        [item["title"], item["status"], item["message"]]
+        [module_title(item), item["status"], item["message"]]
         for item in parts["constraints"]
     ]
     return line + "\n\n" + table(["Check", "Status", "Detail"], rows) if rows else line
+
+
+def module_title(item: dict[str, Any]) -> str:
+    return f"{item['title']} ({item['module']})" if item["module"] else item["title"]
 
 
 def costs_markdown(result: Result) -> str:

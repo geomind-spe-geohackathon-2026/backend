@@ -3,6 +3,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from src.api.v1.design.results import schemas, services
+from src.core.clients.minio.blobs import BlobStoreDependency
+from src.core.clients.postgres.repositories.case_file import (
+    CaseFileRepository,
+    get_case_file_repository,
+)
+from src.core.clients.postgres.repositories.case_version import (
+    CaseVersionRepository,
+    get_case_version_repository,
+)
 from src.core.clients.postgres.repositories.project import (
     ProjectRepository,
     get_project_repository,
@@ -23,6 +32,16 @@ ProjectRepositoryDependency = Annotated[
 ResultRepositoryDependency = Annotated[
     ResultRepository,
     Depends(get_result_repository),
+]
+
+
+CaseVersionRepositoryDependency = Annotated[
+    CaseVersionRepository,
+    Depends(get_case_version_repository),
+]
+CaseFileRepositoryDependency = Annotated[
+    CaseFileRepository,
+    Depends(get_case_file_repository),
 ]
 
 
@@ -56,5 +75,10 @@ async def get_result(
     user: CurrentUser,
     projects: ProjectRepositoryDependency,
     results: ResultRepositoryDependency,
+    cases: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    blobs: BlobStoreDependency,
 ) -> schemas.ResultDetail:
-    return await services.get_result(result_id, user, projects, results)
+    return await services.get_result(
+        result_id, user, projects, results, cases, files, blobs
+    )

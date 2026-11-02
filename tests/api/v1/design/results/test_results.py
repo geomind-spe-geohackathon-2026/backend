@@ -75,7 +75,7 @@ async def test_list_gives_summaries(
 
 
 async def test_detail_passes_gemini_content_through(
-    client, make_user, make_project, make_result
+    client, make_user, make_project, make_result, blobs
 ) -> None:
     user = await make_user()
     project = await make_project(user)
@@ -92,7 +92,7 @@ async def test_detail_passes_gemini_content_through(
 
 
 async def test_detail_of_a_stranger_is_not_found(
-    client, make_user, make_project, make_result
+    client, make_user, make_project, make_result, blobs
 ) -> None:
     owner = await make_user()
     stranger = await make_user("stranger@example.com")

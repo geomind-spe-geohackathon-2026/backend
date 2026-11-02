@@ -163,3 +163,55 @@ def test_a_large_conductance_has_a_readable_unit() -> None:
 
 def test_a_cooler_says_its_rating_is_heat_rejected() -> None:
     assert evaluate.capacities_of(RATINGS)[2]["kind"] == "Cooler, heat rejected"
+
+
+def requirement(**fields) -> dict:
+    return {
+        "name": "flow",
+        "passed": True,
+        "value": {"value": 300.0, "unit": "m3/h"},
+        "limit": {"value": 300.0, "unit": "m3/h"},
+        "unit_path": "d0",
+        "quantity": "production_flow",
+        "worst_step": "2027-01-27T00:00:00+00:00",
+        **fields,
+    }
+
+
+def one(item: dict, limits: dict | None = None) -> dict:
+    return evaluate.constraints_of({"requirements": [item]}, limits)[0]
+
+
+def test_a_constraint_shows_both_bounds_margin_and_date() -> None:
+    limits = {"flow": {"min": 50, "max": 300, "unit": "m3/h"}}
+
+    found = one(requirement(), limits)
+
+    assert found["title"] == "Flow"
+    assert found["module"] == "d0"
+    assert found["limit"] == "50 to 300 m3/h"
+    assert (found["margin"], found["near"]) == (0, True)
+    assert found["worst"] == "2027-01-27"
+
+
+def test_a_lower_bound_has_its_direction() -> None:
+    limits = {"count": {"min": 1}}
+    figure = {"value": 2, "unit": "-"}
+    item = requirement(name="count", quantity="count", value=figure, limit=figure)
+
+    found = one(item, limits)
+
+    assert found["limit"] == "≥ 1"
+    assert found["unit"] == "-"
+
+
+def test_a_share_of_one_reads_as_a_percentage_without_noise() -> None:
+    figure = {"value": 0.7000000000001, "unit": "-"}
+    item = requirement(
+        name="eff", quantity="pump_efficiency", value=figure, limit=figure
+    )
+
+    found = one(item, {"eff": {"min": 0.7, "max": 0.7}})
+
+    assert (found["value"], found["unit"]) == (70.0, "%")
+    assert found["limit"] == "= 70 %"

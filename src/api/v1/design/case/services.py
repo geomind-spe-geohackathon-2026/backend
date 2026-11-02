@@ -17,7 +17,7 @@ from src.core.clients.postgres.repositories.case_version import (
 from src.core.clients.postgres.repositories.user import UserRepository
 from src.core.clients.postgres.repositories.version import content_digest
 from src.core.errors import CaseInvalidError, ValidationFailedError
-from src.core.gemini import case
+from src.core.gemini import case, plant
 from src.core.gemini.errors import CaseFileNotFoundError, CaseNotFoundError
 from src.core.gemini.stored import stored_files
 from src.core.pagination.page import Page
@@ -90,11 +90,22 @@ async def saved_files(
 
 
 def check_case(
-    content: dict[str, Any], files: dict[str, bytes] | None = None
+    content: dict[str, Any],
+    files: dict[str, bytes] | None = None,
+    plant_content: dict[str, Any] | None = None,
 ) -> schemas.CaseProblems:
-    """Return gemini's missing values and problems for a case document."""
+    """Return gemini's missing values and problems, and what the plant still needs."""
     missing, problems = case.validate(content, files)
-    return schemas.CaseProblems(missing=missing, problems=problems)
+    built = case.build(content, files) if not missing and not problems else None
+    needs = []
+    if plant_content is not None and built is not None:
+        needs = plant.case_needs(plant_content, built)
+    return schemas.CaseProblems(
+        missing=missing,
+        problems=problems,
+        plant_missing=needs,
+        has_plant=plant_content is not None,
+    )
 
 
 async def save_version(

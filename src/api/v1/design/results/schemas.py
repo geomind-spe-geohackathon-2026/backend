@@ -45,8 +45,15 @@ class Capacity(BaseModel):
 class Constraint(BaseModel):
     name: str
     title: str
+    module: str | None
     status: Literal["pass", "fail", "not_assessed"]
     message: str
+    value: float | None
+    unit: str
+    limit: str
+    margin: float | None
+    near: bool
+    worst: str | None
 
 
 class Figure(BaseModel):
