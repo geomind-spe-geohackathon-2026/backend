@@ -9,3 +9,8 @@ Only what a UI feature needs that the public API cannot give, and real calculati
 - `on_progress` total is too low on a multi-doublet `minimize`: HeatingHeatPumpCoolingPlant with 20 evaluations reported `total` 60 but ran 240 trials. Recheck on 0.5.3.
 - `daily_coverage` calls all cooling `geothermal`, also from an electric chiller. The app shows it as Plant; a neutral source name for cooling would be right.
 - `gas_makeup` chemical and enthalpy flow in exceeds out by about 580 MWh of 21,643 on HeatingHeatPumpCoolingPlant, sized on the hackathon case. Please confirm that is expected.
+
+- `gm.plants.capabilities()[class]["ranges"]` lists a generated module only at its smallest size
+  Today: `params.d0.*` is listed and `params.d1.*` is not, though a `range` on `d1` is accepted. The backend maps the paths to every module of the same class.
+  Wanted: ranges by module class, or a statement that they apply to every copy.
+

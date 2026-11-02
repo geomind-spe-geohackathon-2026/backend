@@ -133,3 +133,27 @@ def test_a_module_lists_what_a_study_can_search() -> None:
 
     assert names
     assert all(not name.startswith("params.") for name in names)
+
+
+def test_every_module_of_a_class_lists_what_a_study_can_search() -> None:
+    content = json.loads((EXAMPLE / "seed_plant.json").read_text())
+    content["size"]["doublets"]["value"] = 3
+    built = from_dict(content)
+
+    first = plant.parameters(built, "d0", None, None)["ranges"]
+    last = plant.parameters(built, "d2", None, None)["ranges"]
+
+    assert first
+    assert last == first
+    assert "nominal_flow" in last
+
+
+def test_a_group_inside_a_later_module_lists_its_names() -> None:
+    content = json.loads((EXAMPLE / "seed_plant.json").read_text())
+    content["size"]["doublets"]["value"] = 2
+    built = from_dict(content)
+
+    assert plant.range_names(built, "d1.reservoir")
+    assert plant.range_names(built, "d1.reservoir") == plant.range_names(
+        built, "d0.reservoir"
+    )

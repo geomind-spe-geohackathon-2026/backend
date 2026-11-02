@@ -269,11 +269,37 @@ def range_paths(kind: str) -> tuple[str, ...]:
     return tuple(found.get("ranges", ()))
 
 
+def owner_of(module: str, modules: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Return the plant module a path is, or sits inside; a module id may have dots."""
+    owners = [
+        item
+        for item in modules
+        if module == item["id"] or module.startswith(f"{item['id']}.")
+    ]
+    return max(owners, key=lambda item: len(item["id"]), default=None)
+
+
 def range_names(plant: gm.Plant, module: str) -> list[str]:
-    """Return the names under a module that a study can search over a range."""
-    prefix = f"params.{module}."
+    """Return the names under a module that a study can search over a range.
+
+    gemini lists the paths of each class at its smallest size, so ``d1`` is not there
+    while ``d0`` is, and modules of one class share what can be searched.
+    """
+    modules = structure(plant)["modules"]
+    owner = owner_of(module, modules)
+    if owner is None:
+        return []
+    inner = module.removeprefix(owner["id"])
+    twins = [item["id"] for item in modules if item["type"] == owner["type"]]
+    prefixes = tuple(f"params.{twin}{inner}." for twin in twins)
     paths = range_paths(str(plant.to_dict().get("type")))
-    return [path.removeprefix(prefix) for path in paths if path.startswith(prefix)]
+    names = (
+        path.removeprefix(prefix)
+        for path in paths
+        for prefix in prefixes
+        if path.startswith(prefix)
+    )
+    return list(dict.fromkeys(names))
 
 
 def parameters(
