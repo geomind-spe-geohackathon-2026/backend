@@ -16,7 +16,7 @@ from src.core.logging.logger import get_logger
 from src.core.pagination.page import Page, PageRequest, encode_cursor
 from src.core.security.access import require_project
 from src.core.security.errors import ProjectNotFoundError
-from src.core.settings import settings
+from src.core.uploads import read_upload
 
 EXTRACT_TASK = "workspace.documents.extract"
 
@@ -73,9 +73,7 @@ async def upload_document(
     blobs: BlobStore,
 ) -> schemas.Document:
     name = file_name_of(file.filename)
-    data = await file.read(settings.PROJECT_IMPORT_MAX_BYTES + 1)
-    if len(data) > settings.PROJECT_IMPORT_MAX_BYTES:
-        raise ValidationFailedError({"file": "File is too large"})
+    data = await read_upload(file)
     key = f"projects/{project.id}/documents/{uuid4()}/{name}"
     await blobs.put(key, data)
     try:

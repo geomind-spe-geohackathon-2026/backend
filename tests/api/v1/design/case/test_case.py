@@ -1,3 +1,4 @@
+from src.core.settings import settings
 from tests.cases import DEMAND_CSV, DEMAND_FILE, broken_case, example_case
 from tests.conftest import bearer
 
@@ -328,3 +329,18 @@ async def test_every_later_version_still_reads_the_earlier_file(
     assert sorted(item["name"] for item in latest.json()["files"]) == sorted(
         [DEMAND_FILE, "other.csv"]
     )
+
+
+async def test_a_file_above_the_upload_limit_is_refused(
+    client, make_user, make_project, blobs, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "PROJECT_IMPORT_MAX_BYTES", len(DEMAND_CSV) - 1)
+    owner = await make_user()
+    project = await make_project(owner)
+    await save_case(client, bearer(owner), project)
+
+    response = await upload(client, bearer(owner), project, 1)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_failed"
+    assert blobs.objects == {}

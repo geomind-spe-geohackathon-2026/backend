@@ -212,7 +212,9 @@ src/
   code `missing_value` is "missing" (saved, listed in `missing`); any other code is
   structural (`422 case_invalid`). A case version's digest covers its content and the
   hash of every file, so a new file is a new version. Files are stored once per content
-  (`case/<project>/<sha256>`) and later versions point at the same object.
+  (`case/<project>/<sha256>`) and later versions point at the same object. Uploads of
+  case files and documents above `PROJECT_IMPORT_MAX_BYTES` are `422 validation_failed`
+  on `file` (`core/uploads.py:read_upload`).
 - `GET /plant/parameters` takes `missing` from `plant.check()`; `POST
   /plant/parameters/fill` answers `501 not_implemented` (`details.missing` is
   `plant.catalogue`) until the catalogue is built.

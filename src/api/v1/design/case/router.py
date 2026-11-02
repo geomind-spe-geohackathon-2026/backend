@@ -29,6 +29,7 @@ from src.core.security.access import (
     QueriedProject,
     require_project,
 )
+from src.core.uploads import read_upload
 from src.core.versioning import Version
 
 router = APIRouter(prefix="/case", tags=["Case"])
@@ -105,7 +106,7 @@ async def add_file(
         accessible,
         base,
         name,
-        await file.read(),
+        await read_upload(file),
         user,
         repository,
         files,
