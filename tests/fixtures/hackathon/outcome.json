@@ -1,0 +1,1094 @@
+{
+ "report": {
+  "heat_delivered": {
+   "value": 111667.68,
+   "unit": "MWh"
+  },
+  "cold_delivered": {
+   "value": null,
+   "unit": "MWh",
+   "reason": "the plant has no module at its edge that shows it"
+  },
+  "boiler_heat": {
+   "value": 60415.606463101096,
+   "unit": "MWh"
+  },
+  "electricity_bought": {
+   "value": 8575.90357380036,
+   "unit": "MWh"
+  },
+  "gas_bought": {
+   "value": 51264.86705964766,
+   "unit": "MWh"
+  },
+  "capacities": {
+   "d0": {
+    "kind": "production_pump",
+    "capacity": {
+     "value": 300.0,
+     "unit": "m3/h"
+    },
+    "peak": {
+     "value": 300.0,
+     "unit": "m3/h"
+    },
+    "share": {
+     "value": 1.0,
+     "unit": "-"
+    }
+   },
+   "d1": {
+    "kind": "production_pump",
+    "capacity": {
+     "value": 300.0,
+     "unit": "m3/h"
+    },
+    "peak": {
+     "value": 300.0,
+     "unit": "m3/h"
+    },
+    "share": {
+     "value": 1.0,
+     "unit": "-"
+    }
+   },
+   "heat_exchanger": {
+    "kind": "heat_exchanger",
+    "capacity": {
+     "value": 1500000.0,
+     "unit": "W/K"
+    },
+    "peak": {
+     "value": null,
+     "unit": "W/K",
+     "reason": "the run shows no use of this module"
+    },
+    "share": {
+     "value": null,
+     "unit": "-",
+     "reason": "the run shows no use of this module"
+    }
+   },
+   "heating_return_pipe": {
+    "kind": "pipe",
+    "capacity": {
+     "value": 100.0,
+     "unit": "m"
+    },
+    "peak": {
+     "value": null,
+     "unit": "m",
+     "reason": "the run shows no use of this module"
+    },
+    "share": {
+     "value": null,
+     "unit": "-",
+     "reason": "the run shows no use of this module"
+    }
+   },
+   "peak_boiler": {
+    "kind": "boiler",
+    "capacity": {
+     "value": 30.0,
+     "unit": "MW"
+    },
+    "peak": {
+     "value": 17.635931466661127,
+     "unit": "MW"
+    },
+    "share": {
+     "value": 0.5878643822220375,
+     "unit": "-"
+    }
+   },
+   "heating_supply_pipe": {
+    "kind": "pipe",
+    "capacity": {
+     "value": 100.0,
+     "unit": "m"
+    },
+    "peak": {
+     "value": null,
+     "unit": "m",
+     "reason": "the run shows no use of this module"
+    },
+    "share": {
+     "value": null,
+     "unit": "-",
+     "reason": "the run shows no use of this module"
+    }
+   }
+  },
+  "capex": {
+   "value": 16.855885571022526,
+   "unit": "MEUR",
+   "modules": {
+    "d0": {
+     "value": 0.22765013540774365,
+     "unit": "MEUR",
+     "kind": "production_pump"
+    },
+    "d0.well": {
+     "value": 2.658616298885492,
+     "unit": "MEUR",
+     "kind": "drilling"
+    },
+    "d0.riser": {
+     "value": 0.43920978807103006,
+     "unit": "MEUR",
+     "kind": "drilling"
+    },
+    "d0.injector": {
+     "value": 3.097826086956522,
+     "unit": "MEUR",
+     "kind": "drilling"
+    },
+    "d1": {
+     "value": 0.22765013540774365,
+     "unit": "MEUR",
+     "kind": "production_pump"
+    },
+    "d1.well": {
+     "value": 2.658616298885492,
+     "unit": "MEUR",
+     "kind": "drilling"
+    },
+    "d1.riser": {
+     "value": 0.43920978807103006,
+     "unit": "MEUR",
+     "kind": "drilling"
+    },
+    "d1.injector": {
+     "value": 3.097826086956522,
+     "unit": "MEUR",
+     "kind": "drilling"
+    },
+    "degasser": {
+     "value": 1.0,
+     "unit": "MEUR",
+     "kind": "degasser"
+    },
+    "heat_exchanger": {
+     "value": 0.75,
+     "unit": "MEUR",
+     "kind": "heat_exchanger"
+    },
+    "injection_pump": {
+     "value": 0.18738095238095237,
+     "unit": "MEUR",
+     "kind": "injection_pump"
+    },
+    "heating_return_pipe": {
+     "value": 0.05,
+     "unit": "MEUR",
+     "kind": "pipe"
+    },
+    "peak_boiler": {
+     "value": 1.8219,
+     "unit": "MEUR",
+     "kind": "boiler"
+    },
+    "heating_supply_pipe": {
+     "value": 0.05,
+     "unit": "MEUR",
+     "kind": "pipe"
+    },
+    "gas_makeup": {
+     "value": 0.05,
+     "unit": "MEUR",
+     "kind": "gas_makeup"
+    },
+    "flare": {
+     "value": 0.1,
+     "unit": "MEUR",
+     "kind": "flare"
+    }
+   },
+   "price_year": {
+    "value": 2015,
+    "unit": "-"
+   }
+  },
+  "opex": {
+   "value": 4.146859508154447,
+   "unit": "MEUR/yr",
+   "components": {
+    "fixed": {
+     "value": 0.22697841794218968,
+     "unit": "MEUR/yr"
+    },
+    "electricity": {
+     "value": 0.9075229685478329,
+     "unit": "MEUR/yr"
+    },
+    "fuel": {
+     "value": 2.0478952008930666,
+     "unit": "MEUR/yr"
+    },
+    "waste": {
+     "value": 0.0,
+     "unit": "MEUR/yr"
+    },
+    "chemical": {
+     "value": 0.0,
+     "unit": "MEUR/yr"
+    },
+    "co2": {
+     "value": 0.964462920771357,
+     "unit": "MEUR/yr"
+    }
+   },
+   "fixed_by_kind": {
+    "production_pump": {
+     "value": 0.009106005416309747,
+     "unit": "MEUR/yr"
+    },
+    "drilling": {
+     "value": 0.12391304347826086,
+     "unit": "MEUR/yr"
+    },
+    "degasser": {
+     "value": 0.02,
+     "unit": "MEUR/yr"
+    },
+    "heat_exchanger": {
+     "value": 0.0075,
+     "unit": "MEUR/yr"
+    },
+    "injection_pump": {
+     "value": 0.0037476190476190474,
+     "unit": "MEUR/yr"
+    },
+    "pipe": {
+     "value": 0.0005,
+     "unit": "MEUR/yr"
+    },
+    "boiler": {
+     "value": 0.05921175,
+     "unit": "MEUR/yr"
+    },
+    "gas_makeup": {
+     "value": 0.001,
+     "unit": "MEUR/yr"
+    },
+    "flare": {
+     "value": 0.002,
+     "unit": "MEUR/yr"
+    }
+   }
+  },
+  "lcts": {
+   "value": 47.81302024251156,
+   "unit": "EUR/MWh",
+   "annualised_cost": {
+    "value": 5.3428260093731215,
+    "unit": "MEUR/yr"
+   },
+   "heat": {
+    "value": 111744.16471232877,
+    "unit": "MWh/yr"
+   },
+   "cold": {
+    "value": 0.0,
+    "unit": "MWh/yr"
+   }
+  },
+  "lcoh": {
+   "value": 47.813020242511556,
+   "unit": "EUR/MWh",
+   "capex": {
+    "value": 16.855885571022526,
+    "unit": "MEUR"
+   },
+   "opex": {
+    "value": 4.146859508154447,
+    "unit": "MEUR/yr"
+   },
+   "energy": {
+    "value": 111744.16471232877,
+    "unit": "MWh/yr"
+   },
+   "discount_rate": {
+    "value": 0.05,
+    "unit": "-"
+   },
+   "analysis_period": {
+    "value": 25.0,
+    "unit": "yr"
+   }
+  },
+  "lcoc": {
+   "value": null,
+   "unit": "EUR/MWh",
+   "reason": "the run delivers no cold"
+  },
+  "co2": {
+   "value": 16.899926036816737,
+   "unit": "kt",
+   "direct": {
+    "value": 14.327154964676629,
+    "unit": "kt"
+   },
+   "methane": {
+    "value": 0.0,
+    "unit": "kt"
+   },
+   "electricity": {
+    "value": 2.572771072140109,
+    "unit": "kt"
+   },
+   "fuel_energy": {
+    "value": 67128.45162566785,
+    "unit": "MWh"
+   },
+   "grid_energy": {
+    "value": 8575.90357380036,
+    "unit": "MWh"
+   },
+   "window": {
+    "value": 365.0,
+    "unit": "d"
+   }
+  },
+  "requirements": [
+   {
+    "name": "production_flow_range",
+    "passed": true,
+    "value": {
+     "value": 300.0,
+     "unit": "m3/h"
+    },
+    "limit": {
+     "value": 300.0,
+     "unit": "m3/h"
+    },
+    "role": "doublet",
+    "unit_path": "d0",
+    "quantity": "production_flow",
+    "worst_step": "2027-01-01T00:00:00+00:00"
+   },
+   {
+    "name": "production_flow_range",
+    "passed": true,
+    "value": {
+     "value": 300.0,
+     "unit": "m3/h"
+    },
+    "limit": {
+     "value": 300.0,
+     "unit": "m3/h"
+    },
+    "role": "doublet",
+    "unit_path": "d1",
+    "quantity": "production_flow",
+    "worst_step": "2027-01-27T00:00:00+00:00"
+   },
+   {
+    "name": "brine_cooling_limit",
+    "passed": true,
+    "value": {
+     "value": 20.729980815946817,
+     "unit": "K"
+    },
+    "limit": {
+     "value": 40.0,
+     "unit": "K"
+    },
+    "role": "doublet",
+    "unit_path": "d0",
+    "quantity": "brine_cooling",
+    "worst_step": "2027-04-24T00:00:00+00:00"
+   },
+   {
+    "name": "brine_cooling_limit",
+    "passed": true,
+    "value": {
+     "value": 20.29270811531552,
+     "unit": "K"
+    },
+    "limit": {
+     "value": 40.0,
+     "unit": "K"
+    },
+    "role": "doublet",
+    "unit_path": "d1",
+    "quantity": "brine_cooling",
+    "worst_step": "2027-05-10T00:00:00+00:00"
+   },
+   {
+    "name": "running_time_limit",
+    "passed": true,
+    "value": {
+     "value": 330.0,
+     "unit": "d"
+    },
+    "limit": {
+     "value": 330.0,
+     "unit": "d"
+    },
+    "role": "doublet",
+    "unit_path": "d0",
+    "quantity": "production_flow",
+    "worst_step": null
+   },
+   {
+    "name": "running_time_limit",
+    "passed": true,
+    "value": {
+     "value": 330.0,
+     "unit": "d"
+    },
+    "limit": {
+     "value": 330.0,
+     "unit": "d"
+    },
+    "role": "doublet",
+    "unit_path": "d1",
+    "quantity": "production_flow",
+    "worst_step": null
+   },
+   {
+    "name": "pump_efficiency",
+    "passed": true,
+    "value": {
+     "value": 0.7,
+     "unit": "-"
+    },
+    "limit": {
+     "value": 0.7,
+     "unit": "-"
+    },
+    "role": "doublet",
+    "unit_path": "d0",
+    "quantity": "pump_efficiency",
+    "worst_step": null
+   },
+   {
+    "name": "pump_efficiency",
+    "passed": true,
+    "value": {
+     "value": 0.7,
+     "unit": "-"
+    },
+    "limit": {
+     "value": 0.7,
+     "unit": "-"
+    },
+    "role": "doublet",
+    "unit_path": "d1",
+    "quantity": "pump_efficiency",
+    "worst_step": null
+   },
+   {
+    "name": "full_reinjection",
+    "passed": true,
+    "value": {
+     "value": 0.9999999999999998,
+     "unit": "-"
+    },
+    "limit": {
+     "value": 0.99999,
+     "unit": "-"
+    },
+    "role": "doublet",
+    "unit_path": "d0",
+    "quantity": "reinjection_ratio",
+    "worst_step": "2027-01-02T00:00:00+00:00"
+   },
+   {
+    "name": "full_reinjection",
+    "passed": true,
+    "value": {
+     "value": 1.0000000000000004,
+     "unit": "-"
+    },
+    "limit": {
+     "value": 1.00001,
+     "unit": "-"
+    },
+    "role": "doublet",
+    "unit_path": "d1",
+    "quantity": "reinjection_ratio",
+    "worst_step": "2027-01-20T00:00:00+00:00"
+   },
+   {
+    "name": "doublet_count",
+    "passed": true,
+    "value": {
+     "value": 2.0,
+     "unit": "-"
+    },
+    "limit": {
+     "value": 1,
+     "unit": "-"
+    },
+    "role": "doublet",
+    "unit_path": "",
+    "quantity": "count",
+    "worst_step": null
+   },
+   {
+    "name": "heat_delivered",
+    "passed": true,
+    "value": {
+     "value": 8.526945310289112e-17,
+     "unit": "-"
+    },
+    "limit": {
+     "value": 0.01,
+     "unit": "-"
+    },
+    "role": "heating_supply",
+    "unit_path": "heating_consumer",
+    "quantity": "unmet_share",
+    "worst_step": null
+   },
+   {
+    "name": "cold_delivered",
+    "passed": null,
+    "value": {
+     "value": null,
+     "unit": "-",
+     "reason": "no_value: the plant has no unit of the role 'cooling_supply'"
+    },
+    "limit": {
+     "value": 0.01,
+     "unit": "-"
+    },
+    "role": "cooling_supply",
+    "unit_path": null,
+    "quantity": "unmet_share",
+    "worst_step": null
+   },
+   {
+    "name": "heating_supply_temperature",
+    "passed": true,
+    "value": {
+     "value": 100.0,
+     "unit": "degC"
+    },
+    "limit": {
+     "value": 100.0,
+     "unit": "degC"
+    },
+    "role": "heating_supply",
+    "unit_path": "heating_consumer",
+    "quantity": "temperature",
+    "worst_step": "2027-01-01T00:00:00+00:00"
+   },
+   {
+    "name": "cooling_supply_temperature",
+    "passed": null,
+    "value": {
+     "value": null,
+     "unit": "degC",
+     "reason": "no_value: the plant has no unit of the role 'cooling_supply'"
+    },
+    "limit": {
+     "value": 20.0,
+     "unit": "degC"
+    },
+    "role": "cooling_supply",
+    "unit_path": null,
+    "quantity": "temperature",
+    "worst_step": null
+   }
+  ],
+  "passed": true,
+  "verdict": {
+   "feasible": false,
+   "reasons": [
+    {
+     "kind": "requirement",
+     "name": "cold_delivered",
+     "message": "the run gives no cold_delivered for the cooling"
+    }
+   ]
+  },
+  "failed_steps": 0,
+  "failures": {
+   "total": 0,
+   "groups": []
+  },
+  "services": [
+   "heating",
+   "cooling"
+  ]
+ },
+ "run": {
+  "plant_name": "plant",
+  "case_name": "hackathon_2026",
+  "verdict": {
+   "feasible": false,
+   "reasons": [
+    {
+     "kind": "requirement",
+     "name": "cold_delivered",
+     "message": "the run gives no cold_delivered for the cooling"
+    }
+   ]
+  },
+  "metrics": {},
+  "note": null,
+  "found": null
+ },
+ "design": {
+  "format": 1,
+  "kind": "plant",
+  "name": "HeatingPlant",
+  "type": "HeatingPlant",
+  "size": {
+   "doublets": {
+    "value": 2,
+    "range": {
+     "min": 1,
+     "max": 3
+    }
+   }
+  },
+  "params": {
+   "depth": {
+    "value": 2500,
+    "unit": "m",
+    "range": {
+     "min": 2000.0,
+     "max": 3500.0
+    }
+   },
+   "d0": {
+    "nominal_flow": {
+     "value": 300,
+     "unit": "m3/h",
+     "range": {
+      "min": 50.0,
+      "max": 300.0
+     }
+    },
+    "well_diameter": {
+     "value": 0.244,
+     "unit": "m"
+    },
+    "drainage_radius": {
+     "value": 1000.0,
+     "unit": "m"
+    },
+    "roughness": {
+     "value": 4.5e-05,
+     "unit": "m"
+    },
+    "pump_efficiency": {
+     "value": 0.7
+    },
+    "nominal_wellhead_pressure": {
+     "value": 10,
+     "unit": "bar"
+    },
+    "reservoir": {
+     "skin": {
+      "value": 0.0
+     },
+     "decline_threshold": {
+      "value": 0.15
+     }
+    },
+    "well": {
+     "friction_correlation": {
+      "value": "darcy_weisbach"
+     },
+     "two_phase_friction_correlation": {
+      "value": "BeggsBrill"
+     },
+     "correction_factors": {
+      "value": [
+       1.0,
+       0.0
+      ]
+     },
+     "heat_transfer_coefficient": {
+      "value": 10.0,
+      "unit": "W/m2/K"
+     }
+    },
+    "esp": {
+     "pump_type": {
+      "value": "unspecified"
+     },
+     "motor_efficiency": {
+      "value": 1.0
+     },
+     "minimum_flow": {
+      "value": 0,
+      "unit": "m3/s"
+     },
+     "maximum_flow": {
+      "value": 1,
+      "unit": "m3/s"
+     },
+     "best_efficiency_flow": {
+      "value": 0.04,
+      "unit": "m3/s"
+     },
+     "correction_factors": {
+      "value": [
+       1.0,
+       0.0
+      ]
+     },
+     "minimum_intake_pressure": {
+      "value": 5,
+      "unit": "bar"
+     },
+     "maximum_gas_fraction": {
+      "value": 0.1875
+     },
+     "drift_threshold": {
+      "value": 0.1
+     }
+    },
+    "riser": {
+     "friction_correlation": {
+      "value": "darcy_weisbach"
+     },
+     "two_phase_friction_correlation": {
+      "value": "BeggsBrill"
+     },
+     "correction_factors": {
+      "value": [
+       1.0,
+       0.0
+      ]
+     },
+     "heat_transfer_coefficient": {
+      "value": 10.0,
+      "unit": "W/m2/K"
+     }
+    },
+    "injector": {
+     "friction_correlation": {
+      "value": "darcy_weisbach"
+     },
+     "two_phase_friction_correlation": {
+      "value": "BeggsBrill"
+     },
+     "correction_factors": {
+      "value": [
+       1.0,
+       0.0
+      ]
+     },
+     "heat_transfer_coefficient": {
+      "value": 10.0,
+      "unit": "W/m2/K"
+     }
+    },
+    "sink": {
+     "skin": {
+      "value": 0.0
+     },
+     "decline_threshold": {
+      "value": 0.15
+     }
+    }
+   },
+   "d1": {
+    "nominal_flow": {
+     "value": 300,
+     "unit": "m3/h",
+     "range": {
+      "min": 50.0,
+      "max": 300.0
+     }
+    },
+    "well_diameter": {
+     "value": 0.244,
+     "unit": "m"
+    },
+    "drainage_radius": {
+     "value": 1000.0,
+     "unit": "m"
+    },
+    "roughness": {
+     "value": 4.5e-05,
+     "unit": "m"
+    },
+    "pump_efficiency": {
+     "value": 0.7
+    },
+    "nominal_wellhead_pressure": {
+     "value": 10,
+     "unit": "bar"
+    },
+    "reservoir": {
+     "skin": {
+      "value": 0.0
+     },
+     "decline_threshold": {
+      "value": 0.15
+     }
+    },
+    "well": {
+     "friction_correlation": {
+      "value": "darcy_weisbach"
+     },
+     "two_phase_friction_correlation": {
+      "value": "BeggsBrill"
+     },
+     "correction_factors": {
+      "value": [
+       1.0,
+       0.0
+      ]
+     },
+     "heat_transfer_coefficient": {
+      "value": 10.0,
+      "unit": "W/m2/K"
+     }
+    },
+    "esp": {
+     "pump_type": {
+      "value": "unspecified"
+     },
+     "motor_efficiency": {
+      "value": 1.0
+     },
+     "minimum_flow": {
+      "value": 0,
+      "unit": "m3/s"
+     },
+     "maximum_flow": {
+      "value": 1,
+      "unit": "m3/s"
+     },
+     "best_efficiency_flow": {
+      "value": 0.04,
+      "unit": "m3/s"
+     },
+     "correction_factors": {
+      "value": [
+       1.0,
+       0.0
+      ]
+     },
+     "minimum_intake_pressure": {
+      "value": 5,
+      "unit": "bar"
+     },
+     "maximum_gas_fraction": {
+      "value": 0.1875
+     },
+     "drift_threshold": {
+      "value": 0.1
+     }
+    },
+    "riser": {
+     "friction_correlation": {
+      "value": "darcy_weisbach"
+     },
+     "two_phase_friction_correlation": {
+      "value": "BeggsBrill"
+     },
+     "correction_factors": {
+      "value": [
+       1.0,
+       0.0
+      ]
+     },
+     "heat_transfer_coefficient": {
+      "value": 10.0,
+      "unit": "W/m2/K"
+     }
+    },
+    "injector": {
+     "friction_correlation": {
+      "value": "darcy_weisbach"
+     },
+     "two_phase_friction_correlation": {
+      "value": "BeggsBrill"
+     },
+     "correction_factors": {
+      "value": [
+       1.0,
+       0.0
+      ]
+     },
+     "heat_transfer_coefficient": {
+      "value": 10.0,
+      "unit": "W/m2/K"
+     }
+    },
+    "sink": {
+     "skin": {
+      "value": 0.0
+     },
+     "decline_threshold": {
+      "value": 0.15
+     }
+    }
+   },
+   "control": {
+    "dispatch": {
+     "value": "least_cost"
+    },
+    "outages": {
+     "value": "lowest_demand"
+    }
+   },
+   "backup": {
+    "value": "peak"
+   },
+   "degasser": {
+    "nominal_pressure_drop": {
+     "value": 14900.0,
+     "unit": "Pa"
+    },
+    "separation_efficiency": {
+     "value": 1.0
+    }
+   },
+   "filters": {
+    "hot": {
+     "nominal_pressure_drop": {
+      "value": 1600.0,
+      "unit": "Pa"
+     },
+     "nominal_mass_flow": {
+      "value": 44.20333333333333,
+      "unit": "kg/s"
+     },
+     "clogging_pressure_drop": {
+      "value": 50000.0,
+      "unit": "Pa"
+     }
+    },
+    "cold": {
+     "nominal_pressure_drop": {
+      "value": 1600.0,
+      "unit": "Pa"
+     },
+     "nominal_mass_flow": {
+      "value": 44.20333333333333,
+      "unit": "kg/s"
+     },
+     "clogging_pressure_drop": {
+      "value": 50000.0,
+      "unit": "Pa"
+     }
+    }
+   },
+   "heat_exchanger": {
+    "thermal_conductance": {
+     "value": 1500000,
+     "unit": "W/K"
+    },
+    "arrangement": {
+     "value": "counterflow"
+    },
+    "hot_nominal_pressure_drop": {
+     "value": 0,
+     "unit": "bar"
+    },
+    "cold_nominal_pressure_drop": {
+     "value": 0,
+     "unit": "bar"
+    },
+    "hot_nominal_mass_flow": {
+     "value": 171.7,
+     "unit": "kg/s"
+    },
+    "cold_nominal_mass_flow": {
+     "value": 178,
+     "unit": "kg/s"
+    },
+    "fouling_threshold": {
+     "value": 0.15
+    }
+   },
+   "injection_pump": {
+    "pump_type": {
+     "value": "unspecified"
+    },
+    "efficiency": {
+     "value": 0.7
+    },
+    "nominal_flow": {
+     "value": 600,
+     "unit": "m3/h"
+    },
+    "nominal_head": {
+     "value": 15.74,
+     "unit": "bar"
+    },
+    "pressure_setpoint": {
+     "value": 60,
+     "unit": "bar"
+    },
+    "frequency": {
+     "value": 60,
+     "unit": "Hz"
+    }
+   },
+   "heating_return_pipe": {
+    "length": {
+     "value": 100,
+     "unit": "m"
+    },
+    "inner_diameter": {
+     "value": 0.5,
+     "unit": "m"
+    },
+    "roughness": {
+     "value": 4.5e-05,
+     "unit": "m"
+    },
+    "elevation_change": {
+     "value": 0,
+     "unit": "m"
+    },
+    "heat_transfer_coefficient": {
+     "value": 0.0,
+     "unit": "W/m2/K"
+    }
+   },
+   "peak_boiler": {
+    "capacity": {
+     "value": 30,
+     "unit": "MW"
+    },
+    "efficiency": {
+     "value": 0.9
+    },
+    "supply_margin": {
+     "value": 0,
+     "unit": "K"
+    }
+   },
+   "heating_supply_pipe": {
+    "length": {
+     "value": 100,
+     "unit": "m"
+    },
+    "inner_diameter": {
+     "value": 0.5,
+     "unit": "m"
+    },
+    "roughness": {
+     "value": 4.5e-05,
+     "unit": "m"
+    },
+    "elevation_change": {
+     "value": 0,
+     "unit": "m"
+    },
+    "heat_transfer_coefficient": {
+     "value": 0.0,
+     "unit": "W/m2/K"
+    }
+   },
+   "flare": {
+    "combustion_efficiency": {
+     "value": 0.98
+    }
+   }
+  }
+ }
+}

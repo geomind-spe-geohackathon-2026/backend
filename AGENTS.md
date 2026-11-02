@@ -37,6 +37,8 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   `details.problems`). gemini's format already holds dated parameters
   and bindings and is validated on load, so a second, split format would only have to
   follow it. Rows are never updated.
+- **Studies, results, reports:** `design/{study,results}` and `reporting/design`, wrappers
+  in `src/core/gemini/{study,evaluate}.py`; see [docs/reporting.md](docs/reporting.md).
 - **OpenAPI:** `openapi.json` at the repo root is committed; the frontend generates its
   types from it. After any route or schema change run
   `.venv/bin/python scripts/to_openapi.py`; `tests/test_openapi.py` fails when it is stale.

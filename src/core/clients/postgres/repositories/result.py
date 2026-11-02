@@ -22,6 +22,14 @@ class ResultRepository(BaseRepository):
         statement = select(Result).where(Result.study_id == study_id).limit(1)
         return await self.session.scalar(statement)
 
+    async def ids_by_study(self, study_ids: list[UUID]) -> dict[UUID, UUID]:
+        statement = select(Result.study_id, Result.id).where(
+            Result.study_id.in_(study_ids)
+        )
+        return {
+            study: result for study, result in await self.session.execute(statement)
+        }
+
     async def by_ids(self, project_id: UUID, result_ids: list[UUID]) -> list[Result]:
         statement = select(Result).where(
             Result.project_id == project_id,

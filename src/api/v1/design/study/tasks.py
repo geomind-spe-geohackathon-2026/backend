@@ -1,1 +1,35 @@
+import asyncio
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from celery import Task, shared_task
+from src.api.v1.design.study import services
+from src.core.clients.minio.client import create_minio_client
+from src.core.clients.postgres.client import create_postgres_client
+
 TASK_MODULES = (__name__,)
+
+
+async def execute(task: Task, study_id: UUID) -> None:
+    """Open this worker's own database and MinIO access and run the study."""
+    engine = create_postgres_client()
+    sessions = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
+    try:
+        async with sessions() as session:
+            stores = services.Stores.open(session)
+            await services.run_study(
+                study_id, stores, create_minio_client(), task.report
+            )
+    finally:
+        await engine.dispose()
+
+
+@shared_task(bind=True, name="design.study.run")
+def run_study(self: Task, study_id: str) -> None:
+    asyncio.run(execute(self, UUID(study_id)))
+
+
+def enqueue(study_id: UUID) -> str:
+    """Queue the study for a worker and return the Celery task id."""
+    return run_study.delay(str(study_id)).id
