@@ -8,6 +8,8 @@ USAGE = gd_types.Usage(input_tokens=120, output_tokens=40, cost=0.001)
 ROUTE = '{"kind": "loop", "loop": "tool", "agent": "analyst"}'
 ANSWER = "The scripted assistant finished after your approval."
 SCENARIO = "demand profile"
+SCENARIO_DAYS = 365
+SCENARIO_START = "2027-01-01T00:00:00Z"
 DEMO_ANSWER = "Demo mode: no model is connected, so this is a scripted reply."
 
 
@@ -31,9 +33,9 @@ def asks_to_save() -> gd_types.Completion:
         name="save_profile",
         input={
             "name": "scripted",
-            "values": [1.0],
+            "values": [1.0] * SCENARIO_DAYS,
             "unit": "MW",
-            "start": "2026-01-01T00:00:00Z",
+            "start": SCENARIO_START,
             "step": {"value": 1, "unit": "d"},
             "service": "heating",
         },
