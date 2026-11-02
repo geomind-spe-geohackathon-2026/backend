@@ -10,6 +10,7 @@ AGENT_ALLOWED = Path("src/api/v1/assistant/runs/adapters")
 AGENT_PACKAGES = {"geomind"}
 GEMINI_MODULES = {"gemini", "gemini.errors"}
 FEATURES = Path("src/api/v1")
+LAYOUT = (GEMINI_ALLOWED, AGENT_ALLOWED)
 
 
 def imported_modules(path: Path) -> Iterator[tuple[int, str]]:
@@ -52,9 +53,11 @@ def gemini_violation(path: Path, module: str) -> str | None:
 def agent_violation(path: Path, module: str) -> str | None:
     if module.partition(".")[0] not in AGENT_PACKAGES:
         return None
-    if path.is_relative_to(AGENT_ALLOWED):
+    if not path.is_relative_to(AGENT_ALLOWED):
+        return "the agent package is imported outside assistant/runs/adapters"
+    if module.count(".") <= 1:
         return None
-    return "the agent package is imported outside assistant/runs/adapters"
+    return "only geomind and geomind.<name> may be imported"
 
 
 def feature_violation(path: Path, module: str) -> str | None:
@@ -119,6 +122,32 @@ def test_agent_package_is_found_outside_the_adapters(tmp_path: Path) -> None:
 
     assert any("src/core/one.py:1: imports geomind" in item for item in found)
     assert any("src/core/two.py:1: imports geomind" in item for item in found)
+
+
+def test_deep_agent_path_is_found_even_in_adapters(tmp_path: Path) -> None:
+    write(tmp_path, f"{AGENT_ALLOWED}/agent.py", "from geomind.engine.loop import x\n")
+
+    found = violations(tmp_path)
+
+    assert any("only geomind and geomind.<name>" in problem for problem in found)
+
+
+def test_public_agent_imports_are_allowed_in_adapters(tmp_path: Path) -> None:
+    source = "import geomind as gd\nimport geomind.hooks\nfrom geomind import Run\n"
+    write(tmp_path, f"{AGENT_ALLOWED}/agent.py", source)
+
+    assert violations(tmp_path) == []
+
+
+def test_gemini_is_not_allowed_in_adapters(tmp_path: Path) -> None:
+    write(tmp_path, f"{AGENT_ALLOWED}/agent.py", "import gemini as gm\n")
+
+    assert violations(tmp_path)
+
+
+def test_layout_packages_exist() -> None:
+    for folder in LAYOUT:
+        assert (ROOT / folder / "__init__.py").is_file()
 
 
 def test_agent_package_is_allowed_in_adapters(tmp_path: Path) -> None:

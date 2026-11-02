@@ -20,7 +20,7 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   `AccessibleProject` (`require_project`) on every route that takes a project id.
 - **gemini:** only `src/core/gemini/` imports it, and only the public API
   (`import gemini as gm`, `gm.<name>`, `gm.errors.<name>`), never `gemini.core.*`.
-  The agent package (`geomind`) will be imported only in
+  The agent package (`geomind`, public API only) is imported only in
   `src/api/v1/assistant/runs/adapters/`. Features never import each other.
   `tests/test_boundaries.py` enforces all of this.
 - **Errors:** `{"error": {"code", "message", "details"}}`, raised as `AppError`
@@ -35,7 +35,8 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   follow it. Rows are never updated.
 - **Stack:** `../infrastructure/compose.yml` runs everything:
   `cd ../infrastructure && cp .env.example .env && docker compose up -d --build`.
-- **Tests:** `.venv/bin/python -m pytest -n auto`, including the import boundary test
+- **Tests:** `.venv/bin/python -m pytest -n auto`, including the import boundary test,
+  `tests/test_no_comments.py` (docstrings only, no comments in code)
   and `tests/test_route_guard.py`, which every new route must pass. See
   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 

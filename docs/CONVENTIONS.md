@@ -163,7 +163,10 @@ src/
 
 - features never import each other; shared data goes through repositories;
 - only `core/gemini` imports `gemini`, and only `gemini` or `gemini.errors`;
-- only `api/v1/assistant/runs/adapters` imports the agent package, `geomind`.
+- only `api/v1/assistant/runs/adapters` imports the agent package, `geomind`, and only
+  `geomind` or `geomind.<name>`;
+- `tests/test_no_comments.py` tokenizes `src` and `tests` and fails on any comment
+  other than a tool directive.
 
 ## gemini
 
