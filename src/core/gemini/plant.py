@@ -13,6 +13,9 @@ from src.core.problems import problem_of
 
 MISSING_CODE = "missing_value"
 CASE_SECTIONS = frozenset(gm.Case.schema()["properties"])
+UNIT_DIGITS = 10
+PARAMS_PREFIX = "params."
+SIZE_PREFIX = "size."
 
 
 def plant_invalid(
@@ -307,27 +310,81 @@ def range_names(plant: gm.Plant, module: str) -> list[str]:
     return list(dict.fromkeys(names))
 
 
-def leaf_at(params: dict[str, Any], path: str) -> dict[str, Any] | None:
-    """Return the leaf of the plant file at a dotted path, or None without a value."""
-    found: Any = params
+def leaf_at(document: dict[str, Any], path: str) -> dict[str, Any] | None:
+    """Return the leaf of a plant file at a dotted path, or None without a value."""
+    found: Any = document
     for part in path.split("."):
         found = found.get(part) if isinstance(found, dict) else None
     return found if isinstance(found, dict) and "value" in found else None
 
 
+def converted(value: float | None, unit: str | None, target: str) -> float | None:
+    """Return a number in another unit by gemini's units, without float noise."""
+    if value is None or unit is None or unit == target:
+        return value
+    return float(f"{gm.units.Quantity(value, unit).to(target).value:.{UNIT_DIGITS}g}")
+
+
+def units_of(schema: dict[str, Any]) -> list[str]:
+    """Return the units a parameter's schema takes, the unit it shows in first."""
+    variants = schema.get("anyOf", [])
+    quantity = next((item for item in variants if "properties" in item), {})
+    listed = quantity.get("properties", {}).get("unit", {}).get("enum", [])
+    shown = schema.get("unit")
+    return list(dict.fromkeys([*([shown] if shown else []), *listed]))
+
+
+def limits_of(leaf: dict[str, Any], units: list[str]) -> dict[str, Any]:
+    """Return a leaf's range in the unit it shows in and in each other unit."""
+    stated = leaf.get("unit")
+    limits = leaf.get("range") or {}
+    low, high = limits.get("min"), limits.get("max")
+    shown = units[0] if units else stated
+    return {
+        "min": converted(low, stated, shown) if shown else low,
+        "max": converted(high, stated, shown) if shown else high,
+        "unit": shown,
+        "units": {
+            unit: {
+                "min": converted(low, stated, unit),
+                "max": converted(high, stated, unit),
+            }
+            for unit in units
+        },
+    }
+
+
 def search_of(plant: gm.Plant, module: str) -> dict[str, dict[str, Any]]:
-    """Return the search range and unit of what a study can search under a module."""
+    """Return the search range of what a study can search under a module."""
     params = plant.to_dict()["params"]
+    schema = get_module(plant, module).parameter_schema()["properties"]
     found = {}
     for name in range_names(plant, module):
         leaf = leaf_at(params, f"{module}.{name}")
         if leaf is not None:
-            limits = leaf.get("range") or {}
-            found[name] = {
-                "min": limits.get("min"),
-                "max": limits.get("max"),
-                "unit": leaf.get("unit"),
-            }
+            found[name] = limits_of(leaf, units_of(schema.get(name, {})))
+    return found
+
+
+def plant_paths(plant: gm.Plant) -> list[str]:
+    """Return what a study can search that no module holds, as plant file paths."""
+    modules = structure(plant)["modules"]
+    paths = range_paths(str(plant.to_dict().get("type")))
+    named = [path.removeprefix(PARAMS_PREFIX) for path in paths]
+    return [path for path in named if owner_of(path, modules) is None]
+
+
+def plant_search(plant: gm.Plant) -> dict[str, dict[str, Any]]:
+    """Return every plant-level search value: its value and range, or no value yet."""
+    document = plant.to_dict()
+    found = {}
+    for path in plant_paths(plant):
+        place = path if path.startswith(SIZE_PREFIX) else f"params.{path}"
+        leaf = leaf_at(document, place)
+        limits = limits_of(
+            leaf or {}, [leaf["unit"]] if leaf and leaf.get("unit") else []
+        )
+        found[path] = {**limits, "value": None if leaf is None else leaf["value"]}
     return found
 
 
@@ -338,21 +395,40 @@ def bound_of(value: float | None, unit: str | None) -> Any:
     return gm.units.Quantity(value, unit)
 
 
-def set_ranges(
-    plant: gm.Plant, module: str, ranges: dict[str, dict[str, float | None]]
-) -> None:
-    """Set the search ranges of a module; both ends empty removes one."""
+def whole(value: Any) -> Any:
+    """Return a count as gemini reads it: a whole number, if it is one."""
+    return int(value) if isinstance(value, float) and value.is_integer() else value
+
+
+def apply_range(plant: gm.Plant, path: str, limits: dict[str, Any]) -> None:
+    """Set one search range with gemini's checks; both ends empty removes it."""
+    unit = limits.get("unit")
+    low, high = bound_of(limits["min"], unit), bound_of(limits["max"], unit)
+    if path.startswith(SIZE_PREFIX):
+        low, high = whole(low), whole(high)
+    try:
+        plant.set_range(path, low, high)
+    except gm.errors.ValidationError as error:
+        raise plant_invalid(list(error.problems), str(error)) from error
+
+
+def set_ranges(plant: gm.Plant, module: str, ranges: dict[str, dict[str, Any]]) -> None:
+    """Set the search ranges of a module, each with the unit it was typed in."""
     search = search_of(plant, module)
     for name, limits in ranges.items():
         if name not in search:
-            message = f"{module}.{name}: a study cannot search this value yet"
+            message = f"{module}.{name}: set a value first to allow a range"
             raise plant_invalid([], message)
-        unit = search[name]["unit"]
-        low, high = bound_of(limits["min"], unit), bound_of(limits["max"], unit)
-        try:
-            plant.set_range(f"{module}.{name}", low, high)
-        except gm.errors.ValidationError as error:
-            raise plant_invalid(list(error.problems), str(error)) from error
+        apply_range(plant, f"{module}.{name}", limits)
+
+
+def set_plant_ranges(plant: gm.Plant, ranges: dict[str, dict[str, Any]]) -> None:
+    """Set the search ranges that no module holds."""
+    search = plant_search(plant)
+    for path, limits in ranges.items():
+        if search.get(path, {}).get("value") is None:
+            raise plant_invalid([], f"{path}: set a value first to allow a range")
+        apply_range(plant, path, limits)
 
 
 def parameters(

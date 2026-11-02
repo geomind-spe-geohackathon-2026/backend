@@ -84,6 +84,29 @@ async def save_parameters(
     )
 
 
+@router.get("/plant", response_model=schemas.PlantSearch)
+async def get_plant_search(
+    project: QueriedProject,
+    repository: PlantVersionRepositoryDependency,
+) -> schemas.PlantSearch:
+    return await services.get_plant_search(project, repository)
+
+
+@router.post("/plant", response_model=Version, status_code=status.HTTP_201_CREATED)
+async def save_plant_ranges(
+    payload: schemas.PlantRangesUpdate,
+    user: CurrentUser,
+    projects: ProjectRepositoryDependency,
+    repository: PlantVersionRepositoryDependency,
+    activity: ActivityRepositoryDependency,
+    users: UserRepositoryDependency,
+) -> Version:
+    project = await require_project(payload.project, user, projects)
+    return await services.save_plant_ranges(
+        project, payload, user, repository, activity, users
+    )
+
+
 @router.post("/fill", response_model=Version, status_code=status.HTTP_201_CREATED)
 async def fill_parameters(
     payload: schemas.ParametersFill,

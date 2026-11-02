@@ -1999,6 +1999,117 @@
         "title": "ParametersUpdate",
         "type": "object"
       },
+      "PlantRangesUpdate": {
+        "properties": {
+          "base": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          },
+          "ranges": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RangeUpdate"
+            },
+            "title": "Ranges",
+            "type": "object"
+          }
+        },
+        "required": [
+          "project",
+          "base",
+          "ranges",
+          "note"
+        ],
+        "title": "PlantRangesUpdate",
+        "type": "object"
+      },
+      "PlantSearch": {
+        "properties": {
+          "search": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PlantSearchRange"
+            },
+            "title": "Search",
+            "type": "object"
+          }
+        },
+        "required": [
+          "search"
+        ],
+        "title": "PlantSearch",
+        "type": "object"
+      },
+      "PlantSearchRange": {
+        "properties": {
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "units": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RangeEnds"
+            },
+            "title": "Units",
+            "type": "object"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "min",
+          "max",
+          "unit",
+          "units",
+          "value"
+        ],
+        "title": "PlantSearchRange",
+        "type": "object"
+      },
       "PortKind": {
         "properties": {
           "kind": {
@@ -2233,6 +2344,38 @@
         "title": "ProjectUpdate",
         "type": "object"
       },
+      "RangeEnds": {
+        "properties": {
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          }
+        },
+        "required": [
+          "min",
+          "max"
+        ],
+        "title": "RangeEnds",
+        "type": "object"
+      },
       "RangeUpdate": {
         "properties": {
           "max": {
@@ -2256,6 +2399,17 @@
               }
             ],
             "title": "Min"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
           }
         },
         "title": "RangeUpdate",
@@ -3034,12 +3188,20 @@
               }
             ],
             "title": "Unit"
+          },
+          "units": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RangeEnds"
+            },
+            "title": "Units",
+            "type": "object"
           }
         },
         "required": [
           "min",
           "max",
-          "unit"
+          "unit",
+          "units"
         ],
         "title": "SearchRange",
         "type": "object"
@@ -6477,6 +6639,88 @@
           }
         },
         "summary": "Fill Parameters",
+        "tags": [
+          "Parameters"
+        ]
+      }
+    },
+    "/api/v1/plant/parameters/plant": {
+      "get": {
+        "operationId": "get_plant_search_api_v1_plant_parameters_plant_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlantSearch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Plant Search",
+        "tags": [
+          "Parameters"
+        ]
+      },
+      "post": {
+        "operationId": "save_plant_ranges_api_v1_plant_parameters_plant_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlantRangesUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Plant Ranges",
         "tags": [
           "Parameters"
         ]

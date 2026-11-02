@@ -173,19 +173,25 @@ def seeded() -> gm.Plant:
 def test_a_range_is_set_shown_and_kept_in_the_plant_file() -> None:
     built = seeded()
 
-    plant.set_ranges(built, "d1", {"nominal_flow": {"min": 60.0, "max": 200.0}})
+    plant.set_ranges(
+        built, "d1", {"nominal_flow": {"min": 60.0, "max": 200.0, "unit": "m3/h"}}
+    )
 
     shown = plant.parameters(built, "d1", None, None)["search"]["nominal_flow"]
-    assert shown == {"min": 60.0, "max": 200.0, "unit": shown["unit"]}
-    written = from_dict(plant.to_dict(built))
-    assert "d1.nominal_flow" in written.ranges
+    assert shown["unit"] == "m3/s"
+    assert shown["units"]["m3/h"] == {"min": 60.0, "max": 200.0}
+    assert from_dict(plant.to_dict(built)).ranges[
+        "d1.nominal_flow"
+    ].min == pytest.approx(60 / 3600)
 
 
 def test_both_ends_empty_removes_a_range() -> None:
     built = seeded()
     assert "d0.nominal_flow" in built.ranges
 
-    plant.set_ranges(built, "d0", {"nominal_flow": {"min": None, "max": None}})
+    plant.set_ranges(
+        built, "d0", {"nominal_flow": {"min": None, "max": None, "unit": None}}
+    )
 
     assert "d0.nominal_flow" not in built.ranges
 
@@ -196,7 +202,7 @@ def test_gemini_refuses_a_range_upside_down_in_its_own_words() -> None:
         plant.set_ranges,
         seeded(),
         "d0",
-        {"nominal_flow": {"min": 300.0, "max": 50.0}},
+        {"nominal_flow": {"min": 300.0, "max": 50.0, "unit": "m3/h"}},
     ).value
 
     assert "above max" in str(error.details)
@@ -213,3 +219,53 @@ def test_a_range_on_a_value_without_units_is_kept() -> None:
     plant.set_ranges(built, "d0", {"pump_efficiency": {"min": 0.6, "max": 0.8}})
 
     assert "d0.pump_efficiency" in built.ranges
+
+
+def test_a_range_shows_in_the_unit_of_the_value() -> None:
+    built = seeded()
+
+    shown = plant.parameters(built, "d0", None, None)["search"]["nominal_flow"]
+
+    assert shown["unit"] == "m3/s"
+    assert shown["min"] == pytest.approx(50 / 3600)
+    assert shown["units"]["m3/h"] == {"min": 50.0, "max": 300.0}
+
+
+def test_a_temperature_range_converts_with_its_offset() -> None:
+    assert plant.converted(20.0, "degC", "K") == pytest.approx(293.15)
+
+
+def test_plant_level_values_are_listed_with_their_ranges() -> None:
+    search = plant.plant_search(seeded())
+
+    assert search["size.doublets"]["value"] == 2
+    assert (search["size.doublets"]["min"], search["size.doublets"]["max"]) == (1, 3)
+    assert search["depth"]["unit"] == "m"
+
+
+def test_plant_level_ranges_are_set_and_removed() -> None:
+    built = seeded()
+
+    plant.set_plant_ranges(
+        built,
+        {
+            "size.doublets": {"min": 1, "max": 2, "unit": None},
+            "depth": {"min": 2.1, "max": 3.2, "unit": "km"},
+        },
+    )
+
+    assert plant.plant_search(built)["size.doublets"]["max"] == 2
+    assert plant.plant_search(built)["depth"]["min"] == 2100
+
+    plant.set_plant_ranges(built, {"depth": {"min": None, "max": None, "unit": None}})
+
+    assert "depth" not in built.ranges
+
+
+def test_a_plant_value_without_a_value_is_refused_in_words() -> None:
+    built = seeded()
+
+    with pytest.raises(PlantInvalidError) as error:
+        plant.set_plant_ranges(built, {"nothing": {"min": 1, "max": 2, "unit": None}})
+
+    assert "set a value first" in str(error.value.details)

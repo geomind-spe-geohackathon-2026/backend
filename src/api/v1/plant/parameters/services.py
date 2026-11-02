@@ -66,6 +66,43 @@ async def save_parameters(
     return (await describe_versions([version], users))[0]
 
 
+async def get_plant_search(
+    project: Project, repository: PlantVersionRepository
+) -> schemas.PlantSearch:
+    """Return what a study can search that no module holds, in the latest plant."""
+    latest = await latest_version(repository, project.id, PlantNotFoundError)
+    return schemas.PlantSearch(
+        search=plant.plant_search(plant.from_dict(latest.content))
+    )
+
+
+async def save_plant_ranges(
+    project: Project,
+    payload: schemas.PlantRangesUpdate,
+    user: User,
+    repository: PlantVersionRepository,
+    activity: ActivityRepository,
+    users: UserRepository,
+) -> Version:
+    """Save a new plant version with its plant-level search ranges changed."""
+    latest = await latest_version(repository, project.id, PlantNotFoundError)
+    check_base(latest, payload.base)
+    built = plant.from_dict(latest.content)
+    limits = {name: item.model_dump() for name, item in payload.ranges.items()}
+    plant.set_plant_ranges(built, limits)
+    version = await repository.save_version(
+        project.id, plant.to_dict(built), payload.note, user.id
+    )
+    await activity.add(
+        project.id,
+        "user",
+        user.name,
+        f"Changed the search ranges in plant version {version.number}",
+        PLANT_ROUTE,
+    )
+    return (await describe_versions([version], users))[0]
+
+
 def fill_parameters() -> NoReturn:
     """Refuse: filling from a catalogue entry needs the unbuilt catalogue."""
     raise NotImplementedYetError(CATALOGUE_NAME)

@@ -30,6 +30,10 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 - Range hints in the parameter form, for every module of a class.
 - Golden path: refusal on an incomplete case, then a saved profile that lands in the case.
 
+## Context window
+
+`GEOMIND_CONTEXT_WINDOW=128000` is our cost choice, not a fact of the model: DeepSeek v4.1 flash on Relace reports 1,048,576 tokens. geomind compacts at a share of this window, so the lower number keeps the context, and the cost of each call, as they were before 0.4.2 made the window a setting. The setting takes effect once 0.4.2 is wired; production needs the same line.
+
 ## Units
 
 Results, summary and report read gemini's display units through `report.to_dict()` and the study results' `to_dict()`. `daily_coverage` and `compare` have no `units` argument, so there is nothing further to pass. The app still converts two things itself, which gemini's table does not cover: W/K to MW/K (`evaluate.readable`, thermal conductance is not in `DISPLAY_UNITS`) and MWh to GWh in report text, a choice of wording. A request for the first is in `gemini-requests.md`.

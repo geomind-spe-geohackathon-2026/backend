@@ -202,7 +202,9 @@ def test_prepare_says_what_it_does_and_keeps_gemini_choices() -> None:
 
 def test_optimise_searches_a_range_edited_in_the_plant() -> None:
     edited = plant.from_dict(inputs.plant_content())
-    plant.set_ranges(edited, "d0", {"nominal_flow": {"min": 120.0, "max": 130.0}})
+    plant.set_ranges(
+        edited, "d0", {"nominal_flow": {"min": 120.0, "max": 130.0, "unit": "m3/h"}}
+    )
     settings = {"objective": "lcts", "evaluations": 15, "seed": 1}
     documents = (plant.to_dict(edited), inputs.case_content(), inputs.case_files())
 
@@ -213,3 +215,18 @@ def test_optimise_searches_a_range_edited_in_the_plant() -> None:
     best = found["design"]["params"]["d0"]["nominal_flow"]
     flow = gm.units.Quantity(best["value"], best["unit"]).to("m3/h").value
     assert 120.0 <= flow <= 130.0
+
+
+def test_optimise_searches_a_doublet_count_edited_in_the_plant() -> None:
+    edited = plant.from_dict(inputs.plant_content())
+    plant.set_plant_ranges(
+        edited, {"size.doublets": {"min": 1, "max": 1, "unit": None}}
+    )
+    settings = {"objective": "lcts", "evaluations": 15, "seed": 1}
+    documents = (plant.to_dict(edited), inputs.case_content(), inputs.case_files())
+
+    found = study.run(
+        "minimize", "o", settings, documents, lambda *_: None, lambda: False
+    )
+
+    assert found["design"]["size"]["doublets"]["value"] == 1

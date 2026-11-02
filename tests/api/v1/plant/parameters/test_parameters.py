@@ -258,11 +258,11 @@ async def test_a_range_is_saved_shown_and_removed(
         response = await client.post(PARAMETERS, json=body, headers=headers)
         assert response.status_code == 201, response.text
 
-    await save(1, {"min": 60, "max": 200})
+    await save(1, {"min": 60, "max": 200, "unit": "m3/h"})
     shown = (await client.get(PARAMETERS, params=query, headers=headers)).json()
     assert "nominal_flow" in shown["ranges"]
-    assert shown["search"]["nominal_flow"]["min"] == 60
-    assert shown["search"]["nominal_flow"]["max"] == 200
+    assert shown["search"]["nominal_flow"]["units"]["m3/h"]["min"] == 60
+    assert shown["search"]["nominal_flow"]["units"]["m3/h"]["max"] == 200
 
     await save(2, {"min": None, "max": None})
     shown = (await client.get(PARAMETERS, params=query, headers=headers)).json()
@@ -283,7 +283,7 @@ async def test_gemini_words_a_range_it_refuses(
             "base": 1,
             "module": "d0",
             "params": {},
-            "ranges": {"nominal_flow": {"min": 300, "max": 50}},
+            "ranges": {"nominal_flow": {"min": 300, "max": 50, "unit": "m3/h"}},
             "note": "range",
         },
         headers=bearer(owner),
@@ -291,3 +291,32 @@ async def test_gemini_words_a_range_it_refuses(
 
     assert response.status_code == 422
     assert "above max" in response.text
+
+
+async def test_plant_level_ranges_are_read_and_saved(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    headers = bearer(owner)
+    await save_plant(client, headers, project, spec=changed_range_plant())
+    path = f"{PARAMETERS}/plant"
+
+    found = await client.get(path, params={"project": str(project.id)}, headers=headers)
+    assert found.status_code == 200, found.text
+    assert found.json()["search"]["size.doublets"]["max"] == 3
+
+    saved = await client.post(
+        path,
+        json={
+            "project": str(project.id),
+            "base": 1,
+            "ranges": {"size.doublets": {"min": 1, "max": 2}},
+            "note": "fewer doublets",
+        },
+        headers=headers,
+    )
+
+    assert saved.status_code == 201, saved.text
+    found = await client.get(path, params={"project": str(project.id)}, headers=headers)
+    assert found.json()["search"]["size.doublets"]["max"] == 2

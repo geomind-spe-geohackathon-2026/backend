@@ -9,15 +9,35 @@ class ParameterHistory(BaseModel):
     params: dict[str, Any]
 
 
-class SearchRange(BaseModel):
+class RangeEnds(BaseModel):
     min: float | None
     max: float | None
+
+
+class SearchRange(RangeEnds):
     unit: str | None
+    units: dict[str, RangeEnds]
+
+
+class PlantSearchRange(SearchRange):
+    value: Any
+
+
+class PlantSearch(BaseModel):
+    search: dict[str, PlantSearchRange]
 
 
 class RangeUpdate(BaseModel):
     min: float | None = None
     max: float | None = None
+    unit: str | None = None
+
+
+class PlantRangesUpdate(BaseModel):
+    project: UUID
+    base: int | None
+    ranges: dict[str, RangeUpdate]
+    note: str
 
 
 class Parameters(BaseModel):
