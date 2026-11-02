@@ -1,11 +1,14 @@
-"""The wrapper around gemini's plant document: build, write and check it."""
+"""The wrapper around gemini's plant document: build, write, check and describe it."""
 
 import json
+from datetime import datetime
+from functools import cache
 from typing import Any
 
 import gemini as gm
 
-from src.core.gemini.errors import PlantInvalidError
+from src.core.gemini.errors import PlantInvalidError, PlantModuleNotFoundError
+from src.core.problems import problem_of
 
 
 def plant_invalid(
@@ -13,6 +16,7 @@ def plant_invalid(
     message: str | None = None,
 ) -> PlantInvalidError:
     """Return the plant_invalid error for gemini's problems."""
+    problems = [problem_of(problem) for problem in problems]
     text = message or "; ".join(problem["message"] for problem in problems)
     return PlantInvalidError(
         "Plant is invalid",
@@ -42,3 +46,151 @@ def validate_content(content: Any) -> dict[str, Any]:
         problem = {"path": "", "code": "invalid_value", "message": str(error)}
         raise plant_invalid([problem]) from error
     return normalised
+
+
+def problems_of(content: Any) -> list[dict[str, str]]:
+    """Return the structural problems of a document, else its missing values."""
+    try:
+        plant = gm.Plant.from_dict(content)
+    except gm.errors.ValidationError as error:
+        return [problem_of(problem) for problem in error.problems]
+    return [problem_of(issue.problem()) for issue in plant.check()]
+
+
+def from_template(name: str) -> gm.Plant:
+    """Return a new plant of the named gemini plant class, or raise plant_invalid."""
+    try:
+        return gm.plants.get(name)
+    except gm.errors.ValidationError as error:
+        raise plant_invalid(list(error.problems), str(error)) from error
+
+
+def template_names() -> list[str]:
+    """Return the names of gemini's plant classes."""
+    return list(gm.plants.names())
+
+
+def module_names(category: str | None) -> list[str]:
+    """Return the names in gemini's module registry, or raise plant_invalid."""
+    try:
+        return list(gm.modules.names(category))
+    except gm.errors.ValidationError as error:
+        raise plant_invalid(list(error.problems), str(error)) from error
+
+
+@cache
+def describe_class(name: str) -> dict[str, Any]:
+    """Return gemini's description of a registered module class."""
+    return gm.modules.get(name)().describe()
+
+
+@cache
+def describe_template(name: str) -> dict[str, Any]:
+    """Return a template's summary as its description, and its purpose."""
+    plant = gm.plants.get(name)
+    return {"description": plant.describe()["summary"], "purpose": plant.purpose}
+
+
+def get_module(plant: gm.Plant, module: str) -> Any:
+    """Return the module at a dotted path, or raise module_not_found."""
+    try:
+        return plant.get_submodule(module)
+    except gm.errors.ValidationError as error:
+        raise PlantModuleNotFoundError(f"Module {module} not found") from error
+
+
+def port_kind(plant: gm.Plant, port: str) -> str | None:
+    """Return the stream kind a port declares, as gemini describes the module."""
+    module, _, name = port.rpartition(".")
+    description = get_module(plant, module).describe()
+    declared = {**description["inlets"], **description["outlets"]}
+    return declared[name]["kind"]
+
+
+def connection_of(plant: gm.Plant, connection: dict[str, Any]) -> dict[str, Any]:
+    """Return a connection with its stream: own kind, else target's, else source's."""
+    stream = (
+        connection["kind"]
+        or port_kind(plant, connection["target"])
+        or port_kind(plant, connection["source"])
+    )
+    return {
+        "source": connection["source"],
+        "target": connection["target"],
+        "stream": stream,
+        "kind": connection["kind"],
+    }
+
+
+def module_ids(tree: dict[str, Any], prefix: str = "") -> list[str]:
+    """Return the dotted paths of the equipment in gemini's module structure."""
+    found = []
+    for name, node in tree.items():
+        path = f"{prefix}{name}"
+        children = node.get("modules")
+        if children:
+            found.extend(module_ids(children, f"{path}."))
+        elif node["type"] not in {"ModuleList", "ModuleDict"}:
+            found.append(path)
+    return found
+
+
+def structure(plant: gm.Plant) -> dict[str, list[dict[str, Any]]]:
+    """Return the modules and connections of a plant as the flowsheet shows them."""
+    modules = []
+    for path in module_ids(plant.to_dict(structure=True)["modules"]):
+        description = get_module(plant, path).describe()
+        modules.append(
+            {
+                "id": path,
+                "type": description["type"],
+                "title": description["type"],
+                "category": description["category"],
+            }
+        )
+    connections = [
+        connection_of(plant, connection)
+        for connection in plant.describe()["connections"]
+    ]
+    return {"modules": modules, "connections": connections}
+
+
+def set_parameters(
+    plant: gm.Plant,
+    module: str,
+    params: dict[str, Any],
+    valid_from: datetime | None,
+) -> None:
+    """Set a module's parameters from the date given, or raise plant_invalid."""
+    get_module(plant, module)
+    try:
+        plant.set_params(module, params, valid_from)
+    except gm.errors.ValidationError as error:
+        raise plant_invalid(list(error.problems), str(error)) from error
+
+
+def missing_parameters(plant: gm.Plant, module: str) -> list[str]:
+    """Return the names of the module's own parameters that have no value."""
+    owner = f"params.{module}"
+    return [
+        issue.path.rpartition(".")[2]
+        for issue in plant.check()
+        if issue.kind == "missing" and issue.path.rpartition(".")[0] == owner
+    ]
+
+
+def parameters(
+    plant: gm.Plant,
+    module: str,
+    at: datetime | None,
+) -> dict[str, Any]:
+    """Return a module's schema, values at a time, missing names and history."""
+    target = get_module(plant, module)
+    return {
+        "module": module,
+        "type": target.describe()["type"],
+        "schema": target.parameter_schema(),
+        "values": plant.params_at(module, at),
+        "missing": missing_parameters(plant, module),
+        "history": plant.param_history(module),
+    }
