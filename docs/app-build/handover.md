@@ -2,13 +2,13 @@
 
 Read this first, then `app-frontend-backend.md` sections 1 and 7 to 10. Phases A, B, C and the integration pass (D3) are done; see Phase D status.
 
-In a new clone the prompt's `../docs/` paths do not exist, because `docs/` was never a git repo. Their files are here: `contracts.md` (version 25, wins over the prompt), `ui-mockup.html`, `app-frontend-backend.md`, `plan.md` (gap decisions), `requests.md` (ready to paste), `inventories/`.
+In a new clone the prompt's `../docs/` paths do not exist, because `docs/` was never a git repo. Their files are here: `contracts.md` (version 34, wins over the prompt), `ui-mockup.html`, `app-frontend-backend.md`, `plan.md` (gap decisions), `requests.md` (ready to paste), `inventories/`.
 
 ## New machine
 
 Tools: Python 3.12, Node 22 with npm, Docker with compose, git over SSH with access to the repos below.
 
-Current pins: gemini 4095ec6 (0.5.1), geomind 90f92d8 (0.4.0), image `gemini-sandbox:0.5.1` (`make -C ../gemini sandbox-image`). `stack-up.sh` builds the image from `../gemini` when it is absent. The local stack runs on Windows WSL2 with Docker Desktop; if the shell predates the `docker` group, run `sg docker -c "scripts/stack-up.sh"`. Do not copy `OPENROUTER_API_KEY` from `.env.example` into `.env`: its placeholder turns on the real LLM. Without root, Playwright's Chromium needs its libraries unpacked from `apt-get download` and named in `LD_LIBRARY_PATH`.
+Current pins: gemini e0cd6b1 (0.5.2), geomind 90f92d8 (0.4.0), image `gemini-sandbox:0.5.2` (`make -C ../gemini sandbox-image`). `stack-up.sh` builds the image from `../gemini` when it is absent. The local stack runs on Windows WSL2 with Docker Desktop; if the shell predates the `docker` group, run `sg docker -c "scripts/stack-up.sh"`. Do not copy `OPENROUTER_API_KEY` from `.env.example` into `.env`: its placeholder turns on the real LLM. Without root, Playwright's Chromium needs its libraries unpacked from `apt-get download` and named in `LD_LIBRARY_PATH`.
 
 Folder layout (siblings, because `requirements.txt` and compose use relative paths):
 
@@ -16,7 +16,7 @@ Folder layout (siblings, because `requirements.txt` and compose use relative pat
 geomind-spe-geohackathon-2026/
 ├── backend/          git@github.com:SahandNZ/backend.git
 ├── frontend/         git@github.com:geomind-spe-geohackathon-2026/frontend.git
-├── gemini/           git@github.com:geomind-spe-geohackathon-2026/gemini.git   branch dev, 0.5.1 (4095ec6)
+├── gemini/           git@github.com:geomind-spe-geohackathon-2026/gemini.git   branch dev, 0.5.2 (e0cd6b1)
 ├── geomind/          git@github.com:crust-team/geomind.git                     branch main, 0.4.0 (90f92d8)
 ├── infrastructure/   git@github.com:geomind-spe-geohackathon-2026/infrastructure.git
 └── docs/             copy contracts.md and ui-mockup.html here so the prompt's paths work
@@ -62,10 +62,13 @@ Verified on the real local stack (see README, "Local stack") with geomind 0.3.0 
 
 ## State after the WSL move (2026-11-02)
 
-- Verified: backend 453 tests, migrations 0001 to 0009 on PostgreSQL 16, Playwright real and mock.
+- Verified: backend 504 tests, frontend 957 tests, Playwright real. Migrations 0001 to 0009 on PostgreSQL 16 were last run on 0.5.1.
+- `tests/test_versions.py` states the engine versions; the image copies the sibling checkouts, so nothing else pins them.
+- `backend/.env` is for tests, `.env.dev` for the local stack, `.env.production` for deploys. Compose: `compose.dev.yml` and `compose.yml`.
+- Requests: `gemini-requests.md` for gemini, `requests.md` for geomind.
 - `size` is a study kind (method `run`, `prepare: ["size"]`); the example project seeds `HeatingFullCoolingPlant` (`tests/fixtures/hackathon/seed_plant.json`), feasible once the case is complete.
 - `src/core/problems.py:readable` rewords gemini's range text; gemini should give bounds as data, see the request in `requests.md`.
-- Waiting on gemini: public metric list (`study.py:metric_names` still reads the private `gm.evaluate._utils.display.METRICS`), `kind` const in the Case schema, daily coverage, study progress, `case.missing`, per-kind study schema and ranges.
+- Open: report images (flowsheet and charts) and cost sources in the report, requirement quantity and unit choices from `gm.plants.roles()`, a green scripted `save_profile` (its one-point profile is refused).
 - Could not reproduce on this machine: mock golden-path failure, empty Overview after creating a project.
 
 ## What Phase D must still do
