@@ -22,6 +22,8 @@ Plant: X
 ```
 """
 
+PAGE = re.compile(rb"/Type\s*/Page(?![a-z])")
+
 
 def test_markdown_splits_into_blocks() -> None:
     kinds = [block.kind for block in pdf.blocks_of(MARKDOWN)]
@@ -65,3 +67,15 @@ def test_an_svg_image_line_is_drawn_into_the_pdf() -> None:
     data = pdf.to_pdf(f"![Figure](data:image/svg+xml;base64,{encoded})\n")
 
     assert data.startswith(b"%PDF")
+
+
+def test_a_wide_image_has_its_own_landscape_page_and_no_blank_one() -> None:
+    svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10'></svg>"
+    encoded = base64.b64encode(svg.encode()).decode()
+    line = f"![Detailed flowsheet](data:image/svg+xml;base64,{encoded})"
+
+    last = pdf.to_pdf(f"Text\n\n{line}\n")
+    followed = pdf.to_pdf(f"Text\n\n{line}\n\nMore text\n")
+
+    assert len(PAGE.findall(last)) == 2
+    assert len(PAGE.findall(followed)) == 3

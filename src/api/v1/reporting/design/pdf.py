@@ -16,7 +16,7 @@ CODE_SIZE = 7
 LINE_HEIGHT = 5
 FENCE = "```"
 IMAGE = "!["
-WIDE_IMAGE = "![Flowsheet]"
+WIDE_IMAGE = "![Detailed flowsheet]"
 FONT = "Vazirmatn"
 FONT_DIR = Path(fonts.__file__).parent
 
@@ -90,7 +90,7 @@ def write_heading(pdf: FPDF, line: str) -> None:
 
 
 def write_image(pdf: FPDF, line: str) -> None:
-    """Draw an SVG image line across the page; a flowsheet takes a landscape page."""
+    """Draw an SVG image line across the page; a wide one has a landscape page."""
     encoded = line.rpartition(",")[2].rstrip(")")
     svg = base64.b64decode(encoded).decode().replace(figures.SANS, FONT)
     wide = line.startswith(WIDE_IMAGE)
@@ -98,7 +98,11 @@ def write_image(pdf: FPDF, line: str) -> None:
         pdf.add_page(orientation="L")
     pdf.image(BytesIO(svg.encode()), w=pdf.epw)
     pdf.ln(2)
-    if wide:
+
+
+def back_to_portrait(pdf: FPDF) -> None:
+    """Start a portrait page for what follows a landscape figure."""
+    if pdf.w > pdf.h:
         pdf.add_page(orientation="P")
 
 
@@ -144,6 +148,7 @@ def to_pdf(markdown: str) -> bytes:
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     for block in blocks_of(markdown):
+        back_to_portrait(pdf)
         if block.kind == "image":
             write_image(pdf, block.lines[0])
         elif block.kind == "heading":

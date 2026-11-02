@@ -150,3 +150,11 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
 - geomind: `save_profile` is async and reads case files through the sync `Session.load_artifact` on the event loop
   Today: a store that blocks on that loop deadlocks, so the backend reads the chat's artifacts ahead of the run (`warm_chat`)
   Wanted: read them in a thread
+
+- geomind: `economist_task` joins `design.start_result` as text, but the designer may record a dict
+  Today: `geomind/loops/design.py:293` raises `TypeError: sequence item 0: expected str instance, dict found` after the verifier passes, so a design chat ends failed before the economist starts; the recorded value was `{"design", "result", "study", "feasible", "lcts", "note"}`
+  Wanted: a stated shape for `design.start_result`, checked when it is recorded, or take its `result` as `alternatives` does
+
+- geomind: fixed default models are Anthropic
+  Today: `geomind/runtime.py:15-16` sets `anthropic/claude-sonnet-5.5` and `anthropic/claude-haiku-5.5`, used when a model setting is empty; the backend refuses them before a run starts
+  Also check: `context/compaction.py:11-13` lists only Anthropic window sizes, and `providers/openrouter.py:14` lists only Anthropic models in `CACHED_MODELS`, so a DeepSeek run may compact at the wrong size

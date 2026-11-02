@@ -2271,6 +2271,18 @@
       },
       "ReportExport": {
         "properties": {
+          "flowsheet_full_svg": {
+            "anyOf": [
+              {
+                "maxLength": 2000000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flowsheet Full Svg"
+          },
           "flowsheet_svg": {
             "anyOf": [
               {

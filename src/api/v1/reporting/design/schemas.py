@@ -29,6 +29,7 @@ class ReportRequest(BaseModel):
 class ReportExport(ReportRequest):
     format: Literal["md", "pdf"]
     flowsheet_svg: str | None = Field(default=None, max_length=SVG_LIMIT)
+    flowsheet_full_svg: str | None = Field(default=None, max_length=SVG_LIMIT)
 
 
 class ReportSection(BaseModel):

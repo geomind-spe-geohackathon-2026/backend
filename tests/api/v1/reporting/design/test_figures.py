@@ -98,3 +98,21 @@ def test_the_plant_line_names_the_study_kind_in_words() -> None:
 
     assert "Find the best design" in line
     assert "Heating plant" in line
+
+
+def test_the_full_flowsheet_goes_in_the_appendix_of_an_export() -> None:
+    plant = schemas.ReportSection(key="design", title="Plant", markdown="Text")
+    extra = schemas.ReportSection(key="appendix", title="Appendix", markdown="Text")
+    report = schemas.Report(title="T", sections=[plant, extra], flowsheet={})
+
+    shown = services.with_full_flowsheet(report, "<svg></svg>")
+
+    assert "Detailed flowsheet" not in shown.sections[0].markdown
+    assert "![Detailed flowsheet](data:image/svg+xml" in shown.sections[1].markdown
+
+
+def test_no_appendix_means_no_full_flowsheet() -> None:
+    plant = schemas.ReportSection(key="design", title="Plant", markdown="Text")
+    report = schemas.Report(title="T", sections=[plant], flowsheet={})
+
+    assert services.with_full_flowsheet(report, "<svg></svg>") == report

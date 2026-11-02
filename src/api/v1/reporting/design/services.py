@@ -376,13 +376,13 @@ async def preview_report(
     )
 
 
-def with_flowsheet(report: schemas.Report, svg: str | None) -> schemas.Report:
-    """Put the picture the page drew under the Plant section of an export."""
+def with_image(
+    report: schemas.Report, svg: str | None, title: str, place: str
+) -> schemas.Report:
+    """Put a picture the page drew at the end of one section of an export."""
     if svg is None or not svg.startswith("<svg"):
         return report
-    line = figures.image_line(svg, "Flowsheet")
-    keys = [item.key for item in report.sections]
-    place = "capacities" if "capacities" in keys else "design"
+    line = figures.image_line(svg, title)
     sections = [
         item.model_copy(update={"markdown": f"{item.markdown}\n\n{line}"})
         if item.key == place
@@ -390,6 +390,18 @@ def with_flowsheet(report: schemas.Report, svg: str | None) -> schemas.Report:
         for item in report.sections
     ]
     return report.model_copy(update={"sections": sections})
+
+
+def with_flowsheet(report: schemas.Report, svg: str | None) -> schemas.Report:
+    """Put the process diagram under the Plant section of an export."""
+    keys = [item.key for item in report.sections]
+    place = "capacities" if "capacities" in keys else "design"
+    return with_image(report, svg, "Flowsheet", place)
+
+
+def with_full_flowsheet(report: schemas.Report, svg: str | None) -> schemas.Report:
+    """Put the flowsheet of every module in the appendix of an export."""
+    return with_image(report, svg, "Detailed flowsheet", "appendix")
 
 
 def to_markdown(report: schemas.Report) -> str:
@@ -405,7 +417,8 @@ async def export_report(
     blobs: BlobStore,
 ) -> Export:
     report = await preview_report(request, user, repositories, blobs)
-    markdown = to_markdown(with_flowsheet(report, request.flowsheet_svg))
+    shown = with_flowsheet(report, request.flowsheet_svg)
+    markdown = to_markdown(with_full_flowsheet(shown, request.flowsheet_full_svg))
     content = markdown.encode() if request.format == "md" else pdf.to_pdf(markdown)
     await repositories.activity.add(
         request.project,
