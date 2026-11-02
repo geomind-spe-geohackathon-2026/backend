@@ -135,6 +135,22 @@ async def add_file(
     )
 
 
+@router.delete("/files/{name:path}", response_model=schemas.Case)
+async def remove_file(
+    name: str,
+    project: QueriedProject,
+    user: CurrentUser,
+    repository: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    activity: ActivityRepositoryDependency,
+    blobs: BlobStoreDependency,
+    base: int | None = None,
+) -> schemas.Case:
+    return await services.remove_file(
+        project, base, name, user, repository, files, activity, blobs
+    )
+
+
 @router.get("/files/{name:path}", response_class=Response)
 async def get_file(
     name: str,

@@ -409,3 +409,23 @@ async def test_a_file_above_the_upload_limit_is_refused(
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_failed"
     assert blobs.objects == {}
+
+
+async def test_an_unused_file_can_be_removed(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    await save_case(client, bearer(owner), project)
+    saved = await upload(client, bearer(owner), project, 1, name="data/extra.csv")
+    version = saved.json()["version"]
+
+    response = await client.delete(
+        f"{CASE}/files/data/extra.csv",
+        params={"project": str(project.id), "base": version},
+        headers=bearer(owner),
+    )
+
+    assert response.status_code == 200
+    names = [file["name"] for file in response.json()["files"]]
+    assert "data/extra.csv" not in names

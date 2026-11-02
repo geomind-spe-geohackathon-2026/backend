@@ -207,6 +207,32 @@ async def add_file(
     return await build_case(version, files_repository, blobs)
 
 
+async def remove_file(
+    project: Project,
+    base: int | None,
+    name: str,
+    user: User,
+    repository: CaseVersionRepository,
+    files_repository: CaseFileRepository,
+    activity: ActivityRepository,
+    blobs: BlobStore,
+) -> schemas.Case:
+    """Save a new case version without a file the case no longer uses."""
+    latest = await latest_version(repository, project.id, CaseNotFoundError)
+    check_base(latest, base)
+    rows = await files_repository.list_for_version(latest.id)
+    if not any(row.name == name for row in rows):
+        raise CaseFileNotFoundError("File not found")
+    kept = [row for row in rows if row.name != name]
+    files = await stored_files(kept, blobs)
+    version = await save_version(
+        project, user, latest.content, f"Removed file {name}", files, repository
+    )
+    await keep_files(version, kept, files_repository)
+    await record(project, user, version, activity)
+    return await build_case(version, files_repository, blobs)
+
+
 async def get_file(
     project: Project,
     name: str,
