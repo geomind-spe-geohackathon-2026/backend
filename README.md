@@ -37,7 +37,7 @@ use `GET /api/v1/system/health`.
 
 ## Local stack
 
-`compose.services.yml` runs only the services (PostgreSQL 16, Redis 7, MinIO, bound to 127.0.0.1,
+`compose.dev.yml` runs only the services (PostgreSQL 16, Redis 7, MinIO, bound to 127.0.0.1,
 compose project `geomind-dev`, named volumes). The API, the Celery worker and the frontend run
 on the host from `.venv`, so the sibling `../gemini` and `../geomind` installs are the ones used.
 

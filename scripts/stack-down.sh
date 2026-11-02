@@ -3,7 +3,7 @@ set -euo pipefail
 
 BACKEND="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STACK="$BACKEND/.tmp/stack"
-COMPOSE=(docker compose -f "$BACKEND/compose.services.yml" --env-file "$BACKEND/.env.dev")
+COMPOSE=(docker compose -f "$BACKEND/compose.dev.yml" --env-file "$BACKEND/.env.dev")
 
 cd "$BACKEND"
 
