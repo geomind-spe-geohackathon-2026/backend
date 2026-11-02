@@ -31,6 +31,7 @@ from src.core.gemini import case as gemini_case
 from src.core.settings import settings
 
 CASE_ARTIFACT = "case/"
+MODEL_SUFFIX = "_model"
 
 
 @dataclass(frozen=True)
@@ -111,9 +112,26 @@ def build_environment(
     )
 
 
+def refused_models() -> list[str]:
+    """Return the models geomind would use that the app does not allow."""
+    allowed = settings.ASSISTANT_MODEL_PREFIX
+    return sorted(
+        {
+            value
+            for name, value in gd.runtime.state().items()
+            if name.endswith(MODEL_SUFFIX)
+            and isinstance(value, str)
+            and not value.startswith(allowed)
+        }
+    )
+
+
 def build_llm(resumed: bool, message: str) -> Any:
     if settings.ASSISTANT_LLM == "fake":
         return scripted_llm(resumed, message)
+    refused = refused_models()
+    if refused:
+        raise AdapterFailedError(f"Models not allowed: {', '.join(refused)}")
     return gd.providers.OpenRouter(
         api_key=settings.OPENROUTER_API_KEY,
         base_url=settings.OPENROUTER_BASE_URL,

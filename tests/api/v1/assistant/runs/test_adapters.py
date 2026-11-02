@@ -7,10 +7,13 @@ import pytest
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge, LoopBridgeError
 from src.api.v1.assistant.runs.adapters.callbacks import StudyRecorder
+from src.api.v1.assistant.runs.adapters.errors import AdapterFailedError
 from src.api.v1.assistant.runs.adapters.replay import known_events
 from src.api.v1.assistant.runs.adapters.session import (
     Environment,
     build_budget,
+    build_llm,
+    refused_models,
     seed_problem,
 )
 from src.api.v1.assistant.runs.adapters.store import (
@@ -24,6 +27,7 @@ from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
+from src.core.settings import settings
 from tests import design_inputs
 from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
 from tests.conftest import bearer
@@ -413,3 +417,26 @@ async def test_a_file_the_assistant_wrote_can_be_read_from_the_chat(
 
     assert found.content == b"time,a"
     assert missing.status_code == 404
+
+
+def test_a_model_outside_the_allowed_family_is_refused(monkeypatch) -> None:
+    monkeypatch.setenv("GEOMIND_MODEL", "anthropic/claude-sonnet-5.5")
+    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
+
+    with pytest.raises(AdapterFailedError, match="claude-sonnet"):
+        build_llm(False, "hello")
+
+
+def test_an_unset_model_falls_to_geomind_default_and_is_refused(monkeypatch) -> None:
+    monkeypatch.delenv("GEOMIND_MODEL", raising=False)
+    monkeypatch.delenv("GEOMIND_CHEAP_MODEL", raising=False)
+
+    assert refused_models()
+
+
+def test_deepseek_everywhere_is_allowed(monkeypatch) -> None:
+    monkeypatch.setenv("GEOMIND_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+
+    assert refused_models() == []
