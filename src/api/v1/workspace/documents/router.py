@@ -1,11 +1,9 @@
 from typing import Annotated
 from uuid import UUID
 
-from minio import Minio
-
 from fastapi import APIRouter, Depends, Form, Query, UploadFile, status
 from src.api.v1.workspace.documents import schemas, services
-from src.core.clients.minio.client import get_minio
+from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.repositories.document import (
     DocumentRepository,
@@ -24,7 +22,6 @@ DocumentRepositoryDependency = Annotated[
     DocumentRepository,
     Depends(get_document_repository),
 ]
-MinioDependency = Annotated[Minio, Depends(get_minio)]
 ProjectRepositoryDependency = Annotated[
     ProjectRepository,
     Depends(get_project_repository),
@@ -66,9 +63,9 @@ async def upload_document(
     file: UploadFile,
     user: CurrentUser,
     repository: DocumentRepositoryDependency,
-    minio: MinioDependency,
+    blobs: BlobStoreDependency,
 ) -> schemas.Document:
-    return await services.upload_document(project, user, file, repository, minio)
+    return await services.upload_document(project, user, file, repository, blobs)
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -77,6 +74,6 @@ async def delete_document(
     user: CurrentUser,
     repository: DocumentRepositoryDependency,
     projects: ProjectRepositoryDependency,
-    minio: MinioDependency,
+    blobs: BlobStoreDependency,
 ) -> None:
-    await services.delete_document(document_id, user, repository, projects, minio)
+    await services.delete_document(document_id, user, repository, projects, blobs)

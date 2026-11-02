@@ -1,11 +1,9 @@
-import asyncio
 from pathlib import PurePosixPath
 from uuid import UUID, uuid4
 
-from minio import Minio
-
 from fastapi import UploadFile
 from src.api.v1.workspace.documents import schemas
+from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.models.document import Document
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
@@ -13,7 +11,6 @@ from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.documents.errors import DocumentNotFoundError
 from src.core.documents.extract import extract_text
-from src.core.documents.storage import read_object, remove_object, store_object
 from src.core.errors import ValidationFailedError
 from src.core.logging.logger import get_logger
 from src.core.pagination.page import Page, PageRequest, encode_cursor
@@ -73,18 +70,18 @@ async def upload_document(
     user: User,
     file: UploadFile,
     repository: DocumentRepository,
-    minio: Minio,
+    blobs: BlobStore,
 ) -> schemas.Document:
     name = file_name_of(file.filename)
     data = await file.read(settings.PROJECT_IMPORT_MAX_BYTES + 1)
     if len(data) > settings.PROJECT_IMPORT_MAX_BYTES:
         raise ValidationFailedError({"file": "File is too large"})
     key = f"projects/{project.id}/documents/{uuid4()}/{name}"
-    await asyncio.to_thread(store_object, minio, key, data)
+    await blobs.put(key, data)
     try:
         document = await repository.create(project.id, name, len(data), key, user.id)
     except Exception:
-        await asyncio.to_thread(remove_object, minio, key)
+        await blobs.delete(key)
         raise
     enqueue_extraction(document.id)
     return describe_document(document)
@@ -95,7 +92,7 @@ async def delete_document(
     user: User,
     repository: DocumentRepository,
     projects: ProjectRepository,
-    minio: Minio,
+    blobs: BlobStore,
 ) -> None:
     document = await repository.get_by_id(document_id)
     if document is None:
@@ -105,13 +102,13 @@ async def delete_document(
     except ProjectNotFoundError as error:
         raise DocumentNotFoundError("Document not found") from error
     await repository.delete(document.id)
-    await asyncio.to_thread(remove_object, minio, document.object_key)
+    await blobs.delete(document.object_key)
 
 
 async def extract_document(
     document_id: UUID,
     repository: DocumentRepository,
-    minio: Minio,
+    blobs: BlobStore,
 ) -> None:
     """Read a stored document and keep its text for search; safe to run twice."""
     document = await repository.get_by_id(document_id)
@@ -119,7 +116,9 @@ async def extract_document(
         logger.info("Document %s was deleted before extraction", document_id)
         return
     try:
-        data = await asyncio.to_thread(read_object, minio, document.object_key)
+        data = await blobs.get(document.object_key)
+        if data is None:
+            raise DocumentNotFoundError("Document file is missing from storage")
     except Exception:
         await repository.set_text(document, None)
         raise

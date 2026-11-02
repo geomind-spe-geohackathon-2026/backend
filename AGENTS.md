@@ -19,7 +19,7 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   from `ProgressRepository` (read-only counts over the other tables). Uploaded documents
   are extracted by the Celery task `workspace.documents.extract`; the assistant searches
   them with `src/core/documents/search.py:search_documents` (keyword search through
-  `DocumentRepository`). Bytes in MinIO go through `src/core/documents/storage.py`.
+  `DocumentRepository`). Bytes in MinIO go through `BlobStore` (`src/core/clients/minio/blobs.py`: `put`, `get`, `delete`).
 - **Storage:** models and repositories in `src/core/clients/postgres/`.
 - **Access:** `src/core/security/access.py`. `CurrentUser` and `AdminUser` on routes,
   `AccessibleProject` (`require_project`) on every route that takes a project id.

@@ -18,6 +18,9 @@ class MemoryBlobStore(BlobStore):
     async def get(self, key: str) -> bytes | None:
         return self.objects.get(key)
 
+    async def delete(self, key: str) -> None:
+        self.objects.pop(key, None)
+
 
 @pytest.fixture
 def blobs() -> Iterator[MemoryBlobStore]:

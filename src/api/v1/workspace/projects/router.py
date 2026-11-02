@@ -1,10 +1,8 @@
 from typing import Annotated
 
-from minio import Minio
-
 from fastapi import APIRouter, Depends, Query, Response, UploadFile, status
 from src.api.v1.workspace.projects import schemas, services
-from src.core.clients.minio.client import get_minio
+from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.repositories.case_file import (
     CaseFileRepository,
     get_case_file_repository,
@@ -38,7 +36,6 @@ CaseVersionRepositoryDependency = Annotated[
     CaseVersionRepository,
     Depends(get_case_version_repository),
 ]
-MinioDependency = Annotated[Minio, Depends(get_minio)]
 PlantVersionRepositoryDependency = Annotated[
     PlantVersionRepository,
     Depends(get_plant_version_repository),
@@ -88,9 +85,9 @@ async def import_project(
     user: CurrentUser,
     repository: ProjectRepositoryDependency,
     progress: ProgressRepositoryDependency,
-    minio: MinioDependency,
+    blobs: BlobStoreDependency,
 ) -> schemas.Project:
-    return await services.import_project(file, user, repository, progress, minio)
+    return await services.import_project(file, user, repository, progress, blobs)
 
 
 @router.get("/{project_id}", response_model=schemas.Project)
@@ -129,9 +126,9 @@ async def export_project(
     plants: PlantVersionRepositoryDependency,
     cases: CaseVersionRepositoryDependency,
     files: CaseFileRepositoryDependency,
-    minio: MinioDependency,
+    blobs: BlobStoreDependency,
 ) -> Response:
-    archive = await services.export_project(project, plants, cases, files, minio)
+    archive = await services.export_project(project, plants, cases, files, blobs)
     filename = f"project-{project.id}.zip"
     return Response(
         content=archive,

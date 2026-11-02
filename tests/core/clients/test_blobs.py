@@ -44,6 +44,9 @@ class FakeMinio:
         self.last = Response(self.objects[key])
         return self.last
 
+    def remove_object(self, _bucket: str, key: str) -> None:
+        self.objects.pop(key, None)
+
 
 async def test_put_then_get_round_trips_and_closes_the_response() -> None:
     client = FakeMinio()
@@ -74,3 +77,13 @@ async def test_other_storage_errors_are_raised() -> None:
 
     with pytest.raises(S3Error):
         await BlobStore(Broken(), "bucket").get("k")
+
+
+async def test_delete_removes_the_object() -> None:
+    client = FakeMinio()
+    store = BlobStore(client, "bucket")
+    await store.put("a", b"x")
+
+    await store.delete("a")
+
+    assert await store.get("a") is None

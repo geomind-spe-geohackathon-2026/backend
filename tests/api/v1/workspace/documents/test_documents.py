@@ -23,7 +23,7 @@ async def test_upload_stores_the_file_and_queues_extraction(
     client,
     make_user,
     make_project,
-    minio,
+    blobs,
 ) -> None:
     owner = await make_user()
     project = await make_project(owner)
@@ -36,7 +36,7 @@ async def test_upload_stores_the_file_and_queues_extraction(
     assert body["name"] == "notes.txt"
     assert body["size"] == 4
     assert body["searchable"] == "pending"
-    assert list(minio.objects.values()) == [b"heat"]
+    assert list(blobs.objects.values()) == [b"heat"]
     enqueue.assert_called_once_with(UUID(body["id"]))
 
 
@@ -85,7 +85,7 @@ async def test_delete_removes_row_and_bytes(
     client,
     make_user,
     make_project,
-    minio,
+    blobs,
 ) -> None:
     owner = await make_user()
     project = await make_project(owner)
@@ -95,7 +95,7 @@ async def test_delete_removes_row_and_bytes(
     response = await client.delete(f"{DOCUMENTS}/{document_id}", headers=bearer(owner))
 
     assert response.status_code == 204
-    assert minio.objects == {}
+    assert blobs.objects == {}
     listed = await client.get(
         DOCUMENTS, params={"project": str(project.id)}, headers=bearer(owner)
     )
@@ -126,7 +126,7 @@ async def test_extraction_makes_a_text_document_searchable(
     client,
     make_user,
     make_project,
-    minio,
+    blobs,
     session,
 ) -> None:
     owner = await make_user()
@@ -134,7 +134,7 @@ async def test_extraction_makes_a_text_document_searchable(
     created, _ = await upload(client, owner, project, data=b"hot brine")
     repository = DocumentRepository(session)
 
-    await services.extract_document(UUID(created.json()["id"]), repository, minio)
+    await services.extract_document(UUID(created.json()["id"]), repository, blobs)
 
     document = await repository.get_by_id(UUID(created.json()["id"]))
     assert document.searchable == "ready"
@@ -145,7 +145,7 @@ async def test_extraction_marks_an_unreadable_file_failed(
     client,
     make_user,
     make_project,
-    minio,
+    blobs,
     session,
 ) -> None:
     owner = await make_user()
@@ -153,12 +153,12 @@ async def test_extraction_marks_an_unreadable_file_failed(
     created, _ = await upload(client, owner, project, name="scan.pdf", data=b"%PDF")
     repository = DocumentRepository(session)
 
-    await services.extract_document(UUID(created.json()["id"]), repository, minio)
+    await services.extract_document(UUID(created.json()["id"]), repository, blobs)
 
     document = await repository.get_by_id(UUID(created.json()["id"]))
     assert document.searchable == "failed"
     assert document.text is None
 
 
-async def test_extraction_of_a_deleted_document_does_nothing(session, minio) -> None:
-    await services.extract_document(uuid4(), DocumentRepository(session), minio)
+async def test_extraction_of_a_deleted_document_does_nothing(session, blobs) -> None:
+    await services.extract_document(uuid4(), DocumentRepository(session), blobs)

@@ -5,7 +5,6 @@ from zipfile import ZipFile
 
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
-from src.core.documents.storage import store_object
 from tests.api.v1.workspace.projects.archives import PROJECT_FILE, archive_of
 from tests.conftest import bearer
 
@@ -114,14 +113,14 @@ async def test_export_has_case_versions_and_files(
     make_user,
     make_project,
     session,
-    minio,
+    blobs,
 ) -> None:
     owner = await make_user()
     project = await make_project(owner)
     version = await CaseVersionRepository(session).save_version(
         project.id, {"demand": {"file": "demand.csv"}}, "Demand", owner.id
     )
-    store_object(minio, "key-1", b"time,value\n0,1\n")
+    await blobs.put("key-1", b"time,value\n0,1\n")
     await CaseFileRepository(session).add(
         project.id, version.id, "demand.csv", 15, "key-1"
     )
@@ -144,7 +143,7 @@ async def test_import_restores_case_versions_and_files(
     client,
     make_user,
     session,
-    minio,
+    blobs,
 ) -> None:
     user = await make_user()
     archive = archive_of(
@@ -167,13 +166,13 @@ async def test_import_restores_case_versions_and_files(
     stored = await CaseVersionRepository(session).latest_version(UUID(body["id"]))
     files = await CaseFileRepository(session).list_for_version(stored.id)
     assert [file.name for file in files] == ["demand.csv"]
-    assert minio.objects[files[0].object_key] == b"time,value\n0,1\n"
+    assert blobs.objects[files[0].object_key] == b"time,value\n0,1\n"
 
 
 async def test_import_refuses_a_file_without_its_case_version(
     client,
     make_user,
-    minio,
+    blobs,
 ) -> None:
     user = await make_user()
     archive = archive_of({"project.json": PROJECT_FILE, "case/files/2/demand.csv": "x"})
@@ -186,7 +185,7 @@ async def test_import_refuses_a_file_without_its_case_version(
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_failed"
-    assert minio.objects == {}
+    assert blobs.objects == {}
 
 
 async def test_import_refuses_a_case_version_that_is_not_a_document(
