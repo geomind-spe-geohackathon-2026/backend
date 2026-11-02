@@ -15,6 +15,7 @@ class Parameters(BaseModel):
     json_schema: dict[str, Any] = Field(alias="schema")
     values: dict[str, Any]
     missing: list[str]
+    ranges: list[str]
     history: list[ParameterHistory]
 
 

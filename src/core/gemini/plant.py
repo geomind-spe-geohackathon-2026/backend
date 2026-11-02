@@ -262,6 +262,20 @@ def missing_parameters(
     ]
 
 
+@cache
+def range_paths(kind: str) -> tuple[str, ...]:
+    """Return the paths of a plant class that a study can search over a range."""
+    found = gm.plants.capabilities().get(kind, {})
+    return tuple(found.get("ranges", ()))
+
+
+def range_names(plant: gm.Plant, module: str) -> list[str]:
+    """Return the names under a module that a study can search over a range."""
+    prefix = f"params.{module}."
+    paths = range_paths(str(plant.to_dict().get("type")))
+    return [path.removeprefix(prefix) for path in paths if path.startswith(prefix)]
+
+
 def parameters(
     plant: gm.Plant,
     module: str,
@@ -276,5 +290,6 @@ def parameters(
         "schema": target.parameter_schema(),
         "values": plant.params_at(module, at),
         "missing": missing_parameters(plant, module, case),
+        "ranges": range_names(plant, module),
         "history": plant.param_history(module),
     }

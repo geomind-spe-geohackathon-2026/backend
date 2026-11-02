@@ -119,3 +119,17 @@ def test_alike_doublets_have_equal_settings() -> None:
     settings = doublet_settings({"d0": 2500.0, "d1": 2500.0})
 
     assert settings["d0"] == settings["d1"]
+
+
+def test_a_module_lists_what_a_study_can_search() -> None:
+    built = from_dict(json.loads((EXAMPLE / "seed_plant.json").read_text()))
+    module = next(
+        item["id"]
+        for item in plant.structure(built)["modules"]
+        if item["type"] == "HeatPump"
+    )
+
+    names = plant.parameters(built, module, None, None)["ranges"]
+
+    assert names
+    assert all(not name.startswith("params.") for name in names)

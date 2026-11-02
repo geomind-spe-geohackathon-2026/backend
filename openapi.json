@@ -1840,6 +1840,13 @@
             "title": "Module",
             "type": "string"
           },
+          "ranges": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ranges",
+            "type": "array"
+          },
           "schema": {
             "additionalProperties": true,
             "title": "Schema",
@@ -1861,6 +1868,7 @@
           "schema",
           "values",
           "missing",
+          "ranges",
           "history"
         ],
         "title": "Parameters",
