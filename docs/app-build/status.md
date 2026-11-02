@@ -39,7 +39,6 @@ Results, summary and report read gemini's display units through `report.to_dict(
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
 - Compare labels are tested, not checked by eye on a real chart of many designs.
 - A run shows `done` when its last tool failed; the chat shows the failure and the panel shows the count.
-- The scripted answer says it finished even after a failed tool. Demo mode only.
 - Branch `registry-packages` installs the engines from a registry, never `-e`. It waits for the registry URL and first versions.
 - Whether Fatemeh Chitsaz's commit identity should also apply to the `ux/frontend` clone.
 - Budget caps are not retested on DeepSeek, and the two live checks were skipped under the no-token order.
