@@ -148,6 +148,14 @@ async def test_schema_is_geminis_case_schema(client, make_user) -> None:
     assert response.json()["title"] == "Case"
 
 
+async def test_schema_fixes_the_kind_of_a_case_document(client, make_user) -> None:
+    user = await make_user()
+
+    response = await client.get(f"{CASE}/schema", headers=bearer(user))
+
+    assert response.json()["properties"]["kind"]["const"] == "case"
+
+
 async def test_uploading_the_file_completes_the_case(
     client, make_user, make_project, blobs
 ) -> None:
