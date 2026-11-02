@@ -22,17 +22,6 @@ DEFAULT_TITLE = "New chat"
 START_TASK = "assistant.runs.start"
 
 
-def to_chat(chat: Chat, last: Run | None) -> schemas.Chat:
-    last_run = None if last is None else schemas.LastRun(id=last.id, status=last.status)
-    return schemas.Chat(
-        id=chat.id,
-        project=chat.project_id,
-        title=chat.title,
-        created=chat.created,
-        last_run=last_run,
-    )
-
-
 async def list_chats(
     project: Project,
     page: PageRequest,
@@ -45,7 +34,7 @@ async def list_chats(
     has_more = len(rows) > page.limit
     cursor = encode_cursor(items[-1].created, items[-1].id) if has_more else None
     return Page(
-        items=[to_chat(chat, last.get(chat.id)) for chat in items],
+        items=[shared.to_chat(chat, last.get(chat.id)) for chat in items],
         next=cursor,
     )
 
@@ -55,9 +44,9 @@ async def create_chat(
     project: Project,
     user: User,
     chats: ChatRepository,
-) -> schemas.Chat:
+) -> shared.Chat:
     chat = await chats.create(project.id, payload.title or DEFAULT_TITLE, user.id)
-    return to_chat(chat, None)
+    return shared.to_chat(chat, None)
 
 
 async def rename_chat(
@@ -65,10 +54,10 @@ async def rename_chat(
     payload: schemas.ChatUpdate,
     chats: ChatRepository,
     runs: RunRepository,
-) -> schemas.Chat:
+) -> shared.Chat:
     renamed = await chats.rename(chat, payload.title)
     last = await runs.last_for_chats([chat.id])
-    return to_chat(renamed, last.get(chat.id))
+    return shared.to_chat(renamed, last.get(chat.id))
 
 
 async def delete_chat(chat: Chat, chats: ChatRepository, runs: RunRepository) -> None:
