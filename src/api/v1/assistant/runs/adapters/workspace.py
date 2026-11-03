@@ -1,3 +1,4 @@
+import mimetypes
 from typing import Any
 from uuid import UUID
 
@@ -6,15 +7,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
 from src.api.v1.assistant.runs.adapters.documents import search_documents
 from src.core.clients.minio.blobs import BlobStore
+from src.core.clients.postgres.models.document import Document
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
+from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
 
 DEFAULT_PLANT_NAME = "plant"
+UNKNOWN_MEDIA_TYPE = "application/octet-stream"
 
 
 async def read_plants(
@@ -37,6 +41,14 @@ async def read_case(
         return None
     files = await CaseFileRepository(session).list_for_version(version.id)
     return version.content, [(file.name, file.object_key) for file in files]
+
+
+async def read_files(session: AsyncSession, project_id: UUID) -> list[Document]:
+    return await DocumentRepository(session).newest_by_name(project_id)
+
+
+def to_media_type(name: str) -> str:
+    return mimetypes.guess_type(name)[0] or UNKNOWN_MEDIA_TYPE
 
 
 class DatabaseWorkspace:
@@ -70,6 +82,20 @@ class DatabaseWorkspace:
         if data is None:
             raise FileNotFoundError(f"case file {key!r} is missing from storage")
         return data
+
+    def files(self, project_id: str) -> list[dict[str, Any]]:
+        """Return the project's uploaded files as ``[{name, size, media_type}]``."""
+        rows = self.bridge.call(read_files, UUID(project_id))
+        return [
+            {"name": row.name, "size": row.size, "media_type": to_media_type(row.name)}
+            for row in rows
+        ]
+
+    def file(self, project_id: str, name: str) -> bytes | None:
+        """Return the bytes of an uploaded file, or ``None`` when it does not exist."""
+        rows = self.bridge.call(read_files, UUID(project_id))
+        found = next((row for row in rows if row.name == name), None)
+        return None if found is None else self.blobs.get_sync(found.object_key)
 
     def documents(self, project_id: str, query: str) -> list[dict[str, Any]]:
         """Return matching documents as ``[{id, title, text, score}]``, best first."""

@@ -164,6 +164,37 @@ async def seed_workspace(session, owner, project, blobs) -> None:
     await documents.set_text(document, text)
 
 
+async def test_workspace_gives_the_newest_upload_of_each_name(
+    session_factory, session, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    documents = DocumentRepository(session)
+    await documents.create(project.id, "demand.csv", 3, "old", owner.id)
+    await documents.create(project.id, "demand.csv", 5, "new", owner.id)
+    await documents.create(project.id, "notes.bin9", 1, "other", owner.id)
+    blobs.objects["new"] = b"a,b\n1"
+    workspace = DatabaseWorkspace(
+        LoopBridge(asyncio.get_running_loop(), session_factory), blobs
+    )
+    project_id = str(project.id)
+
+    listed = await asyncio.to_thread(workspace.files, project_id)
+    read = await asyncio.to_thread(workspace.file, project_id, "demand.csv")
+    missing = await asyncio.to_thread(workspace.file, project_id, "nothing.csv")
+
+    assert listed == [
+        {"name": "demand.csv", "size": 5, "media_type": "text/csv"},
+        {
+            "name": "notes.bin9",
+            "size": 1,
+            "media_type": "application/octet-stream",
+        },
+    ]
+    assert read == b"a,b\n1"
+    assert missing is None
+
+
 async def test_workspace_passes_geomind_conformance(
     session_factory, session, make_user, make_project, blobs
 ) -> None:

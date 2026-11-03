@@ -53,6 +53,17 @@ class DocumentRepository(BaseRepository):
             statement = statement.where(Document.text.icontains(word, autoescape=True))
         return list(await self.session.scalars(statement.order_by(Document.created)))
 
+    async def newest_by_name(self, project_id: UUID) -> list[Document]:
+        """Return the project's documents, the newest of each name, by name."""
+        statement = (
+            select(Document)
+            .where(Document.project_id == project_id)
+            .order_by(Document.created)
+        )
+        rows = await self.session.scalars(statement)
+        newest = {row.name: row for row in rows}
+        return [newest[name] for name in sorted(newest)]
+
     async def object_keys(self, project_id: UUID) -> list[str]:
         statement = select(Document.object_key).where(Document.project_id == project_id)
         return list(await self.session.scalars(statement))

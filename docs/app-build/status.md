@@ -8,10 +8,10 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | f4f4762 | see `git log` |
-| frontend | f4b3062 | see `git log` |
+| backend | 5ce532c | see `git log` |
+| frontend | ffd7673 | see `git log` |
 | gemini | wheel 0.5.5 | wheel 0.5.5 |
-| geomind | c9a5c1c (0.4.1) | wheel 0.4.3 in `vendor/` |
+| geomind | wheel 0.4.3 in `vendor/` | wheel 0.4.3 |
 | sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
 Contract version 50. Latest migration 0009.
@@ -36,7 +36,7 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 
 ## Context window
 
-`GEOMIND_CONTEXT_WINDOW=128000` is our cost choice, not a fact of the model: DeepSeek v4.1 flash on Relace reports 1,048,576 tokens. geomind compacts at a share of this window, so the lower number keeps the context, and the cost of each call, as they were before 0.4.2 made the window a setting. The setting takes effect once 0.4.2 is wired; production needs the same line.
+`GEOMIND_CONTEXT_WINDOW=128000` is our cost choice, not a fact of the model: DeepSeek v4.1 flash on Relace reports 1,048,576 tokens. geomind compacts at a share of this window, so the lower number keeps the context, and the cost of each call, as they were before 0.4.2 made the window a setting. Production has the same line.
 
 ## Units
 
