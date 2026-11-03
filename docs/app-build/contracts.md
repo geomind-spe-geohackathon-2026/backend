@@ -62,7 +62,7 @@ Export zip: `project.json` (`{format: 1, name, exported}`) and `plant/<number>.j
 
 ### workspace/knowledge
 
-geomind's shared memory. Two sections: `knowledge` (cited reference values) and `experience` (designs that passed review, written by geomind only). Everyone signed in reads; only an admin writes. An entry is shared unless it has a `project`: a project's own facts are seen only by that project's runs.
+geomind's shared memory. Two sections: `knowledge` (cited reference values) and `experience` (designs that passed review and the Curator's lessons per role, both written by geomind only). Everyone signed in reads; only an admin writes. An entry is shared unless it has a `project`: a project's own facts are seen only by that project's runs.
 
 | Method | Path | Body → Response |
 |---|---|---|
@@ -74,7 +74,7 @@ geomind's shared memory. Two sections: `knowledge` (cited reference values) and 
 | DELETE | `/workspace/knowledge/{section}/{id}?project=` | → `204` |
 | POST | `/workspace/knowledge/import` | multipart `file`, a CSV with the columns of `geomind memory seed` → `{added, replaced, errors: [{row, message}]}`; a row geomind refuses is reported and skipped |
 
-`entry = {id, section, project, created, updated, created_by: {kind: "seed"|"user"|"agent", id}, ...}`: the rest are geomind's own fields, as it writes them (`item, value, unit, title, publisher, year, page, link, price_year, currency, status, note, origin` in `knowledge`; `features, verdict, kpis, lessons, run, origin` in `experience`).
+`entry = {id, section, project, created, updated, created_by: {kind: "seed"|"user"|"agent", id}, ...}`: the rest are geomind's own fields, as it writes them (`item, value, unit, title, publisher, year, page, link, price_year, currency, status, note, origin` in `knowledge`; `features, verdict, kpis, lessons, run, origin` in `experience`, or a role's lesson).
 
 ### workspace/connectors
 
