@@ -8,21 +8,21 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
 
 
-class KnowledgeEntry(Base):
-    """One entry of geomind's shared memory.
+class MemoryEntry(Base):
+    """One entry of the agents' own memory, as geomind writes it.
 
-    ``data`` is the entry as geomind writes it, its own ``id`` and ``origin`` included.
-    ``project_id`` is set for a project's own facts, which only that project sees; the
-    catalogue, confirmed sources and experience have none and every project sees them.
-    ``created_by`` is a user's id or an agent run's id, as ``created_by_kind`` says.
+    Only geomind writes it: role lessons and designs that passed review, in the
+    ``experience`` section. Experience is shared by every project, so the team learns;
+    ``data`` is kept exactly as given, its ``origin`` and ``project_id`` included.
+    ``project_id`` is set only for an entry geomind marks as a project's own.
     """
 
-    __tablename__ = "knowledge_entries"
+    __tablename__ = "memory_entries"
     __table_args__ = (
         UniqueConstraint(
-            "section", "project_id", "entry_id", name="uq_knowledge_entries_entry"
+            "section", "project_id", "entry_id", name="uq_memory_entries_entry"
         ),
-        Index("ix_knowledge_entries_section_created_id", "section", "created", "id"),
+        Index("ix_memory_entries_section_created_id", "section", "created", "id"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)

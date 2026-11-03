@@ -11,7 +11,7 @@ from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.documents.errors import DocumentNotFoundError
 from src.core.documents.extract import SUPPORTED_SUFFIXES, extract_text, is_supported
-from src.core.errors import ValidationFailedError
+from src.core.errors import ForbiddenError, ValidationFailedError
 from src.core.logging.logger import get_logger
 from src.core.pagination.page import Page, PageRequest, encode_cursor
 from src.core.security.access import require_project
@@ -19,6 +19,7 @@ from src.core.security.errors import ProjectNotFoundError
 from src.core.uploads import read_upload
 
 EXTRACT_TASK = "workspace.documents.extract"
+KNOWLEDGE_FOLDER = "knowledge/documents"
 
 logger = get_logger(__name__)
 
@@ -45,11 +46,12 @@ def enqueue_extraction(document_id: UUID) -> None:
 
 
 async def list_documents(
-    project: Project,
+    project: Project | None,
     page: PageRequest,
     repository: DocumentRepository,
 ) -> Page:
-    rows = await repository.list_page(project.id, page)
+    """List a project's documents, or with no project the shared Knowledge."""
+    rows = await repository.list_page(None if project is None else project.id, page)
     items = rows[: page.limit]
     last = items[-1] if len(rows) > page.limit else None
     return Page(
@@ -70,13 +72,25 @@ def file_name_of(raw: str | None) -> str:
     return name
 
 
+def require_admin_for_shared(project: Project | None, user: User) -> None:
+    """Refuse a shared Knowledge change by anyone but an admin."""
+    if project is None and user.role != "admin":
+        raise ForbiddenError("Only an administrator changes the shared Knowledge")
+
+
+def object_key_of(project: Project | None, name: str) -> str:
+    folder = KNOWLEDGE_FOLDER if project is None else f"projects/{project.id}/documents"
+    return f"{folder}/{uuid4()}/{name}"
+
+
 async def upload_document(
-    project: Project,
+    project: Project | None,
     user: User,
     file: UploadFile,
     repository: DocumentRepository,
     blobs: BlobStore,
 ) -> schemas.Document:
+    require_admin_for_shared(project, user)
     name = file_name_of(file.filename)
     if not is_supported(name):
         supported = ", ".join(sorted(SUPPORTED_SUFFIXES))
@@ -84,10 +98,11 @@ async def upload_document(
             {"file": f"This file type cannot be read; upload one of {supported}"}
         )
     data = await read_upload(file)
-    key = f"projects/{project.id}/documents/{uuid4()}/{name}"
+    key = object_key_of(project, name)
+    owner = None if project is None else project.id
     await blobs.put(key, data)
     try:
-        document = await repository.create(project.id, name, len(data), key, user.id)
+        document = await repository.create(owner, name, len(data), key, user.id)
     except Exception:
         await blobs.delete(key)
         raise
@@ -105,10 +120,13 @@ async def delete_document(
     document = await repository.get_by_id(document_id)
     if document is None:
         raise DocumentNotFoundError("Document not found")
-    try:
-        await require_project(document.project_id, user, projects)
-    except ProjectNotFoundError as error:
-        raise DocumentNotFoundError("Document not found") from error
+    if document.project_id is None:
+        require_admin_for_shared(None, user)
+    else:
+        try:
+            await require_project(document.project_id, user, projects)
+        except ProjectNotFoundError as error:
+            raise DocumentNotFoundError("Document not found") from error
     await repository.delete(document.id)
     await blobs.delete(document.object_key)
 

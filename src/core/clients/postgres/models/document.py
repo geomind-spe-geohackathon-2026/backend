@@ -8,7 +8,11 @@ from src.core.clients.postgres.client import Base, UtcDateTime, utc_now
 
 
 class Document(Base):
-    """A file a user uploaded to a project; its bytes live in MinIO."""
+    """A file a user uploaded; its bytes live in MinIO.
+
+    A project's file has its ``project_id``. A shared Knowledge document has none: every
+    project's agents search it, and only an admin adds or deletes one.
+    """
 
     __tablename__ = "documents"
     __table_args__ = (
@@ -16,7 +20,7 @@ class Document(Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
+    project_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
     )
     name: Mapped[str] = mapped_column(Text)

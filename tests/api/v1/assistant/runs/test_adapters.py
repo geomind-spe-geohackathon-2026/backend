@@ -30,7 +30,7 @@ from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
 from src.core.clients.postgres.repositories.connector import ConnectorRepository
 from src.core.clients.postgres.repositories.document import DocumentRepository
-from src.core.clients.postgres.repositories.knowledge import KnowledgeRepository
+from src.core.clients.postgres.repositories.memory import MemoryRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
 from src.core.clients.postgres.repositories.project import ProjectRepository
@@ -575,33 +575,26 @@ async def test_memory_is_given_only_to_a_project_that_chose_it(
 ) -> None:
     owner = await make_user()
     on = await make_project(owner, "On")
-    other = await make_project(owner, "Other")
     undecided = await make_project(owner, "Undecided")
     projects = ProjectRepository(session)
     await projects.set_choices(await projects.get_by_id(on.id), "on", None)
-    knowledge = KnowledgeRepository(session)
-    shared = {"id": "pump", "origin": "catalogue"}
-    await knowledge.put("knowledge", shared, None, ("seed", None))
-    await knowledge.put("knowledge", {"id": "mine"}, on.id, ("user", None))
-    await knowledge.put("knowledge", {"id": "theirs"}, other.id, ("user", None))
+    lesson = {"id": "lesson-1", "origin": "curator", "project_id": None}
+    await MemoryRepository(session).put("experience", lesson, None, ("agent", "r0"))
     bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
     workspace = DatabaseWorkspace(bridge, blobs, "run-1")
 
     memory = await asyncio.to_thread(workspace.memory, str(on.id))
     nothing = await asyncio.to_thread(workspace.memory, str(undecided.id))
-    seen = await asyncio.to_thread(memory.entries, "knowledge")
-    await asyncio.to_thread(
-        memory.add, "experience", {"id": "design-1", "origin": "code"}
-    )
-    await asyncio.to_thread(memory.add, "knowledge", {"id": "fact", "origin": "user"})
+    seen = await asyncio.to_thread(memory.entries, "experience")
+    design = {"id": "design-1", "origin": "code", "project_id": str(on.id)}
+    await asyncio.to_thread(memory.add, "experience", design)
 
     assert nothing is None
-    assert {entry["id"] for entry in seen} == {"pump", "mine"}
-    experience = await knowledge.get("experience", "design-1")
-    fact = await knowledge.get("knowledge", "fact", on.id)
-    assert experience.project_id is None
-    assert (experience.created_by_kind, experience.created_by) == ("agent", "run-1")
-    assert fact.project_id == on.id
+    assert seen == [lesson]
+    stored = await MemoryRepository(session).get("experience", "design-1")
+    assert stored.data == design
+    assert stored.project_id is None
+    assert (stored.created_by_kind, stored.created_by) == ("agent", "run-1")
 
 
 async def test_the_loop_reads_warmed_memory_and_connectors(
@@ -647,4 +640,31 @@ async def test_the_loop_reads_warmed_memory_and_connectors(
             "headers": {"X-Key": "k"},
         }
     ]
-    assert workspace.memory(project_id).entries("knowledge") == []
+    assert workspace.memory(project_id).entries("experience") == []
+
+
+async def test_the_shared_knowledge_is_searched_by_passage_with_its_page(
+    session_factory, session, make_user, blobs
+) -> None:
+    owner = await make_user()
+    documents = DocumentRepository(session)
+    text = (
+        "[page 1]\nIntroduction to wells.\n[page 2]\nThe drilling cost is 1500 EUR/m."
+    )
+    shared = await documents.create(None, "costs.pdf", 10, "k/costs.pdf", owner.id)
+    await documents.set_text(shared, text)
+    blobs.objects["k/costs.pdf"] = b"%PDF"
+    workspace = DatabaseWorkspace(
+        LoopBridge(asyncio.get_running_loop(), session_factory), blobs
+    )
+
+    hits = await asyncio.to_thread(workspace.knowledge_search, "drilling cost")
+    files = await asyncio.to_thread(workspace.knowledge_files)
+    data = await asyncio.to_thread(workspace.knowledge_file, "costs.pdf")
+    nothing = await asyncio.to_thread(workspace.knowledge_file, "other.pdf")
+
+    assert hits[0]["document"] == "costs.pdf" and hits[0]["page"] == 2
+    assert "1500 EUR/m" in hits[0]["text"]
+    assert set(hits[0]) == {"id", "document", "title", "page", "text", "score"}
+    assert [item["name"] for item in files] == ["costs.pdf"]
+    assert (data, nothing) == (b"%PDF", None)

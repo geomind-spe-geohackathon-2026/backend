@@ -7,7 +7,11 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
-from src.api.v1.assistant.runs.adapters.documents import search_documents
+from src.api.v1.assistant.runs.adapters.documents import (
+    read_knowledge_files,
+    search_documents,
+    search_knowledge,
+)
 from src.api.v1.assistant.runs.adapters.memory import DatabaseMemory
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.models.document import Document
@@ -173,6 +177,25 @@ class DatabaseWorkspace:
     def file(self, project_id: str, name: str) -> bytes | None:
         """Return the bytes of an uploaded file, or ``None`` when it does not exist."""
         rows = self.file_rows(project_id)
+        found = next((row for row in rows if row.name == name), None)
+        return None if found is None else self.blobs.get_sync(found.object_key)
+
+    def knowledge_search(self, query: str) -> list[dict[str, Any]]:
+        """Return passages of the shared Knowledge as ``[{id, document, title, page,
+        text, score}]``, best first; ``document`` is what ``knowledge_file`` reads."""
+        return self.bridge.call(search_knowledge, query)
+
+    def knowledge_files(self) -> list[dict[str, Any]]:
+        """Return the shared Knowledge documents as ``[{name, size, media_type}]``."""
+        rows = self.bridge.call(read_knowledge_files)
+        return [
+            {"name": row.name, "size": row.size, "media_type": to_media_type(row.name)}
+            for row in rows
+        ]
+
+    def knowledge_file(self, name: str) -> bytes | None:
+        """Return the bytes of a shared Knowledge document, or ``None``."""
+        rows = self.bridge.call(read_knowledge_files)
         found = next((row for row in rows if row.name == name), None)
         return None if found is None else self.blobs.get_sync(found.object_key)
 

@@ -5,7 +5,7 @@ from src.core.clients.postgres.models.chat import Chat
 from src.core.clients.postgres.models.chat_state import ChatState
 from src.core.clients.postgres.models.connector import Connector
 from src.core.clients.postgres.models.document import Document
-from src.core.clients.postgres.models.knowledge_entry import KnowledgeEntry
+from src.core.clients.postgres.models.memory_entry import MemoryEntry
 from src.core.clients.postgres.models.message import Message
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
@@ -24,7 +24,7 @@ __all__ = [
     "ChatState",
     "Connector",
     "Document",
-    "KnowledgeEntry",
+    "MemoryEntry",
     "Message",
     "PlantVersion",
     "Project",

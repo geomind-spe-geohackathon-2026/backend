@@ -6,6 +6,18 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.3] - 2026-11-03
+
+Knowledge is RAG, Connectors are MCP, and neither is the agents' memory (Sahand).
+
+- Knowledge is a shared document base: `/workspace/documents` without `project` lists, adds
+  and deletes shared documents (only an admin writes). The agents search it through
+  `Workspace.knowledge_search` (passages with document and page), `knowledge_files` and
+  `knowledge_file`. A PDF keeps its pages. `python -m src.scripts.knowledge add` seeds a file.
+- The knowledge-entry routes of 1.1.2 are gone. The agents' memory holds only what geomind
+  writes, kept as given; the app shows only the project's on/off switch.
+- Migration 0012: documents may have no project; the memory table is `memory_entries`.
+
 ## [1.1.2] - 2026-11-03
 
 - Knowledge: geomind's shared memory as `/workspace/knowledge`, with list, search, read, add,

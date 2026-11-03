@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 
 from src.core.clients.postgres.models.document import Document
 from src.core.clients.postgres.repositories.base import BaseRepository, DatabaseSession
@@ -10,7 +10,7 @@ from src.core.pagination.page import PageRequest, paginate
 class DocumentRepository(BaseRepository):
     async def create(
         self,
-        project_id: UUID,
+        project_id: UUID | None,
         name: str,
         size: int,
         object_key: str,
@@ -31,8 +31,16 @@ class DocumentRepository(BaseRepository):
     async def get_by_id(self, document_id: UUID) -> Document | None:
         return await self.session.get(Document, document_id)
 
-    async def list_page(self, project_id: UUID, page: PageRequest) -> list[Document]:
-        statement = select(Document).where(Document.project_id == project_id)
+    async def list_page(
+        self, project_id: UUID | None, page: PageRequest
+    ) -> list[Document]:
+        """Return a project's documents, or with ``None`` the shared Knowledge."""
+        owner = (
+            Document.project_id.is_(None)
+            if project_id is None
+            else Document.project_id == project_id
+        )
+        statement = select(Document).where(owner)
         statement = paginate(statement, Document.created, Document.id, page)
         return list(await self.session.scalars(statement))
 
@@ -43,23 +51,39 @@ class DocumentRepository(BaseRepository):
         await self.session.commit()
         return document
 
-    async def search(self, project_id: UUID, words: list[str]) -> list[Document]:
-        """Return ready documents whose text holds every word, ignoring case."""
-        statement = select(Document).where(
-            Document.project_id == project_id,
-            Document.searchable == "ready",
+    async def search(self, project_id: UUID | None, words: list[str]) -> list[Document]:
+        """Return a project's ready documents holding every word, or the shared ones."""
+        owner = (
+            Document.project_id.is_(None)
+            if project_id is None
+            else Document.project_id == project_id
         )
+        statement = select(Document).where(owner, Document.searchable == "ready")
         for word in words:
             statement = statement.where(Document.text.icontains(word, autoescape=True))
         return list(await self.session.scalars(statement.order_by(Document.created)))
 
-    async def newest_by_name(self, project_id: UUID) -> list[Document]:
-        """Return the project's documents, the newest of each name, by name."""
-        statement = (
-            select(Document)
-            .where(Document.project_id == project_id)
-            .order_by(Document.created)
+    async def search_any(
+        self, project_id: UUID | None, words: list[str]
+    ) -> list[Document]:
+        """Return a project's ready documents, or the shared ones, holding any word."""
+        owner = (
+            Document.project_id.is_(None)
+            if project_id is None
+            else Document.project_id == project_id
         )
+        found = or_(*(Document.text.icontains(word, autoescape=True) for word in words))
+        statement = select(Document).where(owner, Document.searchable == "ready", found)
+        return list(await self.session.scalars(statement.order_by(Document.created)))
+
+    async def newest_by_name(self, project_id: UUID | None) -> list[Document]:
+        """Return a project's documents or the shared ones, the newest of each name."""
+        owner = (
+            Document.project_id.is_(None)
+            if project_id is None
+            else Document.project_id == project_id
+        )
+        statement = select(Document).where(owner).order_by(Document.created)
         rows = await self.session.scalars(statement)
         newest = {row.name: row for row in rows}
         return [newest[name] for name in sorted(newest)]

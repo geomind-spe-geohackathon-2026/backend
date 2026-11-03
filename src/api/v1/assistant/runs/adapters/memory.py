@@ -5,17 +5,15 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
-from src.core.clients.postgres.repositories.knowledge import KnowledgeRepository
+from src.core.clients.postgres.repositories.memory import MemoryRepository
 
-SECTIONS = ("knowledge", "experience")
-OWN_ORIGINS = frozenset({"user"})
-"""Origins whose entries stay with their project; geomind shares all others."""
+SECTIONS = ("experience",)
 
 
 async def read_visible(
     session: AsyncSession, project_id: UUID
 ) -> dict[str, list[dict[str, Any]]]:
-    repository = KnowledgeRepository(session)
+    repository = MemoryRepository(session)
     return {
         section: [row.data for row in await repository.visible(section, project_id)]
         for section in SECTIONS
@@ -29,18 +27,15 @@ async def write_entry(
     project_id: UUID,
     run_id: str | None,
 ) -> None:
-    owner = project_id if entry.get("origin") in OWN_ORIGINS else None
-    by = ("agent", run_id)
-    await KnowledgeRepository(session).put(section, entry, owner, by)
+    await MemoryRepository(session).put(section, entry, None, ("agent", run_id))
 
 
 class DatabaseMemory:
-    """geomind's ``Memory`` for one project, on the shared knowledge table.
+    """geomind's ``Memory`` for one project's runs: the agents' shared experience.
 
-    ``entries`` gives what the project may see: shared entries and its own facts. They
-    are read before the run, as geomind may read them on the event loop; what the run
-    writes is added to that copy too. A user fact (origin ``user``) stays with the
-    project; everything else geomind writes is shared.
+    Entries are kept as geomind gives them and never checked or edited here. They are
+    read before the run, as geomind may read them on the event loop; what the run
+    writes is added to that copy too.
     """
 
     def __init__(self, bridge: LoopBridge, project_id: str, run_id: str | None) -> None:

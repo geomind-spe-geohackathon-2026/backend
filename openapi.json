@@ -156,20 +156,6 @@
         "title": "Body_add_file_api_v1_design_case_files_post",
         "type": "object"
       },
-      "Body_import_entries_api_v1_workspace_knowledge_import_post": {
-        "properties": {
-          "file": {
-            "contentMediaType": "application/octet-stream",
-            "title": "File",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "title": "Body_import_entries_api_v1_workspace_knowledge_import_post",
-        "type": "object"
-      },
       "Body_import_project_api_v1_workspace_projects_import_post": {
         "properties": {
           "file": {
@@ -192,14 +178,20 @@
             "type": "string"
           },
           "project": {
-            "format": "uuid",
-            "title": "Project",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project"
           }
         },
         "required": [
-          "file",
-          "project"
+          "file"
         ],
         "title": "Body_upload_document_api_v1_workspace_documents_post",
         "type": "object"
@@ -1122,36 +1114,6 @@
         "title": "CoverageDay",
         "type": "object"
       },
-      "CreatedBy": {
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
-          },
-          "kind": {
-            "enum": [
-              "seed",
-              "user",
-              "agent"
-            ],
-            "title": "Kind",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "id"
-        ],
-        "title": "CreatedBy",
-        "type": "object"
-      },
       "Credentials": {
         "properties": {
           "email": {
@@ -1238,9 +1200,16 @@
             "type": "string"
           },
           "project": {
-            "format": "uuid",
-            "title": "Project",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project"
           },
           "searchable": {
             "enum": [
@@ -1265,95 +1234,6 @@
           "created"
         ],
         "title": "Document",
-        "type": "object"
-      },
-      "Entry": {
-        "additionalProperties": true,
-        "description": "An entry as geomind keeps it, its own fields at the top level.",
-        "properties": {
-          "created": {
-            "format": "date-time",
-            "title": "Created",
-            "type": "string"
-          },
-          "created_by": {
-            "$ref": "#/components/schemas/CreatedBy"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "project": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Project"
-          },
-          "section": {
-            "enum": [
-              "knowledge",
-              "experience"
-            ],
-            "title": "Section",
-            "type": "string"
-          },
-          "updated": {
-            "format": "date-time",
-            "title": "Updated",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "section",
-          "project",
-          "created",
-          "updated",
-          "created_by"
-        ],
-        "title": "Entry",
-        "type": "object"
-      },
-      "EntryChange": {
-        "additionalProperties": true,
-        "description": "Fields to change in a knowledge entry; ``null`` clears one.",
-        "properties": {},
-        "title": "EntryChange",
-        "type": "object"
-      },
-      "EntryInput": {
-        "additionalProperties": true,
-        "description": "A knowledge entry a person writes; geomind's check decides what it needs.",
-        "properties": {
-          "id": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Id",
-            "type": "string"
-          },
-          "project": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Project"
-          }
-        },
-        "required": [
-          "id"
-        ],
-        "title": "EntryInput",
         "type": "object"
       },
       "Failure": {
@@ -1634,87 +1514,6 @@
           "version"
         ],
         "title": "HealthStatus",
-        "type": "object"
-      },
-      "ImportProblem": {
-        "properties": {
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "row": {
-            "title": "Row",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "row",
-          "message"
-        ],
-        "title": "ImportProblem",
-        "type": "object"
-      },
-      "ImportReport": {
-        "properties": {
-          "added": {
-            "title": "Added",
-            "type": "integer"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/ImportProblem"
-            },
-            "title": "Errors",
-            "type": "array"
-          },
-          "replaced": {
-            "title": "Replaced",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "added",
-          "replaced",
-          "errors"
-        ],
-        "title": "ImportReport",
-        "type": "object"
-      },
-      "KnowledgeSettings": {
-        "properties": {
-          "available": {
-            "title": "Available",
-            "type": "boolean"
-          },
-          "sections": {
-            "items": {
-              "enum": [
-                "knowledge",
-                "experience"
-              ],
-              "type": "string"
-            },
-            "title": "Sections",
-            "type": "array"
-          },
-          "similarity": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Similarity"
-          }
-        },
-        "required": [
-          "sections",
-          "similarity",
-          "available"
-        ],
-        "title": "KnowledgeSettings",
         "type": "object"
       },
       "Kpi": {
@@ -2088,34 +1887,6 @@
           "next"
         ],
         "title": "Page[Document]",
-        "type": "object"
-      },
-      "Page_Entry_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/Entry"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "next": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next"
-          }
-        },
-        "required": [
-          "items",
-          "next"
-        ],
-        "title": "Page[Entry]",
         "type": "object"
       },
       "Page_Message_": {
@@ -4766,7 +4537,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.2"
+    "version": "1.1.3"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7734,11 +7505,18 @@
           {
             "in": "query",
             "name": "project",
-            "required": true,
+            "required": false,
             "schema": {
-              "format": "uuid",
-              "title": "Project",
-              "type": "string"
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
             }
           },
           {
@@ -7895,403 +7673,6 @@
         "summary": "Delete Document",
         "tags": [
           "Documents"
-        ]
-      }
-    },
-    "/api/v1/workspace/knowledge": {
-      "get": {
-        "operationId": "list_entries_api_v1_workspace_knowledge_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "section",
-            "required": false,
-            "schema": {
-              "default": "knowledge",
-              "enum": [
-                "knowledge",
-                "experience"
-              ],
-              "title": "Section",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "q",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 200,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Q"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cursor"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 50,
-              "maximum": 200,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_Entry_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "List Entries",
-        "tags": [
-          "Knowledge"
-        ]
-      },
-      "post": {
-        "operationId": "add_entry_api_v1_workspace_knowledge_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EntryInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Entry"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Add Entry",
-        "tags": [
-          "Knowledge"
-        ]
-      }
-    },
-    "/api/v1/workspace/knowledge/import": {
-      "post": {
-        "operationId": "import_entries_api_v1_workspace_knowledge_import_post",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_import_entries_api_v1_workspace_knowledge_import_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImportReport"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Import Entries",
-        "tags": [
-          "Knowledge"
-        ]
-      }
-    },
-    "/api/v1/workspace/knowledge/knowledge/{entry_id}": {
-      "patch": {
-        "operationId": "change_entry_api_v1_workspace_knowledge_knowledge__entry_id__patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "entry_id",
-            "required": true,
-            "schema": {
-              "title": "Entry Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "project",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Project"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EntryChange"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Entry"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Change Entry",
-        "tags": [
-          "Knowledge"
-        ]
-      }
-    },
-    "/api/v1/workspace/knowledge/settings": {
-      "get": {
-        "operationId": "read_settings_api_v1_workspace_knowledge_settings_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/KnowledgeSettings"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Read Settings",
-        "tags": [
-          "Knowledge"
-        ]
-      }
-    },
-    "/api/v1/workspace/knowledge/{section}/{entry_id}": {
-      "delete": {
-        "operationId": "delete_entry_api_v1_workspace_knowledge__section___entry_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "section",
-            "required": true,
-            "schema": {
-              "enum": [
-                "knowledge",
-                "experience"
-              ],
-              "title": "Section",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "entry_id",
-            "required": true,
-            "schema": {
-              "title": "Entry Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "project",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Project"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Entry",
-        "tags": [
-          "Knowledge"
-        ]
-      },
-      "get": {
-        "operationId": "get_entry_api_v1_workspace_knowledge__section___entry_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "section",
-            "required": true,
-            "schema": {
-              "enum": [
-                "knowledge",
-                "experience"
-              ],
-              "title": "Section",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "entry_id",
-            "required": true,
-            "schema": {
-              "title": "Entry Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "project",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Project"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Entry"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Entry",
-        "tags": [
-          "Knowledge"
         ]
       }
     },

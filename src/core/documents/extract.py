@@ -8,6 +8,7 @@ TEXT_SUFFIXES = frozenset(
     {".txt", ".md", ".csv", ".tsv", ".json", ".xml", ".yaml", ".yml", ".log"}
 )
 PDF_SUFFIX = ".pdf"
+PAGE_MARK = "[page {}]"
 SUPPORTED_SUFFIXES = TEXT_SUFFIXES | {PDF_SUFFIX}
 
 
@@ -17,10 +18,19 @@ def is_supported(name: str) -> bool:
 
 
 def text_of_pdf(data: bytes) -> str | None:
-    """Return the text of a PDF, or ``None`` when it is damaged or holds no text."""
+    """Return the text of a PDF, or ``None`` when it is damaged or holds no text.
+
+    Each page starts with a ``[page n]`` line, so a passage found later keeps its page.
+    """
     try:
         pages = PdfReader(io.BytesIO(data)).pages
-        text = "\n".join(page.extract_text() for page in pages).strip()
+        parts = [
+            f"{PAGE_MARK.format(number)}\n{page.extract_text()}"
+            for number, page in enumerate(pages, start=1)
+        ]
+        text = "\n".join(parts).strip()
+        if not "".join(page.extract_text() for page in pages).strip():
+            return None
     except (PyPdfError, ValueError, KeyError, OSError):
         return None
     return None if not text or "\x00" in text else text

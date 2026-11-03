@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, UploadFile, status
+from fastapi import APIRouter, Depends, Form, Query, UploadFile, status
 from src.api.v1.workspace.documents import schemas, services
 from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.models.project import Project
@@ -14,7 +14,7 @@ from src.core.clients.postgres.repositories.project import (
     get_project_repository,
 )
 from src.core.pagination.page import Page, PageParams
-from src.core.security.access import CurrentUser, QueriedProject, require_project
+from src.core.security.access import CurrentUser, require_project
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -29,11 +29,20 @@ ProjectRepositoryDependency = Annotated[
 
 
 async def project_from_form(
-    project: Annotated[UUID, Form()],
     user: CurrentUser,
     repository: ProjectRepositoryDependency,
-) -> Project:
-    return await require_project(project, user, repository)
+    project: Annotated[UUID | None, Form()] = None,
+) -> Project | None:
+    """Return the named project, or ``None`` for the shared Knowledge."""
+    return None if project is None else await require_project(project, user, repository)
+
+
+async def optional_project(
+    user: CurrentUser,
+    repository: ProjectRepositoryDependency,
+    project: Annotated[UUID | None, Query()] = None,
+) -> Project | None:
+    return None if project is None else await require_project(project, user, repository)
 
 
 @router.get("/formats", response_model=list[str])
@@ -43,7 +52,7 @@ async def list_formats(_user: CurrentUser) -> list[str]:
 
 @router.get("", response_model=Page[schemas.Document])
 async def list_documents(
-    project: QueriedProject,
+    project: Annotated[Project | None, Depends(optional_project)],
     page: PageParams,
     repository: DocumentRepositoryDependency,
 ) -> Page:
@@ -56,7 +65,7 @@ async def list_documents(
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_document(
-    project: Annotated[Project, Depends(project_from_form)],
+    project: Annotated[Project | None, Depends(project_from_form)],
     file: UploadFile,
     user: CurrentUser,
     repository: DocumentRepositoryDependency,

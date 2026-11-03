@@ -1,6 +1,8 @@
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
+import pytest
+
 from src.api.v1.workspace.documents import services
 from src.core.clients.postgres.repositories.document import DocumentRepository
 from tests.conftest import bearer
@@ -186,3 +188,64 @@ async def test_formats_lists_the_suffixes_an_upload_may_have(client, make_user) 
 
     assert ".pdf" in response.json()
     assert ".txt" in response.json()
+
+
+@pytest.fixture
+def quiet():
+    with patch.object(services, "enqueue_extraction"):
+        yield
+
+
+async def admin_of(make_user):
+    return await make_user("admin@example.com", role="admin")
+
+
+async def test_an_admin_adds_a_shared_knowledge_document_everyone_lists(
+    client, make_user, make_project, quiet
+) -> None:
+    admin = await admin_of(make_user)
+    member = await make_user()
+    project = await make_project(member)
+    await client.post(
+        DOCUMENTS,
+        data={"project": str(project.id)},
+        files={"file": ("own.txt", b"own")},
+        headers=bearer(member),
+    )
+
+    added = await client.post(
+        DOCUMENTS, files={"file": ("standard.pdf", b"%PDF")}, headers=bearer(admin)
+    )
+    shared = await client.get(DOCUMENTS, headers=bearer(member))
+    own = await client.get(
+        DOCUMENTS, params={"project": str(project.id)}, headers=bearer(member)
+    )
+
+    assert added.status_code == 201, added.text
+    assert added.json()["project"] is None
+    assert [item["name"] for item in shared.json()["items"]] == ["standard.pdf"]
+    assert [item["name"] for item in own.json()["items"]] == ["own.txt"]
+
+
+async def test_only_an_admin_changes_the_shared_knowledge(
+    client, make_user, quiet
+) -> None:
+    admin = await admin_of(make_user)
+    member = await make_user()
+    added = await client.post(
+        DOCUMENTS, files={"file": ("standard.txt", b"x")}, headers=bearer(admin)
+    )
+
+    refused = await client.post(
+        DOCUMENTS, files={"file": ("mine.txt", b"x")}, headers=bearer(member)
+    )
+    kept = await client.delete(
+        f"{DOCUMENTS}/{added.json()['id']}", headers=bearer(member)
+    )
+    removed = await client.delete(
+        f"{DOCUMENTS}/{added.json()['id']}", headers=bearer(admin)
+    )
+
+    assert refused.status_code == 403
+    assert kept.status_code == 403
+    assert removed.status_code == 204

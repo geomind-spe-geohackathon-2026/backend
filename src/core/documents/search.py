@@ -2,6 +2,7 @@ from typing import TypedDict
 from uuid import UUID
 
 from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.documents.chunks import chunks_of
 
 SNIPPET_CHARACTERS = 300
 
@@ -41,4 +42,45 @@ async def search_documents(
         )
         for document in await repository.search(project_id, words)
     ]
+    return sorted(hits, key=lambda hit: hit["score"], reverse=True)[:limit]
+
+
+class KnowledgeHit(TypedDict):
+    id: str
+    document: str
+    title: str
+    page: int | None
+    text: str
+    score: int
+
+
+async def search_knowledge(
+    repository: DocumentRepository, query: str, limit: int
+) -> list[KnowledgeHit]:
+    """Find the passages of the shared Knowledge that hold the query's words.
+
+    A passage scores the times its words occur, more for one that holds every word;
+    each keeps its document and page, so an agent can cite it.
+    """
+    words = query.lower().split()
+    if not words:
+        return []
+    hits = []
+    for document in await repository.search_any(None, words):
+        for index, chunk in enumerate(chunks_of(document.text or "")):
+            lowered = chunk.text.lower()
+            counts = [lowered.count(word) for word in words]
+            if not any(counts):
+                continue
+            whole = len(words) if all(counts) else 0
+            hits.append(
+                KnowledgeHit(
+                    id=f"{document.id}#{index}",
+                    document=document.name,
+                    title=document.name,
+                    page=chunk.page,
+                    text=chunk.text,
+                    score=sum(counts) + whole,
+                )
+            )
     return sorted(hits, key=lambda hit: hit["score"], reverse=True)[:limit]

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 class Document(BaseModel):
     id: UUID
-    project: UUID
+    project: UUID | None
     name: str
     size: int
     searchable: Literal["pending", "ready", "failed"]
