@@ -11,7 +11,7 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 | backend | 8b41338 | see `git log` |
 | frontend | ffd7673 | see `git log` |
 | gemini | wheel 0.5.5 | wheel 0.5.5 |
-| geomind | wheel 0.4.6 in `vendor/` | wheel 0.4.7 |
+| geomind | wheel 0.4.6 in `vendor/` | wheel 0.4.9 |
 | sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
 Contract version 51. Latest migration 0010.
@@ -42,7 +42,7 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 
 ## Compare loop
 
-geomind 0.4.6 designs each plant family on its own, verifies and ranks them. The chat state gains `design.alternatives` and `design.comparison`, and a run can stop with `no_alternatives` or `no_verified`; the backend passes both through unchanged. `GEOMIND_COMPARE_CONCURRENCY` is unset here and on production, so families run one at a time and a budget cap holds exactly.
+geomind 0.4.6 designs each plant family on its own, verifies and ranks them. The chat state gains `design.alternatives` and `design.comparison`, and a run can stop with `no_alternatives` or `no_verified`; the backend passes both through unchanged. `GEOMIND_COMPARE_CONCURRENCY` and `GEOMIND_COMPARE_RETRIES` are unset here and on production, so families run one at a time with no retry. A family that stops gives the tool error `nested_stopped` with its reason.
 
 ## Units
 
