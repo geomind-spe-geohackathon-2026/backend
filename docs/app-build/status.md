@@ -54,6 +54,8 @@ Results, summary and report read gemini's display units through `report.to_dict(
 
 ## Open
 
+- After the next deploy, seed the cost catalogue as one shared Knowledge document: `python -m src.scripts.knowledge add cost-sources.csv --by <admin email>`, the file `data/knowledge/cost-sources.csv` from geomind's dev (c1aa8ea; `cost-sources.md` beside it names the sources). It waits for geomind's end-of-loop release, which also brings gemini 0.6.0.
+
 
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
 - Compare labels are tested, not checked by eye on a real chart of many designs.
