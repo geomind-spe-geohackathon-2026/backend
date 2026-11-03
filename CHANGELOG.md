@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.1] - 2026-11-03
+
+- gemini 0.5.10 and geomind 0.4.19, from their release wheels pinned by sha256; the sandbox
+  image is `gemini-sandbox:0.5.10`.
+- `GEOMIND_RETRY_COUNT` and `GEOMIND_RETRY_DELAY` are required for live runs; the examples set
+  5 retries, 2 seconds apart. The app stops at startup when either is missing.
+- New tool error codes in `tool.finished.problem`: `context_exceeded`, `already_read`.
+
 ## [1.1.0] - 2026-11-03
 
 - Versions follow the frontend's scheme: 1.1, then only the patch goes up.

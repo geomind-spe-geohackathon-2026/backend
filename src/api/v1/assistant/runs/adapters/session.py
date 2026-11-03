@@ -135,7 +135,7 @@ def check_models() -> None:
         raise AdapterFailedError(f"Models not allowed: {', '.join(refused)}")
     missing = gd.runtime.model_problems()
     if missing:
-        raise AdapterFailedError(f"Models not set: {'; '.join(missing)}")
+        raise AdapterFailedError(f"Settings missing: {'; '.join(missing)}")
 
 
 def build_llm(resumed: bool, message: str) -> Any:

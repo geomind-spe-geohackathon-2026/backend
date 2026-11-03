@@ -130,6 +130,8 @@ async def test_a_run_that_cannot_start_fails_with_geomind_message(
     session, resources, make_user, make_project, make_chat, make_run, monkeypatch
 ) -> None:
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
+    monkeypatch.setenv("GEOMIND_RETRY_COUNT", "3")
+    monkeypatch.setenv("GEOMIND_RETRY_DELAY", "0.5")
     monkeypatch.setenv("GEOMIND_MODEL", "deepseek/model")
     monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/model")
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")

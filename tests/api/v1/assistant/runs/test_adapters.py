@@ -498,6 +498,16 @@ def test_an_unset_model_stops_the_app_with_the_setting_to_add(monkeypatch) -> No
         check_models()
 
 
+def test_unset_retries_stop_the_app_with_the_setting_to_add(monkeypatch) -> None:
+    monkeypatch.setenv("GEOMIND_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    monkeypatch.delenv("GEOMIND_RETRY_COUNT", raising=False)
+    monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
+
+    with pytest.raises(AdapterFailedError, match="GEOMIND_RETRY_COUNT"):
+        check_models()
+
+
 def test_the_scripted_assistant_needs_no_model(monkeypatch) -> None:
     monkeypatch.delenv("GEOMIND_MODEL", raising=False)
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "fake")
