@@ -306,3 +306,25 @@ def test_a_size_outside_the_class_is_refused_in_gemini_words() -> None:
 def test_only_plant_level_values_are_taken() -> None:
     with pytest.raises(PlantInvalidError):
         plant.set_plant_values(seeded(), {"d0.nominal_flow": {"value": 1.0}})
+
+
+def test_a_new_doublet_repeats_the_values_of_the_doublets_there() -> None:
+    document = json.loads((EXAMPLE / "seed_plant.json").read_text())
+    document["size"]["doublets"]["value"] = 1
+    document["params"] = {
+        key: item
+        for key, item in document["params"].items()
+        if not key.startswith(("d1", "d2"))
+    }
+    first = {key: item for key, item in document["params"].items() if key[:2] == "d0"}
+    assert first
+    built = plant.resized(plant.from_dict(document), "doublets", 2)
+    params = built.to_dict()["params"]
+    for key, item in first.items():
+        assert params[f"d1{key[2:]}"] == item
+
+
+def test_a_lost_doublet_loses_its_values() -> None:
+    document = json.loads((EXAMPLE / "seed_plant.json").read_text())
+    built = plant.resized(plant.from_dict(document), "doublets", 1)
+    assert not any(key.startswith("d1") for key in built.to_dict()["params"])

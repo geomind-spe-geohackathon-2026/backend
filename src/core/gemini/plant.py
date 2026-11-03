@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from copy import deepcopy
 from datetime import datetime
 from functools import cache
 from typing import Any
@@ -16,6 +17,7 @@ CASE_SECTIONS = frozenset(gm.Case.schema()["properties"])
 UNIT_DIGITS = 10
 PARAMS_PREFIX = "params."
 SIZE_PREFIX = "size."
+PATH_SECTIONS = ("params", "fluids")
 
 
 def plant_invalid(
@@ -427,13 +429,42 @@ def top_modules(plant: gm.Plant) -> set[str]:
     return {item["id"].split(".")[0] for item in structure(plant)["modules"]}
 
 
+def top_types(plant: gm.Plant) -> dict[str, str]:
+    """Return the class of every module that sits at the top of a plant."""
+    return {item["id"]: item["type"] for item in structure(plant)["modules"]}
+
+
+def copied_keys(section: dict[str, Any], source: str, target: str) -> dict[str, Any]:
+    """Return the entries of one module of a section, under another module's name."""
+    prefix = f"{source}."
+    return {
+        target + key.removeprefix(source): deepcopy(item)
+        for key, item in section.items()
+        if key == source or key.startswith(prefix)
+    }
+
+
+def with_twin_values(document: dict[str, Any], before: gm.Plant) -> dict[str, Any]:
+    """Return a plant file whose added modules hold the values of a module like them."""
+    old = top_types(before)
+    new = top_types(from_dict({**document, "params": {}}))
+    copied = {section: dict(document.get(section, {})) for section in PATH_SECTIONS}
+    for module, kind in new.items():
+        twin = next((key for key, item in old.items() if item == kind), None)
+        if module in old or twin is None:
+            continue
+        for section, entries in copied.items():
+            entries.update(copied_keys(document.get(section, {}), twin, module))
+    return {**document, **copied}
+
+
 def resized(plant: gm.Plant, name: str, count: int) -> gm.Plant:
-    """Return the plant at a new size, without values of the modules it lost."""
+    """Return the plant at a new size: lost modules lose their values, new ones copy."""
     document = plant.to_dict()
     document["size"][name] = {**document["size"][name], "value": count}
     gone = top_modules(plant) - top_modules(from_dict({**document, "params": {}}))
     params = {key: item for key, item in document["params"].items() if key not in gone}
-    return from_dict({**document, "params": params})
+    return from_dict(with_twin_values({**document, "params": params}, plant))
 
 
 def set_plant_value(plant: gm.Plant, path: str, value: float, unit: str | None) -> None:

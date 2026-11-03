@@ -158,3 +158,7 @@ Collected during the app build (section 9 of `app-frontend-backend.md`). Nothing
 - geomind: fixed default models are Anthropic
   Today: `geomind/runtime.py:15-16` sets `anthropic/claude-sonnet-5.5` and `anthropic/claude-haiku-5.5`, used when a model setting is empty; the backend refuses them before a run starts
   Also check: `context/compaction.py:11-13` lists only Anthropic window sizes, and `providers/openrouter.py:14` lists only Anthropic models in `CACHED_MODELS`, so a DeepSeek run may compact at the wrong size
+
+- geomind: an answer on a project without a case carries the loop's note
+  Today: `loops/design.py:155-165` ends with the answer "No design was verified: the problem state has no case. design loop: stop: no_case after round N.", so the last sentence reaches the user.
+  Wanted: the note kept out of the answer.

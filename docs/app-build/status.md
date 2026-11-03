@@ -8,13 +8,13 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | 1afdcde | see `git log` |
-| frontend | 8969b86 | 8a67892 |
-| gemini | a3b1471 (0.5.4) | wheel 0.5.5 |
+| backend | f4f4762 | see `git log` |
+| frontend | f4b3062 | see `git log` |
+| gemini | wheel 0.5.5 | wheel 0.5.5 |
 | geomind | c9a5c1c (0.4.1) | |
-| sandbox image | `gemini-sandbox:0.5.4` | `gemini-sandbox:0.5.5`, pulled from ghcr |
+| sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
-Contract version 48. Latest migration 0009.
+Contract version 49. Latest migration 0009.
 
 The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `src.scripts.projects`.
 
@@ -29,6 +29,8 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 - Phone width: no page scrolls sideways on 13 routes, wide tables scroll in their card with a fade.
 - Compare: designs only, labels clear of each other, check text says all passed only when all were assessed.
 - Range hints in the parameter form, for every module of a class.
+- A run that ended after a failed tool stays `done`: geomind's status is what happened, and the chat shows the failure with the panel's count.
+- A new doublet takes the values of the first one, as a gemini study does.
 - Golden path: refusal on an incomplete case, then a saved profile that lands in the case.
 - Assistant text streams over a WebSocket with SSE as a fallback; the chat shows it live at a natural pace.
 
@@ -44,10 +46,9 @@ Results, summary and report read gemini's display units through `report.to_dict(
 
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
 - Compare labels are tested, not checked by eye on a real chart of many designs.
-- A run shows `done` when its last tool failed; the chat shows the failure and the panel shows the count.
 - geomind still installs with `-e ../geomind` until it has a release.
 - Whether Fatemeh Chitsaz's commit identity should also apply to the `ux/frontend` clone.
-- The WebSocket is checked on a local stack only; the path through Traefik and the Cloudflare tunnel is not seen yet. If a socket cannot open, the chat uses SSE.
+- The WebSocket works on production for a finished run (replay, resume, refused token). A running run has not been seen there under the no-token order.
 - Study and document progress stay on polling, which is enough for them.
 - Budget caps are not retested on DeepSeek, and the two live checks were skipped under the no-token order.
 
