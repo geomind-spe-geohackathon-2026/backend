@@ -50,6 +50,8 @@ Results, summary and report read gemini's display units through `report.to_dict(
 
 ## Open
 
+- Migration 0010 (`studies.plant_pinned`, from d28b4ac) is on main but not on production: the laptop's permission check refuses a deploy that migrates the production schema, so it waits for Sahand. Production is on 8b41338 at migration 0009.
+
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
 - Compare labels are tested, not checked by eye on a real chart of many designs.
 - Whether Fatemeh Chitsaz's commit identity should also apply to the `ux/frontend` clone.
