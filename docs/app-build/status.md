@@ -14,7 +14,7 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 | geomind | wheel 0.4.6 in `vendor/` | wheel 0.4.6 |
 | sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
-Contract version 50. Latest migration 0009.
+Contract version 51. Latest migration 0010.
 
 The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `src.scripts.projects`.
 
@@ -33,6 +33,7 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 - A new doublet takes the values of the first one, as a gemini study does.
 - Golden path: refusal on an incomplete case, then a saved profile that lands in the case.
 - The assistant reads a project's uploaded files through `Workspace.files` and `Workspace.file` (geomind 0.4.4 and later).
+- A study can run on a chosen plant version (`plant_version` in `POST /design/study`), so two designs of one project can be studied side by side.
 - Assistant text streams over a WebSocket with SSE as a fallback; the chat shows it live at a natural pace.
 
 ## Context window

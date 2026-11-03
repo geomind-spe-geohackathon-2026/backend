@@ -153,6 +153,7 @@ def to_study(
         ),
         case_version=study.case_version,
         plant_version=study.plant_version,
+        plant_pinned=study.plant_pinned,
         result=result_id,
         error=study.error,
         missing=study.missing,
@@ -256,7 +257,11 @@ async def create_study(
     if payload.kind not in {item["kind"] for item in gemini_study.kinds()}:
         raise ValidationFailedError({"kind": "Unknown study kind"})
     gemini_study.from_dict(payload.kind, payload.name, payload.settings)
-    inputs = await gather_inputs(project.id, stores, blobs)
+    inputs = await gather_inputs(project.id, stores, blobs, payload.plant_version)
+    if payload.plant_version is not None and inputs.plant is None:
+        raise ValidationFailedError(
+            {"plant_version": "The project has no such version"}
+        )
     missing = await find_missing(payload.kind, payload.name, payload.settings, inputs)
     study = await stores.studies.create(
         {
@@ -269,6 +274,7 @@ async def create_study(
             "started_by_name": user.name,
             "case_version": number_of(inputs.case),
             "plant_version": number_of(inputs.plant),
+            "plant_pinned": payload.plant_version is not None,
             "missing": missing,
         }
     )
@@ -290,7 +296,8 @@ async def start_study(
     study = await accessible_study(study_id, user, stores)
     if study.status != "blocked":
         raise ConflictError("Study is not blocked")
-    inputs = await gather_inputs(study.project_id, stores, blobs)
+    pinned = study.plant_version if study.plant_pinned else None
+    inputs = await gather_inputs(study.project_id, stores, blobs, pinned)
     missing = await find_missing(study.kind, study.name, study.settings, inputs)
     values = {
         "missing": missing,

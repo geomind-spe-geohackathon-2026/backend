@@ -3490,6 +3490,10 @@
             "title": "Name",
             "type": "string"
           },
+          "plant_pinned": {
+            "title": "Plant Pinned",
+            "type": "boolean"
+          },
           "plant_version": {
             "anyOf": [
               {
@@ -3553,6 +3557,7 @@
           "started_by",
           "case_version",
           "plant_version",
+          "plant_pinned",
           "result",
           "error",
           "missing",
@@ -3573,6 +3578,18 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "plant_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plant Version"
           },
           "project": {
             "format": "uuid",

@@ -22,6 +22,7 @@ class StudyCreate(BaseModel):
     kind: str
     name: str = Field(min_length=1, max_length=255)
     settings: dict[str, Any]
+    plant_version: int | None = Field(default=None, ge=1)
 
 
 class StudyProgress(BaseModel):
@@ -57,6 +58,7 @@ class Study(BaseModel):
     started_by: StartedBy
     case_version: int | None
     plant_version: int | None
+    plant_pinned: bool
     result: UUID | None
     error: StudyError | None
     missing: list[Missing]

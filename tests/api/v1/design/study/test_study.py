@@ -5,6 +5,13 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from src.api.v1.design.study import services
 from src.core.clients.postgres.models.study import Study
+from src.core.clients.postgres.repositories.case_file import CaseFileRepository
+from src.core.clients.postgres.repositories.case_version import (
+    CaseVersionRepository,
+)
+from src.core.clients.postgres.repositories.plant_version import (
+    PlantVersionRepository,
+)
 from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.gemini import study as gemini_study
 from tests import design_inputs
@@ -57,6 +64,82 @@ async def test_ready_study_is_queued(
     assert body["plant_version"] == 1
     assert body["started_by"] == {"kind": "user", "name": "member", "run": None}
     assert queued == [UUID(body["id"])]
+
+
+async def test_a_study_can_run_on_an_older_plant_version(
+    client, make_user, make_project, save_inputs, queued, session_factory
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    await save_inputs(project, user)
+    async with session_factory() as session:
+        await PlantVersionRepository(session).save_version(
+            project.id,
+            {**design_inputs.plant_content(), "name": "second"},
+            "second",
+            user.id,
+        )
+
+    pinned = await client.post(
+        URL, json={**study_body(project), "plant_version": 1}, headers=bearer(user)
+    )
+    latest = await client.post(
+        URL, json={**study_body(project), "name": "latest"}, headers=bearer(user)
+    )
+
+    assert pinned.status_code == 201, pinned.text
+    assert pinned.json()["plant_version"] == 1
+    assert pinned.json()["plant_pinned"] is True
+    assert latest.json()["plant_version"] == 2
+    assert latest.json()["plant_pinned"] is False
+
+
+async def test_a_plant_version_the_project_lacks_is_refused(
+    client, make_user, make_project, save_inputs
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    await save_inputs(project, user)
+
+    response = await client.post(
+        URL, json={**study_body(project), "plant_version": 7}, headers=bearer(user)
+    )
+
+    assert response.status_code == 422
+    assert "plant_version" in response.json()["error"]["details"]["fields"]
+
+
+async def test_a_blocked_study_keeps_its_chosen_plant_version(
+    client, make_user, make_project, save_inputs, queued, session_factory, blobs
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    await save_inputs(project, user, files=False)
+    async with session_factory() as session:
+        await PlantVersionRepository(session).save_version(
+            project.id,
+            {**design_inputs.plant_content(), "name": "second"},
+            "second",
+            user.id,
+        )
+    created = await client.post(
+        URL, json={**study_body(project), "plant_version": 1}, headers=bearer(user)
+    )
+    assert created.json()["status"] == "blocked"
+    async with session_factory() as session:
+        case = await CaseVersionRepository(session).latest_version(project.id)
+        for name, data in design_inputs.case_files().items():
+            blobs.objects[f"{project.id}/{name}"] = data
+            await CaseFileRepository(session).add(
+                project.id, case.id, name, len(data), f"{project.id}/{name}"
+            )
+
+    started = await client.post(
+        f"{URL}/{created.json()['id']}/start", headers=bearer(user)
+    )
+
+    assert started.json()["status"] == "queued", started.text
+    assert started.json()["plant_version"] == 1
 
 
 async def test_study_without_case_is_blocked_with_missing(

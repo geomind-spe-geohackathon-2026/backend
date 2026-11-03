@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, Index, String, Text
+from sqlalchemy import ForeignKey, Index, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
@@ -37,6 +37,7 @@ class Study(Base):
     )
     case_version: Mapped[int | None]
     plant_version: Mapped[int | None]
+    plant_pinned: Mapped[bool] = mapped_column(default=False, server_default=false())
     missing: Mapped[list[dict[str, Any]]] = mapped_column(Json, default=list)
     error: Mapped[dict[str, Any] | None] = mapped_column(Json)
     task_id: Mapped[str | None] = mapped_column(Text)
