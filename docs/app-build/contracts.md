@@ -213,7 +213,7 @@ Each event: `event: <type>`, `data: <json>`, `id: <sequence number>`. The stream
 | `step.started` | `{index, model}` (`model`: the agent's primary model id, e.g. `deepseek/deepseek-v4.1-flash-1017`; if a fallback model answers, that model appears in the `retry` event and in `runlog` `llm_call.model`) |
 | `text.delta` | `{index, text, buffered?}` (`buffered: true` on the one event a reconnect receives for a running step: it holds the step's text so far and replaces what the client has for that step, and has no `id`) |
 | `tool.started` | `{index, call_id, tool, input}` |
-| `tool.finished` | `{index, call_id, output_summary, duration, error?, problem?}` (`error` is geomind's cut text; `problem = {code, path, message, suggestions}` is there when a failed tool gave a code, such as `no_case`, or `case_incomplete` with the missing paths in `suggestions`) |
+| `tool.finished` | `{index, call_id, output_summary, duration, error?, problem?}` (`error` is geomind's cut text; `problem = {code, path, message, suggestions}` is there when a failed tool gave a code: `no_case`, `case_incomplete` with the missing paths in `suggestions`, `files_unavailable`, `not_text`, `budget`) |
 | `step.finished` | `{index, usage, text}` (usage of this step; `text` is the step's full assistant text, `""` if none; a client replaces the step's streamed `text.delta` with it, so replay after a reload and the live view match) |
 | `state.changed` | `{version, changes}`; see *Problem state changes* below (emitted from S2) |
 | `request` | `{request, call_id?, kind, message, options?}`; `kind` is `approval` or `question`; `options` is `[{value, label}]` (a question with fixed choices; absent for free text and for approvals); the run is `waiting` |

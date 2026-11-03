@@ -162,6 +162,7 @@ async def seed_workspace(session, owner, project, blobs) -> None:
     text = "Brine salinity is high"
     document = await documents.create(project.id, "notes.txt", len(text), "k", owner.id)
     await documents.set_text(document, text)
+    blobs.objects["k"] = text.encode()
 
 
 async def test_workspace_gives_the_newest_upload_of_each_name(

@@ -32,6 +32,7 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 - A run that ended after a failed tool stays `done`: geomind's status is what happened, and the chat shows the failure with the panel's count.
 - A new doublet takes the values of the first one, as a gemini study does.
 - Golden path: refusal on an incomplete case, then a saved profile that lands in the case.
+- The assistant reads a project's uploaded files through `Workspace.files` and `Workspace.file` (geomind 0.4.4).
 - Assistant text streams over a WebSocket with SSE as a fallback; the chat shows it live at a natural pace.
 
 ## Context window
