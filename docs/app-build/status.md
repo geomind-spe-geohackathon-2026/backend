@@ -52,6 +52,14 @@ geomind 0.4.6 designs each plant family on its own, verifies and ranks them. The
 
 Results, summary and report read gemini's display units through `report.to_dict()` and the study results' `to_dict()`. `daily_coverage` and `compare` have no `units` argument, so there is nothing further to pass. The app still converts two things itself, which gemini's table does not cover: W/K to MW/K (`evaluate.readable`, thermal conductance is not in `DISPLAY_UNITS`) and MWh to GWh in report text, a choice of wording. A request for the first is in `gemini-requests.md`.
 
+## Next geomind release (0.4.22, on gemini 0.6.1)
+
+Ready in the backend: the workspace has `rag`, `mcp`, `files`, `file`, `knowledge_*` and `memory`, and passes a sandbox only to a geomind that takes one. At the release, in one change:
+
+- pin geomind 0.4.22 and gemini 0.6.1 by URL and sha256; the sandbox image is no longer used;
+- env: drop `GEOMIND_MODEL` and `GEOMIND_CHEAP_MODEL`; add one `GEOMIND_<ROLE>_MODEL` per agent, all `deepseek/deepseek-v4.1-flash-1017` (ANALYSISLEAD, CASELEAD, COORDINATOR, DESIGNLEAD, ECONOMIST, EXPLAINER, GEOSCIENTIST, REVIEWER, SUMMARIZER, PROCESSENGINEER, INTEGRATIONENGINEER, RESERVOIRENGINEER, WELLENGINEER, ENERGYSYSTEMSENGINEER, PROJECTLEAD, SUPPORTLEAD, CURATOR); add `GEOMIND_MAX_STEPS`, `GEOMIND_MAX_OUTPUT_TOKENS`, `GEOMIND_DESIGN_CONCURRENCY`, `GEOMIND_ENGINEER_MAX_STEPS` and `GEOMIND_EVOLVE_EVALUATIONS`, `_POPULATION`, `_SEED`, `_POLISH` with the values geomind's live runs use;
+- frontend: `tool.started`/`tool.finished` carry `mcp` (was `connector`), and the tools are named `rag_search`, `rag_read`, `search_knowledge` and `<server>__<tool>`.
+
 ## Open
 
 - The cost catalogue (`cost-sources.csv` from geomind c1aa8ea) is a shared Knowledge document on production since 2026-11-03.

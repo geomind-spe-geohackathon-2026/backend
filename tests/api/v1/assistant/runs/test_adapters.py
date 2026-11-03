@@ -17,6 +17,7 @@ from src.api.v1.assistant.runs.adapters.session import (
     Environment,
     build_budget,
     build_llm,
+    build_sandbox,
     check_models,
     refused_models,
     seed_problem,
@@ -668,3 +669,14 @@ async def test_the_shared_knowledge_is_searched_by_passage_with_its_page(
     assert set(hits[0]) == {"id", "document", "title", "page", "text", "score"}
     assert [item["name"] for item in files] == ["costs.pdf"]
     assert (data, nothing) == (b"%PDF", None)
+
+
+def test_a_geomind_without_a_sandbox_gets_no_sandbox_argument(monkeypatch) -> None:
+    monkeypatch.delattr(gd, "sandbox", raising=False)
+    assert build_sandbox() == {}
+
+
+def test_a_geomind_with_a_sandbox_gets_one_or_none(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "ASSISTANT_SANDBOX", "none")
+    if getattr(gd, "sandbox", None) is not None:
+        assert build_sandbox() == {"sandbox": None}

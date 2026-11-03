@@ -168,10 +168,16 @@ def build_hooks(environment: Environment) -> list[Any]:
     ]
 
 
-def build_sandbox() -> Any:
+def build_sandbox() -> dict[str, Any]:
+    """Return the sandbox argument of a run, or nothing for a geomind that has none.
+
+    geomind after 0.4.21 runs no code of its own and takes no sandbox.
+    """
+    if getattr(gd, "sandbox", None) is None:
+        return {}
     if settings.ASSISTANT_SANDBOX == "docker":
-        return gd.sandbox.DockerSandbox()
-    return None
+        return {"sandbox": gd.sandbox.DockerSandbox()}
+    return {"sandbox": None}
 
 
 def build_permissions() -> Any:
@@ -204,7 +210,7 @@ def keywords(
         "llm": build_llm(resumed, message),
         "store": environment.store,
         "workspace": environment.workspace,
-        "sandbox": build_sandbox(),
+        **build_sandbox(),
         "permissions": build_permissions(),
         "callbacks": environment.callbacks,
         "hooks": build_hooks(environment),
