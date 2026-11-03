@@ -11,7 +11,7 @@ geomind.team runs from this laptop. Deploys go through the Deploy thread.
 | backend | 517c330 (v1.1.2) | see `git log` |
 | frontend | v1.1.14 | see `git log` |
 | gemini | wheel 0.5.14 | wheel 0.5.14 |
-| geomind | 0.4.19 wheel by URL | 0.4.19 wheel by URL |
+| geomind | 0.4.19 wheel by URL | 0.4.21 wheel by URL |
 | sandbox image | `gemini-sandbox:0.5.14` | `gemini-sandbox:0.5.14`, pulled from ghcr |
 
 Backend and contract version 1.1.3 (`src/version.py`, `CHANGELOG.md`). Latest migration 0012 (on dev).

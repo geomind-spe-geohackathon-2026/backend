@@ -17,6 +17,8 @@ Knowledge is RAG, Connectors are MCP, and neither is the agents' memory (Sahand)
 - The knowledge-entry routes of 1.1.2 are gone. The agents' memory holds only what geomind
   writes, kept as given; the app shows only the project's on/off switch.
 - Migration 0012: documents may have no project; the memory table is `memory_entries`.
+- geomind 0.4.21: a project's attached files are found by `search_documents`, and fixes from the
+  third and fourth live runs.
 
 ## [1.1.2] - 2026-11-03
 
