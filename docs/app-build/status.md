@@ -8,10 +8,10 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | 13e845e | see `git log` |
+| backend | 8b41338 | see `git log` |
 | frontend | ffd7673 | see `git log` |
 | gemini | wheel 0.5.5 | wheel 0.5.5 |
-| geomind | wheel 0.4.5 in `vendor/` | wheel 0.4.6 |
+| geomind | wheel 0.4.6 in `vendor/` | wheel 0.4.6 |
 | sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
 Contract version 50. Latest migration 0009.
