@@ -15,6 +15,8 @@ from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.redis.repositories.job import SyncJobRepository
+from src.core.clients.redis.repositories.job import JobRepository
+from src.core.jobs import control
 from src.core.settings import settings
 from tests.api.v1.assistant.conftest import run_url
 from tests.conftest import bearer
@@ -199,3 +201,18 @@ async def test_a_paused_run_counts_toward_the_budget_of_the_next(
 
     assert ended.status == "failed"
     assert "project cost budget" in ended.error["message"]
+
+
+async def test_a_run_cancelled_before_it_starts_ends_as_cancelled(
+    session, resources, make_user, make_project, make_chat, make_run
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    run = await make_run(await make_chat(project, owner), owner)
+    await control.request_cancel(JobRepository(resources.redis), str(run.id))
+
+    await execution.begin(resources, run.id)
+    ended = await reload(session, run.id)
+
+    assert ended.status == "cancelled"
+    assert ended.ended is not None
