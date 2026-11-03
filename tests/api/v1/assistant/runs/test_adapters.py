@@ -15,11 +15,11 @@ from src.api.v1.assistant.runs.adapters.errors import AdapterFailedError
 from src.api.v1.assistant.runs.adapters.replay import known_events
 from src.api.v1.assistant.runs.adapters.session import (
     Environment,
+    allowed_model_prefixes,
     build_budget,
     build_llm,
     build_sandbox,
     check_models,
-    allowed_model_prefixes,
     refused_models,
     seed_problem,
 )
