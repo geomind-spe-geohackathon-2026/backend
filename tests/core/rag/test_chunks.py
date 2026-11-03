@@ -1,4 +1,4 @@
-from src.core.documents.chunks import CHUNK_CHARACTERS, chunks_of
+from src.core.rag.chunks import CHUNK_CHARACTERS, chunks_of
 
 
 def test_a_text_without_pages_is_cut_by_paragraph() -> None:

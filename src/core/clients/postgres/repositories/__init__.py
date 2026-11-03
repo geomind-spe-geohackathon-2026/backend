@@ -3,9 +3,9 @@ from src.core.clients.postgres.repositories.base import BaseRepository
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.chat import ChatRepository
 from src.core.clients.postgres.repositories.chat_state import ChatStateRepository
-from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.project import ProjectRepository
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
@@ -20,7 +20,7 @@ __all__ = [
     "CaseFileRepository",
     "ChatRepository",
     "ChatStateRepository",
-    "DocumentRepository",
+    "RagDocumentRepository",
     "MessageRepository",
     "ProjectRepository",
     "ResultRepository",

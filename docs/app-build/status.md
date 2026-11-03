@@ -14,7 +14,7 @@ geomind.team runs from this laptop. Deploys go through the Deploy thread.
 | geomind | 0.4.21 wheel by URL | 0.4.21 wheel by URL |
 | sandbox image | `gemini-sandbox:0.5.14` | `gemini-sandbox:0.5.14`, pulled from ghcr |
 
-Backend and contract version 1.1.3 (`src/version.py`, `CHANGELOG.md`). Latest migration 0012.
+Backend and contract version 1.1.4 (`src/version.py`, `CHANGELOG.md`). Latest migration 0013 (on dev).
 
 The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `src.scripts.projects`.
 

@@ -13,14 +13,14 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from src.api.v1.workspace.documents.services import KNOWLEDGE_FOLDER
+from src.api.v1.workspace.rag.services import KNOWLEDGE_FOLDER
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.minio.client import create_minio_client
 from src.core.clients.postgres import models  # noqa: F401
 from src.core.clients.postgres.client import create_postgres_client
-from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.clients.postgres.repositories.user import UserRepository
-from src.core.documents.extract import extract_text, is_supported
+from src.core.rag.extract import extract_text, is_supported
 from src.core.settings import settings
 
 
@@ -29,7 +29,7 @@ class KnowledgeError(Exception):
 
 
 async def add_file(
-    documents: DocumentRepository,
+    documents: RagDocumentRepository,
     blobs: Any,
     path: Path,
     author_id: Any,
@@ -69,7 +69,7 @@ async def run(arguments: argparse.Namespace) -> dict[str, Any]:
                 )
             blobs = BlobStore(create_minio_client(), settings.MINIO_BUCKET_NAME)
             return await add_file(
-                DocumentRepository(session), blobs, Path(arguments.file), author.id
+                RagDocumentRepository(session), blobs, Path(arguments.file), author.id
             )
     finally:
         await engine.dispose()

@@ -8,10 +8,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
 
 
-class Connector(Base):
+class McpServer(Base):
     """An MCP server the agents may use; ``secret`` is sealed and never sent out."""
 
-    __tablename__ = "connectors"
+    __tablename__ = "mcp_servers"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(255), unique=True)

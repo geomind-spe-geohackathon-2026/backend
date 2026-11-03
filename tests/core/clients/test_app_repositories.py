@@ -7,8 +7,8 @@ from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
 from src.core.clients.postgres.repositories.chat import ChatRepository
 from src.core.clients.postgres.repositories.chat_state import ChatStateRepository
-from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
@@ -202,7 +202,7 @@ async def test_studies_and_results_link(session, project) -> None:
 
 
 async def test_documents_are_searched_by_words(session, project, owner) -> None:
-    repository = DocumentRepository(session)
+    repository = RagDocumentRepository(session)
     first = await repository.create(project.id, "a.txt", 3, "k/a", owner.id)
     second = await repository.create(project.id, "b.txt", 3, "k/b", owner.id)
     third = await repository.create(project.id, "c.txt", 3, "k/c", owner.id)

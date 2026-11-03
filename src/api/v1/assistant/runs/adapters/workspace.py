@@ -7,25 +7,25 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
-from src.api.v1.assistant.runs.adapters.documents import (
+from src.api.v1.assistant.runs.adapters.memory import DatabaseMemory
+from src.api.v1.assistant.runs.adapters.rag import (
     read_knowledge_files,
     search_documents,
     search_knowledge,
 )
-from src.api.v1.assistant.runs.adapters.memory import DatabaseMemory
 from src.core.clients.minio.blobs import BlobStore
-from src.core.clients.postgres.models.document import Document
+from src.core.clients.postgres.models.rag_document import RagDocument
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
-from src.core.clients.postgres.repositories.connector import ConnectorRepository
-from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.clients.postgres.repositories.mcp_server import McpServerRepository
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
 from src.core.clients.postgres.repositories.project import ProjectRepository
-from src.core.connectors import server_of
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
+from src.core.mcp_servers import server_of
 
 DEFAULT_PLANT_NAME = "plant"
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
@@ -56,7 +56,7 @@ async def read_case(
 
 @dataclass(frozen=True, slots=True)
 class Choices:
-    """What a project chose for its runs: the shared memory, and its connectors."""
+    """What a project chose for its runs: the shared memory, and its MCP servers."""
 
     memory_on: bool
     servers: tuple[dict[str, Any], ...]
@@ -66,14 +66,14 @@ async def read_choices(session: AsyncSession, project_id: UUID) -> Choices:
     project = await ProjectRepository(session).get_by_id(project_id)
     if project is None:
         return Choices(False, ())
-    ids = [UUID(item) for item in project.connectors or []]
-    found = await ConnectorRepository(session).by_ids(ids)
+    ids = [UUID(item) for item in project.mcp or []]
+    found = await McpServerRepository(session).by_ids(ids)
     servers = tuple(server_of(item) for item in found if item.enabled)
     return Choices(project.memory == MEMORY_ON, servers)
 
 
-async def read_files(session: AsyncSession, project_id: UUID) -> list[Document]:
-    return await DocumentRepository(session).newest_by_name(project_id)
+async def read_files(session: AsyncSession, project_id: UUID) -> list[RagDocument]:
+    return await RagDocumentRepository(session).newest_by_name(project_id)
 
 
 def to_media_type(name: str) -> str:
@@ -95,7 +95,7 @@ class DatabaseWorkspace:
         self.bridge = bridge
         self.blobs = blobs
         self.run_id = run_id
-        self.warmed: dict[str, tuple[dict[str, Any], list[Document]]] = {}
+        self.warmed: dict[str, tuple[dict[str, Any], list[RagDocument]]] = {}
         self.choices: dict[str, Choices] = {}
         self.memories: dict[str, DatabaseMemory] = {}
 
@@ -134,9 +134,13 @@ class DatabaseWorkspace:
             )
         return self.memories[project_id]
 
-    def connectors(self, project_id: str) -> list[dict[str, Any]]:
-        """Return the enabled connectors the project chose, each with its headers."""
+    def mcp(self, project_id: str) -> list[dict[str, Any]]:
+        """Return the enabled MCP servers the project chose, each with its headers."""
         return list(self.choices_of(project_id).servers)
+
+    def connectors(self, project_id: str) -> list[dict[str, Any]]:
+        """``mcp`` under the name geomind used before its rename."""
+        return self.mcp(project_id)
 
     def plants(self, project_id: str) -> dict[str, dict[str, Any]]:
         """Return ``{name: plant file dict}`` of the project, ``{}`` without a plant."""
@@ -161,7 +165,7 @@ class DatabaseWorkspace:
             raise FileNotFoundError(f"case file {key!r} is missing from storage")
         return data
 
-    def file_rows(self, project_id: str) -> list[Document]:
+    def file_rows(self, project_id: str) -> list[RagDocument]:
         if self.bridge.in_loop() and project_id in self.warmed:
             return self.warmed[project_id][1]
         return self.bridge.call(read_files, UUID(project_id))
@@ -199,6 +203,10 @@ class DatabaseWorkspace:
         found = next((row for row in rows if row.name == name), None)
         return None if found is None else self.blobs.get_sync(found.object_key)
 
-    def documents(self, project_id: str, query: str) -> list[dict[str, Any]]:
-        """Return matching documents as ``[{id, title, text, score}]``, best first."""
+    def rag(self, project_id: str, query: str) -> list[dict[str, Any]]:
+        """Return the project's matching documents as ``[{id, title, text, score}]``."""
         return self.bridge.call(search_documents, UUID(project_id), query)
+
+    def documents(self, project_id: str, query: str) -> list[dict[str, Any]]:
+        """``rag`` under the name geomind used before its rename."""
+        return self.rag(project_id, query)

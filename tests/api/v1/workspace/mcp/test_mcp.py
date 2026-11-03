@@ -1,10 +1,10 @@
 import geomind as gd
 
-from src.core.clients.postgres.repositories.connector import ConnectorRepository
+from src.core.clients.postgres.repositories.mcp_server import McpServerRepository
 from tests.conftest import bearer
 from tests.geomind_doubles import mcp_with
 
-URL = "/api/v1/workspace/connectors"
+URL = "/api/v1/workspace/mcp"
 TOOLS = [{"name": "search", "description": "Find a well", "read_only": True}]
 
 
@@ -36,7 +36,7 @@ async def test_a_connector_is_added_checked_and_its_secret_never_shown(
     assert body["has_secret"] is True
     assert "s3cret" not in response.text
     assert seen[0]["headers"] == {"Authorization": "Bearer s3cret"}
-    stored = await ConnectorRepository(session).get_by_name("wells")
+    stored = await McpServerRepository(session).get_by_name("wells")
     assert stored.secret != "s3cret"
 
 
@@ -135,14 +135,14 @@ async def test_a_project_chooses_memory_and_connectors(
     path = f"/api/v1/workspace/projects/{project.id}"
 
     chosen = await client.patch(
-        path, json={"memory": "off", "connectors": [connector]}, headers=bearer(admin)
+        path, json={"memory": "off", "mcp": [connector]}, headers=bearer(admin)
     )
     unknown = await client.patch(
         path,
-        json={"connectors": ["00000000-0000-0000-0000-000000000000"]},
+        json={"mcp": ["00000000-0000-0000-0000-000000000000"]},
         headers=bearer(admin),
     )
 
     assert chosen.json()["memory"] == "off"
-    assert chosen.json()["connectors"] == [connector]
+    assert chosen.json()["mcp"] == [connector]
     assert unknown.status_code == 422

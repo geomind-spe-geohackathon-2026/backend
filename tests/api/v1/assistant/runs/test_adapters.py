@@ -28,12 +28,12 @@ from src.api.v1.assistant.runs.adapters.store import (
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
-from src.core.clients.postgres.repositories.connector import ConnectorRepository
-from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.clients.postgres.repositories.mcp_server import McpServerRepository
 from src.core.clients.postgres.repositories.memory import MemoryRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
 from src.core.clients.postgres.repositories.project import ProjectRepository
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
 from src.core.secrets import seal
 from src.core.settings import settings
@@ -162,7 +162,7 @@ async def seed_workspace(session, owner, project, blobs) -> None:
     await CaseFileRepository(session).add(
         project.id, case.id, DEMAND_FILE, len(DEMAND_CSV), key
     )
-    documents = DocumentRepository(session)
+    documents = RagDocumentRepository(session)
     text = "Brine salinity is high"
     document = await documents.create(project.id, "notes.txt", len(text), "k", owner.id)
     await documents.set_text(document, text)
@@ -174,7 +174,7 @@ async def test_workspace_gives_the_newest_upload_of_each_name(
 ) -> None:
     owner = await make_user()
     project = await make_project(owner)
-    documents = DocumentRepository(session)
+    documents = RagDocumentRepository(session)
     await documents.create(project.id, "demand.csv", 3, "old", owner.id)
     await documents.create(project.id, "demand.csv", 5, "new", owner.id)
     await documents.create(project.id, "notes.bin9", 1, "other", owner.id)
@@ -602,7 +602,7 @@ async def test_the_loop_reads_warmed_memory_and_connectors(
 ) -> None:
     owner = await make_user()
     project = await make_project(owner)
-    connector = await ConnectorRepository(session).create(
+    connector = await McpServerRepository(session).create(
         {
             "name": "wells",
             "url": "https://mcp.example.com",
@@ -612,7 +612,7 @@ async def test_the_loop_reads_warmed_memory_and_connectors(
             "secret": seal("k"),
         }
     )
-    off = await ConnectorRepository(session).create(
+    off = await McpServerRepository(session).create(
         {
             "name": "off",
             "url": "https://off.example.com",
@@ -647,7 +647,7 @@ async def test_the_shared_knowledge_is_searched_by_passage_with_its_page(
     session_factory, session, make_user, blobs
 ) -> None:
     owner = await make_user()
-    documents = DocumentRepository(session)
+    documents = RagDocumentRepository(session)
     text = (
         "[page 1]\nIntroduction to wells.\n[page 2]\nThe drilling cost is 1500 EUR/m."
     )

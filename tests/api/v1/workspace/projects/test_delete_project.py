@@ -1,6 +1,6 @@
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
-from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from tests.cases import example_case
 from tests.conftest import bearer
 
@@ -46,7 +46,7 @@ async def test_delete_removes_the_projects_stored_bytes_and_only_those(
     await CaseFileRepository(session).add(
         project.id, version.id, "demand.csv", 1, f"case/{project.id}/abc"
     )
-    await DocumentRepository(session).create(
+    await RagDocumentRepository(session).create(
         project.id,
         "notes.txt",
         1,

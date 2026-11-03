@@ -3,11 +3,11 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.api.v1.workspace.documents import services
-from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.api.v1.workspace.rag import services
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from tests.conftest import bearer
 
-DOCUMENTS = "/api/v1/workspace/documents"
+DOCUMENTS = "/api/v1/workspace/rag"
 
 
 async def upload(client, user, project, name: str = "notes.txt", data: bytes = b"heat"):
@@ -120,8 +120,8 @@ async def test_delete_hides_documents_of_other_projects(
     missing = await client.delete(f"{DOCUMENTS}/{uuid4()}", headers=bearer(owner))
 
     assert other.status_code == 404
-    assert other.json()["error"]["code"] == "document_not_found"
-    assert missing.json()["error"]["code"] == "document_not_found"
+    assert other.json()["error"]["code"] == "rag_document_not_found"
+    assert missing.json()["error"]["code"] == "rag_document_not_found"
 
 
 async def test_extraction_makes_a_text_document_searchable(
@@ -134,7 +134,7 @@ async def test_extraction_makes_a_text_document_searchable(
     owner = await make_user()
     project = await make_project(owner)
     created, _ = await upload(client, owner, project, data=b"hot brine")
-    repository = DocumentRepository(session)
+    repository = RagDocumentRepository(session)
 
     await services.extract_document(UUID(created.json()["id"]), repository, blobs)
 
@@ -153,7 +153,7 @@ async def test_extraction_marks_an_unreadable_file_failed(
     owner = await make_user()
     project = await make_project(owner)
     created, _ = await upload(client, owner, project, name="scan.pdf", data=b"%PDF")
-    repository = DocumentRepository(session)
+    repository = RagDocumentRepository(session)
 
     await services.extract_document(UUID(created.json()["id"]), repository, blobs)
 
@@ -163,7 +163,7 @@ async def test_extraction_marks_an_unreadable_file_failed(
 
 
 async def test_extraction_of_a_deleted_document_does_nothing(session, blobs) -> None:
-    await services.extract_document(uuid4(), DocumentRepository(session), blobs)
+    await services.extract_document(uuid4(), RagDocumentRepository(session), blobs)
 
 
 async def test_upload_refuses_a_type_that_cannot_be_read(
@@ -182,9 +182,7 @@ async def test_upload_refuses_a_type_that_cannot_be_read(
 async def test_formats_lists_the_suffixes_an_upload_may_have(client, make_user) -> None:
     user = await make_user()
 
-    response = await client.get(
-        "/api/v1/workspace/documents/formats", headers=bearer(user)
-    )
+    response = await client.get("/api/v1/workspace/rag/formats", headers=bearer(user))
 
     assert ".pdf" in response.json()
     assert ".txt" in response.json()
@@ -249,3 +247,69 @@ async def test_only_an_admin_changes_the_shared_knowledge(
     assert refused.status_code == 403
     assert kept.status_code == 403
     assert removed.status_code == 204
+
+
+async def test_a_file_is_shown_inline_and_safely(
+    client, make_user, make_project
+) -> None:
+    owner = await make_user()
+    stranger = await make_user("other@example.com")
+    project = await make_project(owner)
+    uploaded, _ = await upload(
+        client, owner, project, "page.html", b"<script>x</script>"
+    )
+    assert uploaded.status_code == 422
+    pdf, _ = await upload(client, owner, project, "brief.pdf", b"%PDF-1.4")
+    path = f"{DOCUMENTS}/{pdf.json()['id']}"
+
+    shown = await client.get(f"{path}/file", headers=bearer(owner))
+    hidden = await client.get(f"{path}/file", headers=bearer(stranger))
+
+    assert shown.status_code == 200
+    assert shown.content == b"%PDF-1.4"
+    assert shown.headers["content-type"] == "application/pdf"
+    assert shown.headers["content-disposition"].startswith("inline;")
+    assert shown.headers["x-content-type-options"] == "nosniff"
+    assert shown.headers["content-security-policy"] == "sandbox"
+    assert hidden.status_code == 404
+    assert hidden.json()["error"]["code"] == "rag_document_not_found"
+
+
+async def test_a_text_file_is_plain_text_and_its_read_text_is_given(
+    client, session, make_user, make_project
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    data = b"<b>id,value</b>\npump,1"
+    response, _ = await upload(client, owner, project, "costs.csv", data)
+    document_id = response.json()["id"]
+    repository = RagDocumentRepository(session)
+    await repository.set_text(await repository.get_by_id(UUID(document_id)), "pump,1")
+
+    shown = await client.get(f"{DOCUMENTS}/{document_id}/file", headers=bearer(owner))
+    text = await client.get(f"{DOCUMENTS}/{document_id}/text", headers=bearer(owner))
+
+    assert shown.headers["content-type"] == "text/plain; charset=utf-8"
+    assert shown.content == data
+    assert text.json() == {
+        "id": document_id,
+        "name": "costs.csv",
+        "searchable": "ready",
+        "text": "pump,1",
+    }
+
+
+async def test_everyone_may_view_a_shared_knowledge_file(
+    client, make_user, quiet
+) -> None:
+    admin = await admin_of(make_user)
+    member = await make_user()
+    added = await client.post(
+        DOCUMENTS, files={"file": ("standard.txt", b"norm")}, headers=bearer(admin)
+    )
+
+    shown = await client.get(
+        f"{DOCUMENTS}/{added.json()['id']}/file", headers=bearer(member)
+    )
+
+    assert shown.content == b"norm"

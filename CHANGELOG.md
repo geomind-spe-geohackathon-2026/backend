@@ -6,6 +6,18 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.4] - 2026-11-03
+
+Names in the API and code follow what they are (Sahand): documents are `rag`, connectors are
+`mcp`. People still see Library, Knowledge and Connectors in the app.
+
+- `/workspace/documents` is `/workspace/rag`, `/workspace/connectors` is `/workspace/mcp`, the
+  project's `connectors` is `mcp`; codes `rag_document_not_found`, `mcp_server_not_found`.
+- New: `GET /workspace/rag/{id}/file` shows a file inline, and `GET /workspace/rag/{id}/text`
+  gives the text the agents search.
+- The workspace offers geomind's new names `rag` and `mcp` beside `documents` and `connectors`.
+- Migration 0013 renames the tables `rag_documents` and `mcp_servers` and `projects.mcp`.
+
 ## [1.1.3] - 2026-11-03
 
 Knowledge is RAG, Connectors are MCP, and neither is the agents' memory (Sahand).

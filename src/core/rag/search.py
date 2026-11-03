@@ -1,8 +1,8 @@
 from typing import TypedDict
 from uuid import UUID
 
-from src.core.clients.postgres.repositories.document import DocumentRepository
-from src.core.documents.chunks import chunks_of
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
+from src.core.rag.chunks import chunks_of
 
 SNIPPET_CHARACTERS = 300
 
@@ -21,7 +21,7 @@ def snippet_of(text: str, word: str) -> str:
 
 
 async def search_documents(
-    repository: DocumentRepository,
+    repository: RagDocumentRepository,
     project_id: UUID,
     query: str,
     limit: int,
@@ -55,7 +55,7 @@ class KnowledgeHit(TypedDict):
 
 
 async def search_knowledge(
-    repository: DocumentRepository, query: str, limit: int
+    repository: RagDocumentRepository, query: str, limit: int
 ) -> list[KnowledgeHit]:
     """Find the passages of the shared Knowledge that hold the query's words.
 

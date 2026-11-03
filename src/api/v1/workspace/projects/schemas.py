@@ -19,7 +19,7 @@ class ProjectCreate(BaseModel):
     name: ProjectName
     case_from: UUID | None = None
     memory: MemoryChoice | None = None
-    connectors: list[UUID] | None = None
+    mcp: list[UUID] | None = None
 
 
 class Budget(BaseModel):
@@ -35,7 +35,7 @@ class ProjectUpdate(BaseModel):
     name: ProjectName | None = None
     budget: Budget | None = None
     memory: MemoryChoice | None = None
-    connectors: list[UUID] | None = None
+    mcp: list[UUID] | None = None
 
 
 class ProjectFile(BaseModel):
@@ -80,4 +80,4 @@ class Project(BaseModel):
     runs: int
     budget: Budget
     memory: MemoryChoice | None
-    connectors: list[UUID]
+    mcp: list[UUID]

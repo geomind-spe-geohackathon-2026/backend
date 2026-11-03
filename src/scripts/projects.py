@@ -28,8 +28,8 @@ from src.core.settings import settings
 
 BUNDLE_FORMAT = 1
 USERS = "users"
-SHARED_TABLES = frozenset({USERS, "connectors"})
-"""Tables no project owns; a connector's secret never leaves its server."""
+SHARED_TABLES = frozenset({USERS, "mcp_servers"})
+"""Tables no project owns; an MCP server's secret never leaves this server."""
 PROJECTS = "projects"
 MANIFEST = "manifest.json"
 TABLE_FOLDER = "tables/"

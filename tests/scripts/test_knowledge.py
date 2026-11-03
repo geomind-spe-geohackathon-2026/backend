@@ -1,6 +1,6 @@
 import pytest
 
-from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.scripts.knowledge import KnowledgeError, add_file
 from tests.blobs import MemoryBlobStore
 
@@ -10,7 +10,7 @@ async def test_a_catalogue_becomes_one_searchable_shared_document(
 ) -> None:
     admin = await make_user("admin@example.com", role="admin")
     blobs = MemoryBlobStore()
-    documents = DocumentRepository(session)
+    documents = RagDocumentRepository(session)
     path = tmp_path / "catalogue.csv"
     path.write_text("id,item,value\npump,Pump cost,200\n")
 
@@ -32,4 +32,6 @@ async def test_a_file_that_cannot_be_read_is_refused(
     path = tmp_path / "picture.png"
     path.write_bytes(b"png")
     with pytest.raises(KnowledgeError):
-        await add_file(DocumentRepository(session), MemoryBlobStore(), path, admin.id)
+        await add_file(
+            RagDocumentRepository(session), MemoryBlobStore(), path, admin.id
+        )

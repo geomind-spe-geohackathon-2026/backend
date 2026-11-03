@@ -7,16 +7,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.core.clients.postgres.client import Base, UtcDateTime, utc_now
 
 
-class Document(Base):
+class RagDocument(Base):
     """A file a user uploaded; its bytes live in MinIO.
 
     A project's file has its ``project_id``. A shared Knowledge document has none: every
     project's agents search it, and only an admin adds or deletes one.
     """
 
-    __tablename__ = "documents"
+    __tablename__ = "rag_documents"
     __table_args__ = (
-        Index("ix_documents_project_id_created_id", "project_id", "created", "id"),
+        Index("ix_rag_documents_project_id_created_id", "project_id", "created", "id"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)

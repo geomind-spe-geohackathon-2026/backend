@@ -32,7 +32,7 @@ geomind's `engine.resume` reads `load_events` on the loop itself, so `adapters.r
 warms the store first. Artifacts are rows in `run_artifacts` with both ids;
 `save_chat_artifact` / `load_chat_artifact` read the newest row per chat. The workspace
 copies a case's MinIO files into a per-run temp folder; documents use
-`src/core/documents`.
+`src/core/rag`.
 
 ## Settings
 

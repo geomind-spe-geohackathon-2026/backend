@@ -21,8 +21,7 @@ from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
-from src.core.clients.postgres.repositories.connector import ConnectorRepository
-from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.clients.postgres.repositories.mcp_server import McpServerRepository
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
@@ -35,6 +34,7 @@ from src.core.clients.postgres.repositories.project import (
     ImportedVersion,
     ProjectRepository,
 )
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.errors import CaseInvalidError, ConflictError, ValidationFailedError
 from src.core.gemini import case as case_document
 from src.core.gemini.errors import CaseNotFoundError, PlantInvalidError
@@ -89,7 +89,7 @@ def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
             max_cost=project.budget_max_cost,
         ),
         memory=project.memory,
-        connectors=project.connectors or [],
+        mcp=project.mcp or [],
     )
 
 
@@ -214,21 +214,21 @@ async def apply_choices(
     payload: schemas.ProjectCreate | schemas.ProjectUpdate,
     repository: ProjectRepository,
 ) -> Project:
-    """Set memory and connectors when given; an unknown connector is refused."""
-    if payload.memory is None and payload.connectors is None:
+    """Set memory and MCP servers when given; an unknown server is refused."""
+    if payload.memory is None and payload.mcp is None:
         return project
-    if payload.connectors:
-        known = await ConnectorRepository(repository.session).by_ids(payload.connectors)
-        missing = set(payload.connectors) - {item.id for item in known}
+    if payload.mcp:
+        known = await McpServerRepository(repository.session).by_ids(payload.mcp)
+        missing = set(payload.mcp) - {item.id for item in known}
         if missing:
-            raise ValidationFailedError({"connectors": "No such connector"})
-    return await repository.set_choices(project, payload.memory, payload.connectors)
+            raise ValidationFailedError({"mcp": "No such MCP server"})
+    return await repository.set_choices(project, payload.memory, payload.mcp)
 
 
 async def delete_project(
     project: Project,
     repository: ProjectRepository,
-    documents: DocumentRepository,
+    documents: RagDocumentRepository,
     files: CaseFileRepository,
     blobs: BlobStore,
 ) -> None:

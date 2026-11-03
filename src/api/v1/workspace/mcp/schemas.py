@@ -4,16 +4,16 @@ from uuid import UUID
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, StringConstraints
 
-ConnectorName = Annotated[str, StringConstraints(pattern=r"^[a-z0-9_-]{1,32}$")]
-"""A connector's name becomes part of its tools' names: ``<name>__<tool>``."""
+McpServerName = Annotated[str, StringConstraints(pattern=r"^[a-z0-9_-]{1,32}$")]
+"""A server's name becomes part of its tools' names: ``<name>__<tool>``."""
 HeaderName = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9-]{1,255}$")]
 Transport = Literal["http", "sse"]
 Auth = Literal["none", "bearer", "header"]
 Status = Literal["unchecked", "ok", "error"]
 
 
-class ConnectorCreate(BaseModel):
-    name: ConnectorName
+class McpServerCreate(BaseModel):
+    name: McpServerName
     url: AnyHttpUrl
     transport: Transport = "http"
     auth: Auth = "none"
@@ -21,8 +21,8 @@ class ConnectorCreate(BaseModel):
     secret: str | None = Field(default=None, min_length=1, max_length=4096)
 
 
-class ConnectorUpdate(BaseModel):
-    name: ConnectorName | None = None
+class McpServerUpdate(BaseModel):
+    name: McpServerName | None = None
     url: AnyHttpUrl | None = None
     transport: Transport | None = None
     auth: Auth | None = None
@@ -31,14 +31,14 @@ class ConnectorUpdate(BaseModel):
     enabled: bool | None = None
 
 
-class ConnectorTool(BaseModel):
+class McpTool(BaseModel):
     name: str
     description: str
     read_only: bool
 
 
-class Connector(BaseModel):
-    """A connector as anyone may see it: the secret is only ``has_secret``."""
+class McpServer(BaseModel):
+    """An MCP server as anyone may see it: the secret is only ``has_secret``."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -53,5 +53,5 @@ class Connector(BaseModel):
     status: Status
     error: str | None
     checked: datetime | None
-    tools: list[ConnectorTool]
+    tools: list[McpTool]
     created: datetime

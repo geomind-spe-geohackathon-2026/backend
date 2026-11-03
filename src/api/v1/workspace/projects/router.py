@@ -11,10 +11,6 @@ from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
     get_case_version_repository,
 )
-from src.core.clients.postgres.repositories.document import (
-    DocumentRepository,
-    get_document_repository,
-)
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
     get_plant_version_repository,
@@ -22,6 +18,10 @@ from src.core.clients.postgres.repositories.plant_version import (
 from src.core.clients.postgres.repositories.project import (
     ProjectRepository,
     get_project_repository,
+)
+from src.core.clients.postgres.repositories.rag_document import (
+    RagDocumentRepository,
+    get_rag_document_repository,
 )
 from src.core.pagination.page import Page, PageParams
 from src.core.progress.reader import ProgressReaderDependency
@@ -41,9 +41,9 @@ PlantVersionRepositoryDependency = Annotated[
     PlantVersionRepository,
     Depends(get_plant_version_repository),
 ]
-DocumentRepositoryDependency = Annotated[
-    DocumentRepository,
-    Depends(get_document_repository),
+RagDocumentRepositoryDependency = Annotated[
+    RagDocumentRepository,
+    Depends(get_rag_document_repository),
 ]
 ProjectRepositoryDependency = Annotated[
     ProjectRepository,
@@ -134,7 +134,7 @@ async def update_project(
 async def delete_project(
     project: AccessibleProject,
     repository: ProjectRepositoryDependency,
-    documents: DocumentRepositoryDependency,
+    documents: RagDocumentRepositoryDependency,
     files: CaseFileRepositoryDependency,
     blobs: BlobStoreDependency,
 ) -> None:

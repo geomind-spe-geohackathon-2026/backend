@@ -24,7 +24,7 @@ class Project(Base):
     budget_max_tokens: Mapped[int | None] = mapped_column(BigInteger)
     budget_max_cost: Mapped[float | None] = mapped_column(Float)
     memory: Mapped[str | None] = mapped_column(String(3))
-    connectors: Mapped[list[str]] = mapped_column(Json, default=list)
+    mcp: Mapped[list[str]] = mapped_column(Json, default=list)
 
     owner: Mapped[User] = relationship(lazy="joined")
     plant_version: Mapped[int | None] = query_expression()

@@ -1,6 +1,6 @@
-from src.core.clients.postgres.repositories.document import DocumentRepository
-from src.core.documents.extract import extract_text, is_supported
-from src.core.documents.search import search_documents
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
+from src.core.rag.extract import extract_text, is_supported
+from src.core.rag.search import search_documents
 
 
 def test_text_files_are_read() -> None:
@@ -37,7 +37,7 @@ def test_binary_content_has_no_text() -> None:
 
 
 async def add_ready(session, project, owner, name: str, text: str) -> None:
-    repository = DocumentRepository(session)
+    repository = RagDocumentRepository(session)
     document = await repository.create(project.id, name, len(text), name, owner.id)
     await repository.set_text(document, text)
 
@@ -50,7 +50,7 @@ async def test_search_ranks_by_occurrences(session, make_user, make_project) -> 
     await add_ready(session, project, owner, "three.txt", "nothing here")
 
     hits = await search_documents(
-        DocumentRepository(session), project.id, "SALINITY", 5
+        RagDocumentRepository(session), project.id, "SALINITY", 5
     )
 
     assert [hit["title"] for hit in hits] == ["two.txt", "one.txt"]
@@ -67,7 +67,7 @@ async def test_search_needs_every_word_and_respects_the_limit(
     project = await make_project(owner)
     await add_ready(session, project, owner, "a.txt", "heat demand and supply")
     await add_ready(session, project, owner, "b.txt", "heat only")
-    repository = DocumentRepository(session)
+    repository = RagDocumentRepository(session)
 
     both = await search_documents(repository, project.id, "heat supply", 5)
     one = await search_documents(repository, project.id, "heat", 1)
@@ -88,7 +88,8 @@ async def test_search_stays_inside_the_project(
     await add_ready(session, first, owner, "a.txt", "heat")
 
     assert (
-        await search_documents(DocumentRepository(session), second.id, "heat", 5) == []
+        await search_documents(RagDocumentRepository(session), second.id, "heat", 5)
+        == []
     )
 
 
