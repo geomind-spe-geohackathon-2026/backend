@@ -7,7 +7,7 @@ REQUIREMENTS = ROOT / "requirements.txt"
 VENDOR = ROOT / "vendor"
 GEMINI = "gemini-geothermal-suite-open"
 GEMINI_VERSION = "0.5.5"
-GEOMIND_VERSION = "0.4.9"
+GEOMIND_VERSION = "0.4.10"
 DIGEST_LENGTH = 64
 
 
