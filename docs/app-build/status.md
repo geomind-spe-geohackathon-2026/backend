@@ -8,13 +8,13 @@ geomind.team runs from this laptop. Deploys go through the Deploy thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | 517c330 (v1.1.2) | see `git log` |
-| frontend | v1.1.14 | see `git log` |
+| backend | 1e087c5 (v1.1.3) | see `git log` |
+| frontend | v1.1.16 | see `git log` |
 | gemini | wheel 0.5.14 | wheel 0.5.14 |
-| geomind | 0.4.19 wheel by URL | 0.4.21 wheel by URL |
+| geomind | 0.4.21 wheel by URL | 0.4.21 wheel by URL |
 | sandbox image | `gemini-sandbox:0.5.14` | `gemini-sandbox:0.5.14`, pulled from ghcr |
 
-Backend and contract version 1.1.3 (`src/version.py`, `CHANGELOG.md`). Latest migration 0012 (on dev).
+Backend and contract version 1.1.3 (`src/version.py`, `CHANGELOG.md`). Latest migration 0012.
 
 The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `src.scripts.projects`.
 
@@ -54,7 +54,7 @@ Results, summary and report read gemini's display units through `report.to_dict(
 
 ## Open
 
-- After the next deploy, seed the cost catalogue as one shared Knowledge document: `python -m src.scripts.knowledge add cost-sources.csv --by <admin email>`, the file `data/knowledge/cost-sources.csv` from geomind's dev (c1aa8ea; `cost-sources.md` beside it names the sources). It waits for geomind's end-of-loop release, which also brings gemini 0.6.0.
+- After the next deploy, seed the cost catalogue as one shared Knowledge document: `python -m src.scripts.knowledge add cost-sources.csv --by <admin email>`, the file `data/knowledge/cost-sources.csv` from geomind's dev (c1aa8ea; `cost-sources.md` beside it names the sources). Not done yet on production (the permission check refused it); Sahand runs it.
 
 
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
