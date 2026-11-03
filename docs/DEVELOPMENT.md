@@ -117,5 +117,4 @@ Write tests for behavior, security boundaries, and failure handling. Do not add 
 This folder's `compose.yml` and `.env.production` deploy the API and the worker behind
 Traefik; `.env` stays with the tests.
 The data services and Traefik come from `../infrastructure`. The backend image installs
-gemini from the released wheel pinned in `requirements.txt`, and geomind from the wheel in
-`vendor/`, checked against `vendor/SHA256SUMS`.
+gemini and geomind from the released wheels pinned in `requirements.txt`.
