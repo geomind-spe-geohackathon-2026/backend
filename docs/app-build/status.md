@@ -54,7 +54,7 @@ Results, summary and report read gemini's display units through `report.to_dict(
 
 ## Open
 
-- After the next deploy, seed the cost catalogue as one shared Knowledge document: `python -m src.scripts.knowledge add cost-sources.csv --by <admin email>`, the file `data/knowledge/cost-sources.csv` from geomind's dev (c1aa8ea; `cost-sources.md` beside it names the sources). Not done yet on production (the permission check refused it); Sahand runs it.
+- The cost catalogue (`cost-sources.csv` from geomind c1aa8ea) is a shared Knowledge document on production since 2026-11-03.
 
 
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
