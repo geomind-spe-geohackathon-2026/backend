@@ -22,6 +22,7 @@ from src.api.v1.assistant.runs.adapters.session import (
     check_models,
     refused_models,
     seed_problem,
+    suggestions_of,
 )
 from src.api.v1.assistant.runs.adapters.store import (
     DatabaseRunStore,
@@ -698,3 +699,16 @@ def test_a_geomind_with_a_sandbox_gets_one_or_none(monkeypatch) -> None:
     monkeypatch.setattr(settings, "ASSISTANT_SANDBOX", "none")
     if getattr(gd, "sandbox", None) is not None:
         assert build_sandbox() == {"sandbox": None}
+
+
+def test_the_next_steps_of_a_run_are_kept_and_checked() -> None:
+    result = SimpleNamespace(
+        suggestions=[
+            {"label": "Design the plant", "message": "Design a plant for this case."},
+            {"label": "", "message": "no label"},
+        ]
+    )
+    assert suggestions_of(result) == [
+        {"label": "Design the plant", "message": "Design a plant for this case."}
+    ]
+    assert suggestions_of(SimpleNamespace()) is None

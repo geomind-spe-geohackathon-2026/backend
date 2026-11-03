@@ -1,5 +1,8 @@
-from uuid import uuid4
+import asyncio
+from typing import Any
+from uuid import UUID, uuid4
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from src.api.v1.assistant.chat import schemas
@@ -14,13 +17,16 @@ from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.chat import ChatRepository
 from src.core.clients.postgres.repositories.chat_state import ChatStateRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
+from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_artifact import (
     RunArtifactRepository,
 )
 from src.core.errors import ConflictError
 from src.core.gemini.errors import CaseFileNotFoundError
+from src.core.geomind.suggest import suggestions_for
 from src.core.pagination.page import Page, PageRequest, build_page, encode_cursor
+from src.core.progress.project_state import project_state
 
 DEFAULT_TITLE = "New chat"
 START_TASK = "assistant.runs.start"
@@ -82,11 +88,41 @@ async def list_messages(
     return build_page(rows, page, schemas.Message)
 
 
-async def read_state(chat: Chat, states: ChatStateRepository) -> schemas.ChatState:
+async def read_state(
+    chat: Chat,
+    states: ChatStateRepository,
+    messages: MessageRepository,
+) -> schemas.ChatState:
+    """Return the chat's problem state; a chat without messages also gets next steps."""
     latest = await states.latest(chat.id)
-    if latest is None:
-        return schemas.ChatState(version=0, state=None)
-    return schemas.ChatState(version=latest.version, state=latest.state)
+    state = None if latest is None else latest.state
+    version = 0 if latest is None else latest.version
+    empty = not await messages.history(chat.id)
+    found = await next_steps(chat.project_id, state, messages.session) if empty else []
+    return schemas.ChatState(version=version, state=state, suggestions=found)
+
+
+async def next_steps(
+    project_id: UUID, state: dict[str, Any] | None, session: AsyncSession
+) -> list[dict[str, str]]:
+    """Return geomind's next steps from the whole project's state, the chat's state
+    and the project's Library files; geomind calls no model for them."""
+    files = await RagDocumentRepository(session).newest_by_name(project_id)
+    progress = await project_state(session, project_id)
+    names = [file.name for file in files]
+    return await asyncio.to_thread(suggestions_for, state or {}, names, progress)
+
+
+async def suggest(
+    project: Project,
+    chat: Chat | None,
+    states: ChatStateRepository,
+) -> schemas.Suggestions:
+    """Return the next steps for a new chat, or for a chat of the project."""
+    latest = None if chat is None else await states.latest(chat.id)
+    state = None if latest is None else latest.state
+    found = await next_steps(project.id, state, states.session)
+    return schemas.Suggestions(suggestions=found)
 
 
 async def read_file(chat: Chat, name: str, artifacts: RunArtifactRepository) -> bytes:

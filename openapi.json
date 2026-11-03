@@ -601,6 +601,14 @@
             ],
             "title": "State"
           },
+          "suggestions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Suggestion"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
           "version": {
             "title": "Version",
             "type": "integer"
@@ -1634,6 +1642,20 @@
               }
             ],
             "title": "Run"
+          },
+          "suggestions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Suggestion"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestions"
           }
         },
         "required": [
@@ -4200,6 +4222,41 @@
         "title": "StudyProgress",
         "type": "object"
       },
+      "Suggestion": {
+        "description": "A next step the user may click; ``message`` is sent as their next message.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "message"
+        ],
+        "title": "Suggestion",
+        "type": "object"
+      },
+      "Suggestions": {
+        "properties": {
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/Suggestion"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "suggestions"
+        ],
+        "title": "Suggestions",
+        "type": "object"
+      },
       "Template": {
         "properties": {
           "categories": {
@@ -4646,7 +4703,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.5"
+    "version": "1.1.6"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5453,6 +5510,67 @@
         "summary": "Export Log",
         "tags": [
           "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/suggestions": {
+      "get": {
+        "description": "Next steps for a new chat of a project, or for one of its chats.",
+        "operationId": "suggest_api_v1_assistant_suggestions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "chat",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Chat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Suggestions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suggest",
+        "tags": [
+          "Chat"
         ]
       }
     },

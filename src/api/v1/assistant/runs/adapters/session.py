@@ -67,6 +67,7 @@ class Outcome:
     input_tokens: int
     output_tokens: int
     cost: float
+    suggestions: list[dict[str, str]] | None = None
 
 
 @dataclass(frozen=True)
@@ -209,7 +210,20 @@ def to_outcome(result: Any) -> Outcome:
         input_tokens=result.usage.input_tokens,
         output_tokens=result.usage.output_tokens,
         cost=result.usage.cost,
+        suggestions=suggestions_of(result),
     )
+
+
+def suggestions_of(result: Any) -> list[dict[str, str]] | None:
+    """Return the next steps geomind gave with a run's answer, or ``None``."""
+    found = getattr(result, "suggestions", None)
+    if not found:
+        return None
+    return [
+        {"label": str(item["label"]), "message": str(item["message"])}
+        for item in found
+        if isinstance(item, dict) and item.get("label") and item.get("message")
+    ] or None
 
 
 def keywords(

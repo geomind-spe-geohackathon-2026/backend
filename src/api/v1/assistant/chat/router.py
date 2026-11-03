@@ -129,5 +129,6 @@ async def read_file(
 async def read_state(
     chat: AccessibleChat,
     states: ChatStateRepositoryDependency,
+    messages: MessageRepositoryDependency,
 ) -> schemas.ChatState:
-    return await services.read_state(chat, states)
+    return await services.read_state(chat, states, messages)

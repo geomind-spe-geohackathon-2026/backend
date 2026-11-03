@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.core.clients.postgres.client import Base, UtcDateTime, utc_now
+from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
 
 
 class Message(Base):
@@ -22,4 +22,5 @@ class Message(Base):
     run_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("runs.id", ondelete="SET NULL")
     )
+    suggestions: Mapped[list[dict[str, str]] | None] = mapped_column(Json)
     created: Mapped[datetime] = mapped_column(UtcDateTime, default=utc_now)

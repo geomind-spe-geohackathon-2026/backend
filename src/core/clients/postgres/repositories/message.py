@@ -14,8 +14,15 @@ class MessageRepository(BaseRepository):
         role: str,
         content: str,
         run_id: UUID | None,
+        suggestions: list[dict[str, str]] | None = None,
     ) -> Message:
-        message = Message(chat_id=chat_id, role=role, content=content, run_id=run_id)
+        message = Message(
+            chat_id=chat_id,
+            role=role,
+            content=content,
+            run_id=run_id,
+            suggestions=suggestions or None,
+        )
         self.session.add(message)
         await self.session.commit()
         return message

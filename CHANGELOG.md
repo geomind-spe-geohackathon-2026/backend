@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.6] - 2026-11-03
+
+- Next-step suggestions (Sahand): an assistant answer keeps the steps geomind suggests with it
+  (`message.suggestions`, migration 0014); `GET /assistant/suggestions` and an empty chat's state
+  give them for a chat that has no message yet. They follow the whole project's state, which
+  the workspace gives geomind as `project_state`.
+- `ASSISTANT_MODEL_PREFIX` takes several prefixes, comma separated.
+
 ## [1.1.5] - 2026-11-03
 
 - `step.started` carries `context_window`, so the chat can show how full a call's context is.

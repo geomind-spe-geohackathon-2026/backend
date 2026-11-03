@@ -151,7 +151,7 @@ async def settle(
         run = await runs.update(await runs.get_by_id(run_id), totals)
         if outcome.status == "done" and outcome.answer:
             await MessageRepository(session).add(
-                run.chat_id, "assistant", outcome.answer, run.id
+                run.chat_id, "assistant", outcome.answer, run.id, outcome.suggestions
             )
         if outcome.status in TERMINAL_STATUSES:
             await add_activity(session, run, outcome.status)

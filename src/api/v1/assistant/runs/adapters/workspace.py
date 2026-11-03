@@ -26,6 +26,7 @@ from src.core.clients.postgres.repositories.plant_version import (
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.mcp_servers import server_of
+from src.core.progress.project_state import project_state
 
 DEFAULT_PLANT_NAME = "plant"
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
@@ -97,6 +98,7 @@ class DatabaseWorkspace:
         self.run_id = run_id
         self.warmed: dict[str, tuple[dict[str, Any], list[RagDocument]]] = {}
         self.choices: dict[str, Choices] = {}
+        self.states: dict[str, dict[str, Any]] = {}
         self.memories: dict[str, DatabaseMemory] = {}
 
     async def warm(self, project_id: str) -> None:
@@ -110,10 +112,25 @@ class DatabaseWorkspace:
             self.bridge.call, read_choices, UUID(project_id)
         )
         self.choices[project_id] = choices
+        self.states[project_id] = await asyncio.to_thread(
+            self.bridge.call, project_state, UUID(project_id)
+        )
         if choices.memory_on:
             memory = DatabaseMemory(self.bridge, project_id, self.run_id)
             await memory.warm()
             self.memories[project_id] = memory
+
+    def project_state(self, project_id: str) -> dict[str, Any] | None:
+        """Return where the project stands: its five steps and the versions behind them.
+
+        geomind reads it for the next steps it suggests. Off the event loop it is read
+        fresh, so a run's own changes count; on the loop the copy read before the run.
+        """
+        if self.bridge.in_loop():
+            return self.states.get(project_id)
+        state = self.bridge.call(project_state, UUID(project_id))
+        self.states[project_id] = state
+        return state
 
     def choices_of(self, project_id: str) -> Choices:
         if project_id not in self.choices:
