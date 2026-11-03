@@ -156,9 +156,21 @@ async def validate_spec(
     case: BuiltCase | None,
 ) -> schemas.SpecProblems:
     """Return gemini's problems for a plant document, on the case when there is one."""
-    return schemas.SpecProblems(
-        problems=await asyncio.to_thread(plant.problems_of, spec, case)
-    )
+    problems = await asyncio.to_thread(plant.problems_of, spec, case)
+    warnings = await asyncio.to_thread(plant.warnings_of, spec, case)
+    return schemas.SpecProblems(problems=problems, warnings=warnings)
+
+
+async def suggest_ports(
+    project: Project,
+    port: str,
+    limit: int | None,
+    repository: PlantVersionRepository,
+) -> schemas.PortSuggestions:
+    """Return the ports of the project's latest plant that ``port`` may connect to."""
+    version = await latest_version(repository, project.id, PlantNotFoundError)
+    found = await asyncio.to_thread(plant.suggestions_of, version.content, port, limit)
+    return schemas.PortSuggestions(port=port, suggestions=found)
 
 
 async def list_versions(

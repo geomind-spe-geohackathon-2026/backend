@@ -88,3 +88,17 @@ class SpecCheck(BaseModel):
 
 class SpecProblems(BaseModel):
     problems: list[Problem]
+    warnings: list[Problem] = []
+
+
+class PortSuggestion(BaseModel):
+    port: str
+    match: str
+    exact: list[str]
+    loose: list[str]
+    closes_loop: bool
+
+
+class PortSuggestions(BaseModel):
+    port: str
+    suggestions: list[PortSuggestion]

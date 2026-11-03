@@ -5,6 +5,7 @@ import geomind as gd
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from src.core.assistant.context import context_window
 from src.core.clients.postgres.client import utc_now
 from src.core.clients.postgres.repositories.activity import ActivityRepository
 from src.core.clients.postgres.repositories.case_version import (
@@ -25,6 +26,7 @@ TERMINAL_STATUSES = ("done", "failed", "cancelled")
 TEXT_DELTA = "text.delta"
 TOOL_RECORDED = "tool.result"
 TOOL_FINISHED = "tool.finished"
+STEP_STARTED = "step.started"
 STEP_FINISHED = "step.finished"
 STUDY_RECORDED = "study.recorded"
 STUDY_PREFIX = "study/"
@@ -50,6 +52,9 @@ class ToolProblems:
     def public(self, event: Any) -> dict[str, Any]:
         """Return an event's public data, with its problem when it has one."""
         data = event.data()
+        if event.type == STEP_STARTED:
+            window = context_window()
+            return data if window is None else {**data, "context_window": window}
         if event.type != TOOL_FINISHED:
             return data
         problem = self.found.pop((event.agent, event.call_id), None)

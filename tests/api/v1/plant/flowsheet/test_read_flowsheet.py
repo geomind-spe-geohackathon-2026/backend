@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+import gemini as gm
+
 from tests.api.v1.plant.helpers import FLOWSHEET, first_module, save_plant
 from tests.conftest import bearer
 from tests.plants import changed_plant, example_plant
@@ -184,3 +186,37 @@ async def test_validate_lists_missing_values_of_a_good_structure(
     problems = response.json()["problems"]
     assert problems
     assert {problem["code"] for problem in problems} == {"missing_value"}
+
+
+async def test_validate_gives_warnings_beside_problems(
+    client, make_user, blobs
+) -> None:
+    user = await make_user()
+    response = await client.post(
+        f"{FLOWSHEET}/validate", headers=bearer(user), json={"spec": example_plant()}
+    )
+    body = response.json()
+    assert set(body) == {"problems", "warnings"}
+    assert all(set(item) == {"path", "message", "code"} for item in body["warnings"])
+
+
+async def test_suggest_names_the_ports_a_port_may_connect_to(
+    client, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    await save_plant(client, bearer(owner), project)
+    path = f"{FLOWSHEET}/suggest"
+    query = {"project": str(project.id), "port": "hx.cold_out", "limit": 2}
+
+    response = await client.get(path, params=query, headers=bearer(owner))
+
+    if not hasattr(gm.Plant, "suggest"):
+        assert response.status_code == 501
+        return
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["port"] == "hx.cold_out"
+    assert len(body["suggestions"]) <= 2
+    keys = {"port", "match", "exact", "loose", "closes_loop"}
+    assert all(set(item) == keys for item in body["suggestions"])

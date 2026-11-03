@@ -70,7 +70,26 @@ def test_a_bad_hello_closes_the_socket() -> None:
     assert closing["code"] == CLOSE_BAD_HELLO
 
 
-def test_the_stream_stops_when_the_client_leaves() -> None:
+class LeavingSocket:
+    """A socket whose client leaves once the first event reached it."""
+
+    def __init__(self) -> None:
+        self.sent: list[str] = []
+        self.left = asyncio.Event()
+
+    async def send_text(self, text: str) -> None:
+        self.sent.append(text)
+        self.left.set()
+
+    async def receive(self) -> dict:
+        await self.left.wait()
+        return {"type": "websocket.disconnect"}
+
+    async def close(self, code: int) -> None:
+        raise AssertionError("a socket whose client left is not closed again")
+
+
+async def test_the_stream_stops_when_the_client_leaves() -> None:
     seen: list[str] = []
 
     async def endless(after, record):
@@ -81,11 +100,11 @@ def test_the_stream_stops_when_the_client_leaves() -> None:
         finally:
             record.append("closed")
 
-    with TestClient(relay_app(endless, seen)) as client:
-        with client.websocket_connect("/stream") as socket:
-            socket.send_text(json.dumps({"token": "t"}))
-            socket.receive_json()
+    socket = LeavingSocket()
+    await relay(socket, endless(-1, seen))
+
     assert seen == ["closed"]
+    assert len(socket.sent) >= 1
 
 
 def test_a_failing_stream_closes_with_an_error_code() -> None:

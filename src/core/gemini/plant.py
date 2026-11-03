@@ -9,6 +9,7 @@ from typing import Any
 
 import gemini as gm
 
+from src.core.errors import NotImplementedYetError, ValidationFailedError
 from src.core.gemini.errors import PlantInvalidError, PlantModuleNotFoundError
 from src.core.problems import problem_of
 
@@ -68,6 +69,35 @@ def problems_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str
         for issue in gm.check(plant, case)
         if not issue.is_warning
     ]
+
+
+def warnings_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str]]:
+    """Return gemini's warnings for a document that builds; none for one that fails."""
+    try:
+        plant = gm.Plant.from_dict(content)
+    except gm.errors.ValidationError:
+        return []
+    return [
+        problem_of(issue.problem())
+        for issue in gm.check(plant, case)
+        if issue.is_warning
+    ]
+
+
+def suggestions_of(content: Any, port: str, limit: int | None) -> list[dict[str, Any]]:
+    """Return the ports ``port`` may connect to, best first, as gemini orders them.
+
+    A gemini before 0.6 has no ``Plant.suggest``, and the route says so.
+    """
+    plant = from_dict(content)
+    suggest = getattr(plant, "suggest", None)
+    if suggest is None:
+        raise NotImplementedYetError("gemini Plant.suggest (gemini 0.6)")
+    try:
+        found = suggest(port, limit=limit)
+    except (gm.errors.GeminiError, KeyError, ValueError) as error:
+        raise ValidationFailedError({"port": str(error)}) from error
+    return [item.to_dict() for item in found]
 
 
 def from_template(name: str) -> gm.Plant:

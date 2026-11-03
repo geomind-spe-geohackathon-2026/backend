@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.5] - 2026-11-03
+
+- `step.started` carries `context_window`, so the chat can show how full a call's context is.
+- `POST /plant/flowsheet/validate` adds `warnings`; new `GET /plant/flowsheet/suggest` lists the
+  ports a port may connect to (gemini 0.6).
+- geomind after 0.4.21 takes no sandbox; the backend passes one only to a geomind that does.
+- Tests: the socket test for a client that leaves no longer depends on timing.
+
 ## [1.1.4] - 2026-11-03
 
 Names in the API and code follow what they are (Sahand): documents are `rag`, connectors are

@@ -305,3 +305,27 @@ async def test_replay_gives_a_failed_tool_its_problem_and_no_internal_event(
     finished = [e for e in stored if e.type == "tool.finished"]
     assert finished[0].data["problem"] == missing
     assert all(e.type != "tool.result" for e in stored)
+
+
+async def test_a_step_says_the_context_window_its_calls_may_hold(
+    client,
+    session,
+    session_factory,
+    redis,
+    make_user,
+    make_project,
+    make_chat,
+    make_run,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("GEOMIND_CONTEXT_WINDOW", "128000")
+    user = await make_user()
+    run = await make_run(await make_chat(await make_project(user), user), user)
+    await store_events(session, run, await play(run.id))
+
+    stored = await stored_events(session_factory, RunDeltaRepository(redis), run.id, -1)
+
+    steps = [e for e in stored if e.type == "step.started"]
+    assert steps and all(e.data["context_window"] == 128000 for e in steps)
+    others = [e for e in stored if e.type != "step.started"]
+    assert all("context_window" not in e.data for e in others)

@@ -128,6 +128,16 @@ async def validate_spec(
     return await services.validate_spec(payload.spec, built)
 
 
+@router.get("/suggest", response_model=schemas.PortSuggestions)
+async def suggest_ports(
+    project: QueriedProject,
+    repository: PlantVersionRepositoryDependency,
+    port: Annotated[str, Query(min_length=1, max_length=255)],
+    limit: Annotated[int | None, Query(ge=1, le=100)] = None,
+) -> schemas.PortSuggestions:
+    return await services.suggest_ports(project, port, limit, repository)
+
+
 @router.get("/versions", response_model=Page[Version])
 async def list_versions(
     project: QueriedProject,

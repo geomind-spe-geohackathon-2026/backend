@@ -2409,6 +2409,66 @@
         "title": "PortKind",
         "type": "object"
       },
+      "PortSuggestion": {
+        "properties": {
+          "closes_loop": {
+            "title": "Closes Loop",
+            "type": "boolean"
+          },
+          "exact": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Exact",
+            "type": "array"
+          },
+          "loose": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Loose",
+            "type": "array"
+          },
+          "match": {
+            "title": "Match",
+            "type": "string"
+          },
+          "port": {
+            "title": "Port",
+            "type": "string"
+          }
+        },
+        "required": [
+          "port",
+          "match",
+          "exact",
+          "loose",
+          "closes_loop"
+        ],
+        "title": "PortSuggestion",
+        "type": "object"
+      },
+      "PortSuggestions": {
+        "properties": {
+          "port": {
+            "title": "Port",
+            "type": "string"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/PortSuggestion"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "port",
+          "suggestions"
+        ],
+        "title": "PortSuggestions",
+        "type": "object"
+      },
       "Problem": {
         "properties": {
           "code": {
@@ -3745,6 +3805,14 @@
             },
             "title": "Problems",
             "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "title": "Warnings",
+            "type": "array"
           }
         },
         "required": [
@@ -4578,7 +4646,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.4"
+    "version": "1.1.5"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -6822,6 +6890,78 @@
           }
         },
         "summary": "List Ports",
+        "tags": [
+          "Flowsheet"
+        ]
+      }
+    },
+    "/api/v1/plant/flowsheet/suggest": {
+      "get": {
+        "operationId": "suggest_ports_api_v1_plant_flowsheet_suggest_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "port",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Port",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortSuggestions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suggest Ports",
         "tags": [
           "Flowsheet"
         ]
