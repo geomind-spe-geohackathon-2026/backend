@@ -14,8 +14,7 @@ from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_event import RunEventRepository
-from src.core.clients.redis.repositories.job import SyncJobRepository
-from src.core.clients.redis.repositories.job import JobRepository
+from src.core.clients.redis.repositories.job import JobRepository, SyncJobRepository
 from src.core.jobs import control
 from src.core.settings import settings
 from tests.api.v1.assistant.conftest import run_url
