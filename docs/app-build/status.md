@@ -8,10 +8,10 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | 8b41338 | see `git log` |
+| backend | 7ca0c44 (v1.0.1) | see `git log` |
 | frontend | ffd7673 | see `git log` |
 | gemini | wheel 0.5.5 | wheel 0.5.5 |
-| geomind | wheel 0.4.6 in `vendor/` | wheel 0.4.13 by URL |
+| geomind | 0.4.13 wheel by URL | 0.4.13 wheel by URL |
 | sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
 Backend and contract version 1.0.1 (`src/version.py`, `CHANGELOG.md`). Latest migration 0010.
@@ -54,7 +54,6 @@ Results, summary and report read gemini's display units through `report.to_dict(
 
 ## Open
 
-- Migration 0010 (`studies.plant_pinned`, from d28b4ac) is on main but not on production: the laptop's permission check refuses a deploy that migrates the production schema, so it waits for Sahand. Production is on 8b41338 at migration 0009.
 
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
 - Compare labels are tested, not checked by eye on a real chart of many designs.
