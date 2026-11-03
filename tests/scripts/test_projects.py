@@ -9,6 +9,7 @@ from sqlalchemy import event, func, select
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from scripts import projects
 from src.core.clients.postgres.client import Base
 from src.core.clients.postgres.models.activity import Activity
 from src.core.clients.postgres.models.case_file import CaseFile
@@ -26,7 +27,6 @@ from src.core.clients.postgres.models.run_artifact import RunArtifact
 from src.core.clients.postgres.models.run_event import RunEvent
 from src.core.clients.postgres.models.study import Study
 from src.core.clients.postgres.models.user import User
-from src.scripts import projects
 
 WHEN = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
 

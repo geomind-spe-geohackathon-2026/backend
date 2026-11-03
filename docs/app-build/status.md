@@ -16,7 +16,7 @@ geomind.team runs from this laptop. Deploys go through the Deploy thread.
 
 Backend and contract version 1.1.4 (`src/version.py`, `CHANGELOG.md`). Latest migration 0013 (on dev).
 
-The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `src.scripts.projects`.
+The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `scripts/projects.py`.
 
 ## Done
 

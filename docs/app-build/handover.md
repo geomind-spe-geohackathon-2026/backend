@@ -77,7 +77,7 @@ Verified on the real local stack (see README, "Local stack") with geomind 0.3.0 
 
 - geomind.team runs from main on this laptop; the app is tested there. Any fix needs a production rebuild, done by the hosting thread. Dev volumes were deleted after the move.
 - The assistant runs on DeepSeek only: `ASSISTANT_MODEL_PREFIX` refuses any other model before a real run starts. Set `GEOMIND_MODEL`, `GEOMIND_CHEAP_MODEL` and `GEOMIND_PROVIDER` in `.env.dev` and `.env.production`.
-- `python -m src.scripts.projects export --project <id> --out bundle.tar` and `import bundle.tar --owner <email>` move whole projects: rows and objects, ids kept, users remapped to one owner, refused if an id exists. A new table with no rule in `rows_of_table` stops the tool.
+- `python -m scripts.projects export --project <id> --out bundle.tar` and `import bundle.tar --owner <email>` move whole projects: rows and objects, ids kept, users remapped to one owner, refused if an id exists. A new table with no rule in `rows_of_table` stops the tool.
 - The report draws a process diagram (`frontend/src/shared/plant/flowsheet-sheet.ts`, `flowsheet-layout.ts`) and, in the appendix, the full flowsheet on a landscape PDF page. Modules merge only when type, connections and settings are equal.
 - A failed chat run names an internal error and links the studies it recorded; the raw message stays in the run log. Any `stop_reason` of `error` reads this way, a model provider failure included.
 - Branch `registry-packages` installs the engines from a registry, waiting for its URL and versions. geomind requests are in `requests.md`, among them the crash at `loops/design.py:293`.

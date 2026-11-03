@@ -1,6 +1,6 @@
 """Add a file to the shared Knowledge from the command line, such as the cost catalogue.
 
-``python -m src.scripts.knowledge add <file> --by <admin email>`` stores the file, reads
+``python -m scripts.knowledge add <file> --by <admin email>`` stores the file, reads
 its text at once and makes it searchable for every project's agents. A shared document
 of the same name is replaced, so running it again with a newer catalogue is safe.
 """

@@ -1,7 +1,7 @@
 import pytest
 
+from scripts.knowledge import KnowledgeError, add_file
 from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
-from src.scripts.knowledge import KnowledgeError, add_file
 from tests.blobs import MemoryBlobStore
 
 

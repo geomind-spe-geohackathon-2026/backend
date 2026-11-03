@@ -60,7 +60,7 @@ Export zip: `project.json` (`{format: 1, name, exported}`) and `plant/<number>.j
 | GET | `/workspace/rag/{id}/text` | → `{id, name, searchable, text}`: the text the backend read, as the agents search it (`null` until read, or when it could not be) |
 | DELETE | `/workspace/rag/{id}` | → `204`; a shared one only by an admin |
 
-`rag_document = {id, project, name, size, searchable: pending|ready|failed, created}`; `project` is `null` for a shared Knowledge document. Text extraction and indexing run in a Celery task; a PDF's text keeps a `[page n]` line before each page. A project's documents feed `Workspace.rag`, `files` and `file`; the shared Knowledge feeds `Workspace.knowledge_search`, `knowledge_files` and `knowledge_file` (RAG: passages with their document and page). `python -m src.scripts.knowledge add <file> --by <admin email>` adds or replaces a shared document from the server, such as the cost catalogue.
+`rag_document = {id, project, name, size, searchable: pending|ready|failed, created}`; `project` is `null` for a shared Knowledge document. Text extraction and indexing run in a Celery task; a PDF's text keeps a `[page n]` line before each page. A project's documents feed `Workspace.rag`, `files` and `file`; the shared Knowledge feeds `Workspace.knowledge_search`, `knowledge_files` and `knowledge_file` (RAG: passages with their document and page). `python -m scripts.knowledge add <file> --by <admin email>` adds or replaces a shared document from the server, such as the cost catalogue.
 
 ### workspace/mcp
 

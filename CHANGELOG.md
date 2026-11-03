@@ -17,6 +17,8 @@ Names in the API and code follow what they are (Sahand): documents are `rag`, co
   gives the text the agents search.
 - The workspace offers geomind's new names `rag` and `mcp` beside `documents` and `connectors`.
 - Migration 0013 renames the tables `rag_documents` and `mcp_servers` and `projects.mcp`.
+- The command-line scripts moved from `src/scripts/` to the root `scripts/`: run them from the
+  backend folder as `python -m scripts.projects` and `python -m scripts.knowledge`.
 
 ## [1.1.3] - 2026-11-03
 
@@ -25,7 +27,7 @@ Knowledge is RAG, Connectors are MCP, and neither is the agents' memory (Sahand)
 - Knowledge is a shared document base: `/workspace/documents` without `project` lists, adds
   and deletes shared documents (only an admin writes). The agents search it through
   `Workspace.knowledge_search` (passages with document and page), `knowledge_files` and
-  `knowledge_file`. A PDF keeps its pages. `python -m src.scripts.knowledge add` seeds a file.
+  `knowledge_file`. A PDF keeps its pages. `python -m scripts.knowledge add` seeds a file.
 - The knowledge-entry routes of 1.1.2 are gone. The agents' memory holds only what geomind
   writes, kept as given; the app shows only the project's on/off switch.
 - Migration 0012: documents may have no project; the memory table is `memory_entries`.
