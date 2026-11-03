@@ -4,6 +4,7 @@ import json
 from starlette.testclient import TestClient
 
 from fastapi import FastAPI, WebSocket
+from starlette.websockets import WebSocketDisconnect
 from src.core.socket.relay import (
     CLOSE_BAD_HELLO,
     read_hello,
@@ -97,3 +98,29 @@ def test_a_failing_stream_closes_with_an_error_code() -> None:
         socket.receive_json()
         closing = socket.receive()
     assert closing["code"] == 1011
+
+
+class LeftSocket:
+    """A socket whose client left just as the last event went out."""
+
+    def __init__(self) -> None:
+        self.sent: list[str] = []
+
+    async def send_text(self, text: str) -> None:
+        self.sent.append(text)
+
+    async def receive(self) -> dict:
+        await asyncio.sleep(1)
+        return {"type": "websocket.disconnect"}
+
+    async def close(self, code: int) -> None:
+        raise WebSocketDisconnect(code=1006)
+
+
+async def test_a_client_that_left_at_the_end_raises_nothing() -> None:
+    async def one(after, seen):
+        yield StreamEvent("run.finished", {"status": "done"}, 1)
+
+    socket = LeftSocket()
+    await relay(socket, one(-1, None))
+    assert len(socket.sent) == 1

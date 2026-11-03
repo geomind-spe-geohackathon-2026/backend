@@ -89,5 +89,5 @@ async def relay(
     code = CLOSE_NORMAL if failure is None else CLOSE_FAILED
     try:
         await websocket.close(code)
-    except RuntimeError:
+    except (RuntimeError, WebSocketDisconnect):
         logger.info("The client left before the socket closed")
