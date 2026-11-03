@@ -11,6 +11,7 @@ from src.core.security.access import current_user
 from src.core.security.jwt import create_token_pair, decode_access_token
 from src.core.settings import settings
 from src.fastapi import app
+from src.version import VERSION
 
 
 def test_health() -> None:
@@ -18,7 +19,11 @@ def test_health() -> None:
         response = client.get("/api/v1/system/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "assistant": "model"}
+    assert response.json() == {
+        "status": "ok",
+        "assistant": "model",
+        "version": VERSION,
+    }
 
 
 def test_openapi_uses_application_metadata() -> None:

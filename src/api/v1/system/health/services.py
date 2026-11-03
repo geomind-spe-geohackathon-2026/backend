@@ -1,5 +1,6 @@
 from src.api.v1.system.health import schemas
 from src.core.settings import settings
+from src.version import VERSION
 
 
 def get_health_status() -> schemas.HealthStatus:
@@ -7,4 +8,5 @@ def get_health_status() -> schemas.HealthStatus:
     return schemas.HealthStatus(
         status="ok",
         assistant="scripted" if scripted else "model",
+        version=VERSION,
     )

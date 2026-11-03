@@ -8,10 +8,11 @@ from src.core.lifespan import lifespan
 from src.core.logging.logger import configure_logging, ignore_client_disconnects
 from src.core.middlewares import include_middlewares
 from src.core.settings import settings
+from src.version import VERSION
 
 app = FastAPI(
     title=settings.APP_NAME,
-    version=settings.APP_VERSION,
+    version=VERSION,
     debug=settings.APP_DEBUG,
     lifespan=lifespan,
 )

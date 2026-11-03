@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     APP_ENV: Literal["development", "test", "production"] = "development"
     APP_DEBUG: bool = False
     APP_LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    APP_VERSION: str = "0.1.0"
     APP_CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
     JWT_SECRET_KEY: str

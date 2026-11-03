@@ -1,0 +1,18 @@
+# Changelog
+
+The backend and its API contract (`docs/app-build/contracts.md`) share one version,
+`major.minor.patch`, set in `src/version.py`. A change that breaks a reader raises the major, an
+addition raises the minor and a fix raises the patch. Each release is tagged `v<version>` on
+`main`. Work goes to `dev` first and reaches `main` when its tests pass.
+
+## [1.0.0] - 2026-11-03
+
+The first numbered release: the contract as it stood at number 52.
+
+- Live run events over `WS /assistant/runs/{id}/stream`, with SSE as the fallback.
+- `tool.finished.problem` carries a failed tool's code, such as `no_case` or `case_incomplete`
+  with the missing paths.
+- `POST /design/study` takes an optional `plant_version`; a study has `plant_pinned`.
+- The assistant reads a project's uploaded files.
+- gemini 0.5.5 and geomind 0.4.13, both from their release wheels pinned by sha256.
+- `GET /system/health` has `version`.
