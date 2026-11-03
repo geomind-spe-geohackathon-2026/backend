@@ -102,7 +102,9 @@ def build_environment(
     return Environment(
         store=DatabaseRunStore(bridge, run.id, run.chat_id),
         workspace=DatabaseWorkspace(
-            bridge, BlobStore(resources.minio, settings.MINIO_BUCKET_NAME)
+            bridge,
+            BlobStore(resources.minio, settings.MINIO_BUCKET_NAME),
+            run.id.hex,
         ),
         callbacks=[recorder, studies, publisher],
         is_cancelled=lambda: resources.jobs.is_cancel_requested(str(run.id)),

@@ -6,6 +6,16 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.2] - 2026-11-03
+
+- Knowledge: geomind's shared memory as `/workspace/knowledge`, with list, search, read, add,
+  change, delete and CSV import; entries are checked by geomind's own rule.
+- Connectors: MCP servers as `/workspace/connectors`, secrets sealed at rest and never sent back,
+  checked through geomind's MCP client.
+- A project chooses `memory` (on or off) and its `connectors`; runs get them through the
+  workspace (`memory`, `connectors`), as agreed with geomind.
+- Migration 0011.
+
 ## [1.1.1] - 2026-11-03
 
 - gemini 0.5.10 and geomind 0.4.19, from their release wheels pinned by sha256; the sandbox

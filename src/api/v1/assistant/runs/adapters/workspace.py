@@ -1,5 +1,6 @@
 import asyncio
 import mimetypes
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
@@ -7,19 +8,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
 from src.api.v1.assistant.runs.adapters.documents import search_documents
+from src.api.v1.assistant.runs.adapters.memory import DatabaseMemory
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.models.document import Document
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
+from src.core.clients.postgres.repositories.connector import ConnectorRepository
 from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
 )
+from src.core.clients.postgres.repositories.project import ProjectRepository
+from src.core.connectors import server_of
 
 DEFAULT_PLANT_NAME = "plant"
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
+MEMORY_ON = "on"
 
 
 async def read_plants(
@@ -44,6 +50,24 @@ async def read_case(
     return version.content, [(file.name, file.object_key) for file in files]
 
 
+@dataclass(frozen=True, slots=True)
+class Choices:
+    """What a project chose for its runs: the shared memory, and its connectors."""
+
+    memory_on: bool
+    servers: tuple[dict[str, Any], ...]
+
+
+async def read_choices(session: AsyncSession, project_id: UUID) -> Choices:
+    project = await ProjectRepository(session).get_by_id(project_id)
+    if project is None:
+        return Choices(False, ())
+    ids = [UUID(item) for item in project.connectors or []]
+    found = await ConnectorRepository(session).by_ids(ids)
+    servers = tuple(server_of(item) for item in found if item.enabled)
+    return Choices(project.memory == MEMORY_ON, servers)
+
+
 async def read_files(session: AsyncSession, project_id: UUID) -> list[Document]:
     return await DocumentRepository(session).newest_by_name(project_id)
 
@@ -61,10 +85,15 @@ class DatabaseWorkspace:
     loop it needs, so ``warm`` reads them ahead of the run and the loop gets that copy.
     """
 
-    def __init__(self, bridge: LoopBridge, blobs: BlobStore) -> None:
+    def __init__(
+        self, bridge: LoopBridge, blobs: BlobStore, run_id: str | None = None
+    ) -> None:
         self.bridge = bridge
         self.blobs = blobs
+        self.run_id = run_id
         self.warmed: dict[str, tuple[dict[str, Any], list[Document]]] = {}
+        self.choices: dict[str, Choices] = {}
+        self.memories: dict[str, DatabaseMemory] = {}
 
     async def warm(self, project_id: str) -> None:
         """Read a project's plants and uploaded files ahead of a run."""
@@ -73,6 +102,37 @@ class DatabaseWorkspace:
         )
         rows = await asyncio.to_thread(self.bridge.call, read_files, UUID(project_id))
         self.warmed[project_id] = (plants, rows)
+        choices = await asyncio.to_thread(
+            self.bridge.call, read_choices, UUID(project_id)
+        )
+        self.choices[project_id] = choices
+        if choices.memory_on:
+            memory = DatabaseMemory(self.bridge, project_id, self.run_id)
+            await memory.warm()
+            self.memories[project_id] = memory
+
+    def choices_of(self, project_id: str) -> Choices:
+        if project_id not in self.choices:
+            self.choices[project_id] = self.bridge.call(read_choices, UUID(project_id))
+        return self.choices[project_id]
+
+    def memory(self, project_id: str) -> DatabaseMemory | None:
+        """Return the shared memory as the project sees it, or ``None`` when it is off.
+
+        A project uses the memory only when it chose ``on``; one that has not chosen
+        does not, so a competition run never reads it by chance.
+        """
+        if not self.choices_of(project_id).memory_on:
+            return None
+        if project_id not in self.memories:
+            self.memories[project_id] = DatabaseMemory(
+                self.bridge, project_id, self.run_id
+            )
+        return self.memories[project_id]
+
+    def connectors(self, project_id: str) -> list[dict[str, Any]]:
+        """Return the enabled connectors the project chose, each with its headers."""
+        return list(self.choices_of(project_id).servers)
 
     def plants(self, project_id: str) -> dict[str, dict[str, Any]]:
         """Return ``{name: plant file dict}`` of the project, ``{}`` without a plant."""

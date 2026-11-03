@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import BigInteger, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, query_expression, relationship
 
-from src.core.clients.postgres.client import Base, UtcDateTime, utc_now
+from src.core.clients.postgres.client import Base, Json, UtcDateTime, utc_now
 from src.core.clients.postgres.models.user import User
 
 
@@ -23,6 +23,8 @@ class Project(Base):
 
     budget_max_tokens: Mapped[int | None] = mapped_column(BigInteger)
     budget_max_cost: Mapped[float | None] = mapped_column(Float)
+    memory: Mapped[str | None] = mapped_column(String(3))
+    connectors: Mapped[list[str]] = mapped_column(Json, default=list)
 
     owner: Mapped[User] = relationship(lazy="joined")
     plant_version: Mapped[int | None] = query_expression()

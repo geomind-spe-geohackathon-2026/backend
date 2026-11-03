@@ -12,9 +12,14 @@ ProjectName = Annotated[
 ]
 
 
+MemoryChoice = Literal["on", "off"]
+
+
 class ProjectCreate(BaseModel):
     name: ProjectName
     case_from: UUID | None = None
+    memory: MemoryChoice | None = None
+    connectors: list[UUID] | None = None
 
 
 class Budget(BaseModel):
@@ -29,6 +34,8 @@ class CaseCopy(BaseModel):
 class ProjectUpdate(BaseModel):
     name: ProjectName | None = None
     budget: Budget | None = None
+    memory: MemoryChoice | None = None
+    connectors: list[UUID] | None = None
 
 
 class ProjectFile(BaseModel):
@@ -72,3 +79,5 @@ class Project(BaseModel):
     chats: int
     runs: int
     budget: Budget
+    memory: MemoryChoice | None
+    connectors: list[UUID]

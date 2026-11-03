@@ -28,10 +28,14 @@ from src.api.v1.assistant.runs.adapters.store import (
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
+from src.core.clients.postgres.repositories.connector import ConnectorRepository
 from src.core.clients.postgres.repositories.document import DocumentRepository
+from src.core.clients.postgres.repositories.knowledge import KnowledgeRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
+from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
+from src.core.secrets import seal
 from src.core.settings import settings
 from tests import design_inputs
 from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
@@ -564,3 +568,83 @@ async def test_the_live_stream_gives_a_failed_tool_its_problem() -> None:
     assert json.loads(message["data"])["data"]["problem"] == problem
     await subscriber.aclose()
     await redis.aclose()
+
+
+async def test_memory_is_given_only_to_a_project_that_chose_it(
+    session_factory, session, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    on = await make_project(owner, "On")
+    other = await make_project(owner, "Other")
+    undecided = await make_project(owner, "Undecided")
+    projects = ProjectRepository(session)
+    await projects.set_choices(await projects.get_by_id(on.id), "on", None)
+    knowledge = KnowledgeRepository(session)
+    shared = {"id": "pump", "origin": "catalogue"}
+    await knowledge.put("knowledge", shared, None, ("seed", None))
+    await knowledge.put("knowledge", {"id": "mine"}, on.id, ("user", None))
+    await knowledge.put("knowledge", {"id": "theirs"}, other.id, ("user", None))
+    bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+    workspace = DatabaseWorkspace(bridge, blobs, "run-1")
+
+    memory = await asyncio.to_thread(workspace.memory, str(on.id))
+    nothing = await asyncio.to_thread(workspace.memory, str(undecided.id))
+    seen = await asyncio.to_thread(memory.entries, "knowledge")
+    await asyncio.to_thread(
+        memory.add, "experience", {"id": "design-1", "origin": "code"}
+    )
+    await asyncio.to_thread(memory.add, "knowledge", {"id": "fact", "origin": "user"})
+
+    assert nothing is None
+    assert {entry["id"] for entry in seen} == {"pump", "mine"}
+    experience = await knowledge.get("experience", "design-1")
+    fact = await knowledge.get("knowledge", "fact", on.id)
+    assert experience.project_id is None
+    assert (experience.created_by_kind, experience.created_by) == ("agent", "run-1")
+    assert fact.project_id == on.id
+
+
+async def test_the_loop_reads_warmed_memory_and_connectors(
+    session_factory, session, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    connector = await ConnectorRepository(session).create(
+        {
+            "name": "wells",
+            "url": "https://mcp.example.com",
+            "transport": "http",
+            "auth": "header",
+            "header_name": "X-Key",
+            "secret": seal("k"),
+        }
+    )
+    off = await ConnectorRepository(session).create(
+        {
+            "name": "off",
+            "url": "https://off.example.com",
+            "transport": "http",
+            "auth": "none",
+            "enabled": False,
+        }
+    )
+    projects = ProjectRepository(session)
+    await projects.set_choices(
+        await projects.get_by_id(project.id), "on", [connector.id, off.id]
+    )
+    workspace = DatabaseWorkspace(
+        LoopBridge(asyncio.get_running_loop(), session_factory), blobs
+    )
+    project_id = str(project.id)
+
+    await workspace.warm(project_id)
+
+    assert workspace.connectors(project_id) == [
+        {
+            "name": "wells",
+            "url": "https://mcp.example.com",
+            "transport": "http",
+            "headers": {"X-Key": "k"},
+        }
+    ]
+    assert workspace.memory(project_id).entries("knowledge") == []

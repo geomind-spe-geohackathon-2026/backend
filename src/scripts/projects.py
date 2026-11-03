@@ -28,6 +28,8 @@ from src.core.settings import settings
 
 BUNDLE_FORMAT = 1
 USERS = "users"
+SHARED_TABLES = frozenset({USERS, "connectors"})
+"""Tables no project owns; a connector's secret never leaves its server."""
 PROJECTS = "projects"
 MANIFEST = "manifest.json"
 TABLE_FOLDER = "tables/"
@@ -49,8 +51,12 @@ class Blobs(Protocol):
 
 
 def project_tables() -> list[Table]:
-    """Return every table but the users, parents first."""
-    return [table for table in Base.metadata.sorted_tables if table.name != USERS]
+    """Return every table a project owns rows of, parents first."""
+    return [
+        table
+        for table in Base.metadata.sorted_tables
+        if table.name not in SHARED_TABLES
+    ]
 
 
 def rows_of_table(table: Table, ids: list[UUID]) -> Select[Any]:

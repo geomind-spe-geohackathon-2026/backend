@@ -97,6 +97,20 @@ class ProjectRepository(BaseRepository):
         await self.session.commit()
         return project
 
+    async def set_choices(
+        self,
+        project: Project,
+        memory: str | None,
+        connectors: list[UUID] | None,
+    ) -> Project:
+        """Set whether a project's runs use the shared memory and which connectors."""
+        if memory is not None:
+            project.memory = memory
+        if connectors is not None:
+            project.connectors = [str(item) for item in dict.fromkeys(connectors)]
+        await self.session.commit()
+        return project
+
     async def create_with_versions(
         self,
         project_id: UUID,

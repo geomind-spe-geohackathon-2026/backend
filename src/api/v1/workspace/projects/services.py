@@ -21,6 +21,7 @@ from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
+from src.core.clients.postgres.repositories.connector import ConnectorRepository
 from src.core.clients.postgres.repositories.document import DocumentRepository
 from src.core.clients.postgres.repositories.plant_version import (
     PlantVersionRepository,
@@ -87,6 +88,8 @@ def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
             max_tokens=project.budget_max_tokens,
             max_cost=project.budget_max_cost,
         ),
+        memory=project.memory,
+        connectors=project.connectors or [],
     )
 
 
@@ -141,6 +144,7 @@ async def create_project(
     """Create a project, empty or with a copy of another project's latest case."""
     if payload.case_from is None:
         project = await repository.create(payload.name, user.id)
+        project = await apply_choices(project, payload, repository)
         return await describe_one(project, progress)
     source = await require_project(payload.case_from, user, repository)
     copied = await copy_case(source, cases, files, blobs)
@@ -153,6 +157,7 @@ async def create_project(
     except Exception:
         await remove_cases(blobs, stored)
         raise
+    project = await apply_choices(project, payload, repository)
     return await describe_one(project, progress)
 
 
@@ -200,7 +205,24 @@ async def update_project(
         project = await repository.set_budget(
             project, payload.budget.max_tokens, payload.budget.max_cost
         )
+    project = await apply_choices(project, payload, repository)
     return await describe_one(project, progress)
+
+
+async def apply_choices(
+    project: Project,
+    payload: schemas.ProjectCreate | schemas.ProjectUpdate,
+    repository: ProjectRepository,
+) -> Project:
+    """Set memory and connectors when given; an unknown connector is refused."""
+    if payload.memory is None and payload.connectors is None:
+        return project
+    if payload.connectors:
+        known = await ConnectorRepository(repository.session).by_ids(payload.connectors)
+        missing = set(payload.connectors) - {item.id for item in known}
+        if missing:
+            raise ValidationFailedError({"connectors": "No such connector"})
+    return await repository.set_choices(project, payload.memory, payload.connectors)
 
 
 async def delete_project(

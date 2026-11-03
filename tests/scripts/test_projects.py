@@ -16,6 +16,7 @@ from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.chat import Chat
 from src.core.clients.postgres.models.chat_state import ChatState
 from src.core.clients.postgres.models.document import Document
+from src.core.clients.postgres.models.knowledge_entry import KnowledgeEntry
 from src.core.clients.postgres.models.message import Message
 from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
@@ -141,6 +142,15 @@ def full_project(owner: User) -> list[object]:
             actor_kind="user",
             actor_name="A",
             text="T",
+        ),
+        KnowledgeEntry(
+            id=uuid4(),
+            section="knowledge",
+            entry_id=f"fact-{project.id}",
+            data={"id": f"fact-{project.id}", "origin": "user"},
+            project_id=project.id,
+            created_by_kind="user",
+            created_by=str(owner.id),
         ),
     ]
 

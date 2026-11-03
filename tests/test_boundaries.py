@@ -6,11 +6,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 GEMINI_ALLOWED = Path("src/core/gemini")
-AGENT_ALLOWED = Path("src/api/v1/assistant/runs/adapters")
+AGENT_ALLOWED = (Path("src/api/v1/assistant/runs/adapters"), Path("src/core/geomind"))
 AGENT_PACKAGES = {"geomind"}
 GEMINI_MODULES = {"gemini", "gemini.errors"}
 FEATURES = Path("src/api/v1")
-LAYOUT = (GEMINI_ALLOWED, AGENT_ALLOWED)
+LAYOUT = (GEMINI_ALLOWED, *AGENT_ALLOWED)
 
 
 def imported_modules(path: Path) -> Iterator[tuple[int, str]]:
@@ -53,8 +53,8 @@ def gemini_violation(path: Path, module: str) -> str | None:
 def agent_violation(path: Path, module: str) -> str | None:
     if module.partition(".")[0] not in AGENT_PACKAGES:
         return None
-    if not path.is_relative_to(AGENT_ALLOWED):
-        return "the agent package is imported outside assistant/runs/adapters"
+    if not any(path.is_relative_to(allowed) for allowed in AGENT_ALLOWED):
+        return "the agent package is imported outside its adapters and src/core/geomind"
     if module.count(".") <= 1:
         return None
     return "only geomind and geomind.<name> may be imported"
@@ -125,7 +125,9 @@ def test_agent_package_is_found_outside_the_adapters(tmp_path: Path) -> None:
 
 
 def test_deep_agent_path_is_found_even_in_adapters(tmp_path: Path) -> None:
-    write(tmp_path, f"{AGENT_ALLOWED}/agent.py", "from geomind.engine.loop import x\n")
+    write(
+        tmp_path, f"{AGENT_ALLOWED[0]}/agent.py", "from geomind.engine.loop import x\n"
+    )
 
     found = violations(tmp_path)
 
@@ -134,13 +136,13 @@ def test_deep_agent_path_is_found_even_in_adapters(tmp_path: Path) -> None:
 
 def test_public_agent_imports_are_allowed_in_adapters(tmp_path: Path) -> None:
     source = "import geomind as gd\nimport geomind.hooks\nfrom geomind import Run\n"
-    write(tmp_path, f"{AGENT_ALLOWED}/agent.py", source)
+    write(tmp_path, f"{AGENT_ALLOWED[0]}/agent.py", source)
 
     assert violations(tmp_path) == []
 
 
 def test_gemini_is_not_allowed_in_adapters(tmp_path: Path) -> None:
-    write(tmp_path, f"{AGENT_ALLOWED}/agent.py", "import gemini as gm\n")
+    write(tmp_path, f"{AGENT_ALLOWED[0]}/agent.py", "import gemini as gm\n")
 
     assert violations(tmp_path)
 
@@ -151,7 +153,7 @@ def test_layout_packages_exist() -> None:
 
 
 def test_agent_package_is_allowed_in_adapters(tmp_path: Path) -> None:
-    write(tmp_path, f"{AGENT_ALLOWED}/agent.py", "import geomind as gd\n")
+    write(tmp_path, f"{AGENT_ALLOWED[0]}/agent.py", "import geomind as gd\n")
 
     assert violations(tmp_path) == []
 
@@ -192,4 +194,9 @@ def test_feature_may_import_itself_and_domains_may_gather(tmp_path: Path) -> Non
         "from src.api.v1.identity.users.router import router\n",
     )
 
+    assert violations(tmp_path) == []
+
+
+def test_core_geomind_may_import_geomind(tmp_path: Path) -> None:
+    write(tmp_path, f"{AGENT_ALLOWED[1]}/memory.py", "import geomind as gd\n")
     assert violations(tmp_path) == []

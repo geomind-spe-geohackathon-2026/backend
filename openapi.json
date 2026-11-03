@@ -156,6 +156,20 @@
         "title": "Body_add_file_api_v1_design_case_files_post",
         "type": "object"
       },
+      "Body_import_entries_api_v1_workspace_knowledge_import_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_entries_api_v1_workspace_knowledge_import_post",
+        "type": "object"
+      },
       "Body_import_project_api_v1_workspace_projects_import_post": {
         "properties": {
           "file": {
@@ -646,6 +660,307 @@
         "title": "Checks",
         "type": "object"
       },
+      "Connector": {
+        "description": "A connector as anyone may see it: the secret is only ``has_secret``.",
+        "properties": {
+          "auth": {
+            "enum": [
+              "none",
+              "bearer",
+              "header"
+            ],
+            "title": "Auth",
+            "type": "string"
+          },
+          "checked": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked"
+          },
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "has_secret": {
+            "title": "Has Secret",
+            "type": "boolean"
+          },
+          "header_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Header Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unchecked",
+              "ok",
+              "error"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectorTool"
+            },
+            "title": "Tools",
+            "type": "array"
+          },
+          "transport": {
+            "enum": [
+              "http",
+              "sse"
+            ],
+            "title": "Transport",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "transport",
+          "auth",
+          "header_name",
+          "has_secret",
+          "enabled",
+          "status",
+          "error",
+          "checked",
+          "tools",
+          "created"
+        ],
+        "title": "Connector",
+        "type": "object"
+      },
+      "ConnectorCreate": {
+        "properties": {
+          "auth": {
+            "default": "none",
+            "enum": [
+              "none",
+              "bearer",
+              "header"
+            ],
+            "title": "Auth",
+            "type": "string"
+          },
+          "header_name": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9-]{1,255}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Header Name"
+          },
+          "name": {
+            "pattern": "^[a-z0-9_-]{1,32}$",
+            "title": "Name",
+            "type": "string"
+          },
+          "secret": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secret"
+          },
+          "transport": {
+            "default": "http",
+            "enum": [
+              "http",
+              "sse"
+            ],
+            "title": "Transport",
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "url"
+        ],
+        "title": "ConnectorCreate",
+        "type": "object"
+      },
+      "ConnectorTool": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "read_only": {
+            "title": "Read Only",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "read_only"
+        ],
+        "title": "ConnectorTool",
+        "type": "object"
+      },
+      "ConnectorUpdate": {
+        "properties": {
+          "auth": {
+            "anyOf": [
+              {
+                "enum": [
+                  "none",
+                  "bearer",
+                  "header"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "header_name": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9-]{1,255}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Header Name"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9_-]{1,32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "secret": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secret"
+          },
+          "transport": {
+            "anyOf": [
+              {
+                "enum": [
+                  "http",
+                  "sse"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transport"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "ConnectorUpdate",
+        "type": "object"
+      },
       "Constraint": {
         "properties": {
           "limit": {
@@ -807,6 +1122,36 @@
         "title": "CoverageDay",
         "type": "object"
       },
+      "CreatedBy": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "enum": [
+              "seed",
+              "user",
+              "agent"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "title": "CreatedBy",
+        "type": "object"
+      },
       "Credentials": {
         "properties": {
           "email": {
@@ -920,6 +1265,95 @@
           "created"
         ],
         "title": "Document",
+        "type": "object"
+      },
+      "Entry": {
+        "additionalProperties": true,
+        "description": "An entry as geomind keeps it, its own fields at the top level.",
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "title": "Created",
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/CreatedBy"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "project": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project"
+          },
+          "section": {
+            "enum": [
+              "knowledge",
+              "experience"
+            ],
+            "title": "Section",
+            "type": "string"
+          },
+          "updated": {
+            "format": "date-time",
+            "title": "Updated",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "section",
+          "project",
+          "created",
+          "updated",
+          "created_by"
+        ],
+        "title": "Entry",
+        "type": "object"
+      },
+      "EntryChange": {
+        "additionalProperties": true,
+        "description": "Fields to change in a knowledge entry; ``null`` clears one.",
+        "properties": {},
+        "title": "EntryChange",
+        "type": "object"
+      },
+      "EntryInput": {
+        "additionalProperties": true,
+        "description": "A knowledge entry a person writes; geomind's check decides what it needs.",
+        "properties": {
+          "id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "project": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "EntryInput",
         "type": "object"
       },
       "Failure": {
@@ -1200,6 +1634,87 @@
           "version"
         ],
         "title": "HealthStatus",
+        "type": "object"
+      },
+      "ImportProblem": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "row": {
+            "title": "Row",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "row",
+          "message"
+        ],
+        "title": "ImportProblem",
+        "type": "object"
+      },
+      "ImportReport": {
+        "properties": {
+          "added": {
+            "title": "Added",
+            "type": "integer"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ImportProblem"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "replaced": {
+            "title": "Replaced",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "replaced",
+          "errors"
+        ],
+        "title": "ImportReport",
+        "type": "object"
+      },
+      "KnowledgeSettings": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "sections": {
+            "items": {
+              "enum": [
+                "knowledge",
+                "experience"
+              ],
+              "type": "string"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similarity"
+          }
+        },
+        "required": [
+          "sections",
+          "similarity",
+          "available"
+        ],
+        "title": "KnowledgeSettings",
         "type": "object"
       },
       "Kpi": {
@@ -1573,6 +2088,34 @@
           "next"
         ],
         "title": "Page[Document]",
+        "type": "object"
+      },
+      "Page_Entry_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Entry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "Page[Entry]",
         "type": "object"
       },
       "Page_Message_": {
@@ -2244,6 +2787,14 @@
             "title": "Chats",
             "type": "integer"
           },
+          "connectors": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Connectors",
+            "type": "array"
+          },
           "created": {
             "format": "date-time",
             "title": "Created",
@@ -2253,6 +2804,21 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "memory": {
+            "anyOf": [
+              {
+                "enum": [
+                  "on",
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory"
           },
           "name": {
             "title": "Name",
@@ -2296,7 +2862,9 @@
           "progress",
           "chats",
           "runs",
-          "budget"
+          "budget",
+          "memory",
+          "connectors"
         ],
         "title": "Project",
         "type": "object"
@@ -2314,6 +2882,36 @@
               }
             ],
             "title": "Case From"
+          },
+          "connectors": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connectors"
+          },
+          "memory": {
+            "anyOf": [
+              {
+                "enum": [
+                  "on",
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory"
           },
           "name": {
             "maxLength": 255,
@@ -2339,6 +2937,36 @@
                 "type": "null"
               }
             ]
+          },
+          "connectors": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connectors"
+          },
+          "memory": {
+            "anyOf": [
+              {
+                "enum": [
+                  "on",
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory"
           },
           "name": {
             "anyOf": [
@@ -4138,7 +4766,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.1"
+    "version": "1.1.2"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -6905,6 +7533,200 @@
         ]
       }
     },
+    "/api/v1/workspace/connectors": {
+      "get": {
+        "operationId": "list_connectors_api_v1_workspace_connectors_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Connector"
+                  },
+                  "title": "Response List Connectors Api V1 Workspace Connectors Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Connectors",
+        "tags": [
+          "Connectors"
+        ]
+      },
+      "post": {
+        "operationId": "create_connector_api_v1_workspace_connectors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Connector"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Connector",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
+    "/api/v1/workspace/connectors/{connector_id}": {
+      "delete": {
+        "operationId": "delete_connector_api_v1_workspace_connectors__connector_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Connector",
+        "tags": [
+          "Connectors"
+        ]
+      },
+      "patch": {
+        "operationId": "update_connector_api_v1_workspace_connectors__connector_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Connector"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Connector",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
+    "/api/v1/workspace/connectors/{connector_id}/check": {
+      "post": {
+        "operationId": "check_connector_api_v1_workspace_connectors__connector_id__check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Connector"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Connector",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
     "/api/v1/workspace/documents": {
       "get": {
         "operationId": "list_documents_api_v1_workspace_documents_get",
@@ -7073,6 +7895,403 @@
         "summary": "Delete Document",
         "tags": [
           "Documents"
+        ]
+      }
+    },
+    "/api/v1/workspace/knowledge": {
+      "get": {
+        "operationId": "list_entries_api_v1_workspace_knowledge_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "section",
+            "required": false,
+            "schema": {
+              "default": "knowledge",
+              "enum": [
+                "knowledge",
+                "experience"
+              ],
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Entry_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Entries",
+        "tags": [
+          "Knowledge"
+        ]
+      },
+      "post": {
+        "operationId": "add_entry_api_v1_workspace_knowledge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Entry",
+        "tags": [
+          "Knowledge"
+        ]
+      }
+    },
+    "/api/v1/workspace/knowledge/import": {
+      "post": {
+        "operationId": "import_entries_api_v1_workspace_knowledge_import_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_entries_api_v1_workspace_knowledge_import_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Entries",
+        "tags": [
+          "Knowledge"
+        ]
+      }
+    },
+    "/api/v1/workspace/knowledge/knowledge/{entry_id}": {
+      "patch": {
+        "operationId": "change_entry_api_v1_workspace_knowledge_knowledge__entry_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Entry",
+        "tags": [
+          "Knowledge"
+        ]
+      }
+    },
+    "/api/v1/workspace/knowledge/settings": {
+      "get": {
+        "operationId": "read_settings_api_v1_workspace_knowledge_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Read Settings",
+        "tags": [
+          "Knowledge"
+        ]
+      }
+    },
+    "/api/v1/workspace/knowledge/{section}/{entry_id}": {
+      "delete": {
+        "operationId": "delete_entry_api_v1_workspace_knowledge__section___entry_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "enum": [
+                "knowledge",
+                "experience"
+              ],
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Entry",
+        "tags": [
+          "Knowledge"
+        ]
+      },
+      "get": {
+        "operationId": "get_entry_api_v1_workspace_knowledge__section___entry_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "enum": [
+                "knowledge",
+                "experience"
+              ],
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Entry",
+        "tags": [
+          "Knowledge"
         ]
       }
     },

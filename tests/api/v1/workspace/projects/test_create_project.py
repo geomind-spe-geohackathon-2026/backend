@@ -26,12 +26,15 @@ async def test_create_returns_the_contract_project(client, make_user) -> None:
         "chats",
         "runs",
         "budget",
+        "memory",
+        "connectors",
     }
     assert body["name"] == "Doublet"
     assert body["owner"] == {"id": str(user.id), "name": user.name}
     assert body["plant_version"] is None
     assert (body["chats"], body["runs"]) == (0, 0)
     assert body["budget"] == {"max_tokens": None, "max_cost": None}
+    assert (body["memory"], body["connectors"]) == (None, [])
     assert body["created"].endswith("Z")
 
 
