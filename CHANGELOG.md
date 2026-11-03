@@ -1,9 +1,15 @@
 # Changelog
 
 The backend and its API contract (`docs/app-build/contracts.md`) share one version,
-`major.minor.patch`, set in `src/version.py`. A change that breaks a reader raises the major, an
-addition raises the minor and a fix raises the patch. Each release is tagged `v<version>` on
-`main`. Work goes to `dev` first and reaches `main` when its tests pass.
+`major.minor.patch`, set in `src/version.py`, the same scheme as the frontend. For now every
+release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 2026-11-03). Each
+release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
+tests pass.
+
+## [1.1.0] - 2026-11-03
+
+- Versions follow the frontend's scheme: 1.1, then only the patch goes up.
+- Tests: a run cancelled before it starts ends as cancelled.
 
 ## [1.0.3] - 2026-11-03
 
