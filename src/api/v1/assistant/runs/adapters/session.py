@@ -114,9 +114,18 @@ def build_environment(
     )
 
 
+def allowed_model_prefixes() -> tuple[str, ...]:
+    """Return the model id prefixes a run may use."""
+    parts = settings.ASSISTANT_MODEL_PREFIX.split(",")
+    return tuple(part.strip() for part in parts if part.strip())
+
+
 def refused_models() -> list[str]:
-    """Return the models geomind would use that the app does not allow."""
-    allowed = settings.ASSISTANT_MODEL_PREFIX
+    """Return the models geomind would use that the app does not allow.
+
+    ``ASSISTANT_MODEL_PREFIX`` is one model id prefix or several, comma separated.
+    """
+    allowed = allowed_model_prefixes()
     return sorted(
         {
             value

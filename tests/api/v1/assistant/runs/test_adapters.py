@@ -19,6 +19,7 @@ from src.api.v1.assistant.runs.adapters.session import (
     build_llm,
     build_sandbox,
     check_models,
+    allowed_model_prefixes,
     refused_models,
     seed_problem,
 )
@@ -526,9 +527,26 @@ def test_env_examples_name_only_allowed_models(name: str) -> None:
     models = dict(line.split("=", 1) for line in lines if "_MODEL=" in line)
 
     assert set(models) >= {"GEOMIND_MODEL", "GEOMIND_CHEAP_MODEL"}
-    assert all(
-        value.startswith(settings.ASSISTANT_MODEL_PREFIX) for value in models.values()
+    assert all(value.startswith(allowed_model_prefixes()) for value in models.values())
+
+
+def test_several_model_prefixes_may_be_allowed(monkeypatch) -> None:
+    nemotron = "nvidia/nemotron-3.5-super-vl:free"
+    monkeypatch.setattr(
+        settings, "ASSISTANT_MODEL_PREFIX", "deepseek/, nvidia/nemotron-"
     )
+    monkeypatch.setenv("GEOMIND_MODEL", nemotron)
+    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+
+    assert refused_models() == []
+
+
+def test_a_model_outside_every_prefix_is_refused(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "ASSISTANT_MODEL_PREFIX", "nvidia/nemotron-")
+    monkeypatch.setenv("GEOMIND_MODEL", "nvidia/nemotron-3.5-super-vl:free")
+    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+
+    assert refused_models() == ["deepseek/deepseek-v4.1-flash-1017"]
 
 
 def test_deepseek_everywhere_is_allowed(monkeypatch) -> None:
