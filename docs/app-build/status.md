@@ -11,7 +11,7 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 | backend | 13e845e | see `git log` |
 | frontend | ffd7673 | see `git log` |
 | gemini | wheel 0.5.5 | wheel 0.5.5 |
-| geomind | wheel 0.4.5 in `vendor/` | wheel 0.4.5 |
+| geomind | wheel 0.4.5 in `vendor/` | wheel 0.4.6 |
 | sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
 Contract version 50. Latest migration 0009.
@@ -38,6 +38,10 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 ## Context window
 
 `GEOMIND_CONTEXT_WINDOW=128000` is our cost choice, not a fact of the model: DeepSeek v4.1 flash on Relace reports 1,048,576 tokens. geomind compacts at a share of this window, so the lower number keeps the context, and the cost of each call, as they were before 0.4.2 made the window a setting. Production has the same line.
+
+## Compare loop
+
+geomind 0.4.6 designs each plant family on its own, verifies and ranks them. The chat state gains `design.alternatives` and `design.comparison`, and a run can stop with `no_alternatives` or `no_verified`; the backend passes both through unchanged. `GEOMIND_COMPARE_CONCURRENCY` is unset here and on production, so families run one at a time and a budget cap holds exactly.
 
 ## Units
 
