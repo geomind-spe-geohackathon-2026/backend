@@ -69,8 +69,8 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   in `docs/ASSISTANT.md`.
 - **Deploy:** `compose.yml` here runs the API and the worker from `.env.production`
   (`.env` is for the tests): `cp .env.example .env.production && docker compose up -d --build`. The data services and Traefik
-  come from `../infrastructure`. The backend image also needs the build context
-  `geomind: ../geomind` (the Dockerfile copies it; `requirements.txt` has `-e ../geomind`).
+  come from `../infrastructure`. geomind is a wheel in `vendor/`, checked against
+  `vendor/SHA256SUMS`, because its repository is private.
 - **Tests:** `.venv/bin/python -m pytest -n auto`, including the import boundary test,
   `tests/test_no_comments.py` (docstrings only, no comments in code)
   and `tests/test_route_guard.py`, which every new route must pass. See

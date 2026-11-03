@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from src.core.clients.postgres.models.run_event import RunEvent
 from src.core.clients.postgres.repositories.base import BaseRepository, DatabaseSession
@@ -32,14 +32,17 @@ class RunEventRepository(BaseRepository):
         run_id: UUID,
         sequence: int,
         public_only: bool = False,
+        also: tuple[str, ...] = (),
     ) -> list[RunEvent]:
-        """Return a run's events with a sequence above ``sequence``, in order."""
+        """Return a run's events above ``sequence``; ``also`` adds internal types."""
         statement = select(RunEvent).where(
             RunEvent.run_id == run_id,
             RunEvent.sequence > sequence,
         )
         if public_only:
-            statement = statement.where(RunEvent.public.is_(True))
+            statement = statement.where(
+                or_(RunEvent.public.is_(True), RunEvent.type.in_(also))
+            )
         statement = statement.order_by(RunEvent.sequence, RunEvent.id)
         return list(await self.session.scalars(statement))
 

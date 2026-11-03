@@ -1,19 +1,23 @@
 import asyncio
+import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from uuid import UUID, uuid4
 
+import fakeredis
 import geomind as gd
 import pytest
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge, LoopBridgeError
-from src.api.v1.assistant.runs.adapters.callbacks import StudyRecorder
+from src.api.v1.assistant.runs.adapters.callbacks import EventPublisher, StudyRecorder
 from src.api.v1.assistant.runs.adapters.errors import AdapterFailedError
 from src.api.v1.assistant.runs.adapters.replay import known_events
 from src.api.v1.assistant.runs.adapters.session import (
     Environment,
     build_budget,
     build_llm,
+    check_models,
     refused_models,
     seed_problem,
 )
@@ -429,11 +433,20 @@ def test_a_model_outside_the_allowed_family_is_refused(monkeypatch) -> None:
         build_llm(False, "hello")
 
 
-def test_an_unset_model_falls_to_geomind_default_and_is_refused(monkeypatch) -> None:
+def test_an_unset_model_stops_the_app_with_the_setting_to_add(monkeypatch) -> None:
     monkeypatch.delenv("GEOMIND_MODEL", raising=False)
     monkeypatch.delenv("GEOMIND_CHEAP_MODEL", raising=False)
+    monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
 
-    assert refused_models()
+    with pytest.raises(AdapterFailedError, match="GEOMIND_CHEAP_MODEL"):
+        check_models()
+
+
+def test_the_scripted_assistant_needs_no_model(monkeypatch) -> None:
+    monkeypatch.delenv("GEOMIND_MODEL", raising=False)
+    monkeypatch.setattr(settings, "ASSISTANT_LLM", "fake")
+
+    check_models()
 
 
 @pytest.mark.parametrize("name", [".env.example", ".env.dev.example"])
@@ -452,3 +465,36 @@ def test_deepseek_everywhere_is_allowed(monkeypatch) -> None:
     monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
 
     assert refused_models() == []
+
+
+async def test_the_live_stream_gives_a_failed_tool_its_problem() -> None:
+    redis = fakeredis.FakeAsyncRedis(decode_responses=True)
+    publisher = EventPublisher(redis, "channel", uuid4(), 60)
+    subscriber = redis.pubsub()
+    await subscriber.subscribe("channel")
+    await subscriber.get_message(timeout=1)
+    problem = {"code": "no_case", "path": None, "message": "No case", "suggestions": []}
+    recorded = SimpleNamespace(
+        type="tool.result",
+        is_public=False,
+        is_error=True,
+        agent="designer",
+        call_id="c1",
+        output={"error": problem},
+    )
+    finished = SimpleNamespace(
+        type="tool.finished",
+        is_public=True,
+        agent="designer",
+        call_id="c1",
+        sequence=4,
+        data=lambda: {"call_id": "c1", "error": "cut"},
+    )
+
+    await publisher.on_event(None, recorded)
+    await publisher.on_event(None, finished)
+
+    message = await subscriber.get_message(ignore_subscribe_messages=True, timeout=1)
+    assert json.loads(message["data"])["data"]["problem"] == problem
+    await subscriber.aclose()
+    await redis.aclose()

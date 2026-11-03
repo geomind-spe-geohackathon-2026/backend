@@ -3,8 +3,6 @@ name: geomind-backend
 x-service: &service
   build:
     context: .
-    additional_contexts:
-      geomind: ../geomind
   image: geomind-backend:latest
   restart: unless-stopped
   stop_grace_period: 30s

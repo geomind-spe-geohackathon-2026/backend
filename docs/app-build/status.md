@@ -11,10 +11,10 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 | backend | f4f4762 | see `git log` |
 | frontend | f4b3062 | see `git log` |
 | gemini | wheel 0.5.5 | wheel 0.5.5 |
-| geomind | c9a5c1c (0.4.1) | |
+| geomind | c9a5c1c (0.4.1) | wheel 0.4.3 in `vendor/` |
 | sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
-Contract version 49. Latest migration 0009.
+Contract version 50. Latest migration 0009.
 
 The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `src.scripts.projects`.
 
@@ -46,7 +46,6 @@ Results, summary and report read gemini's display units through `report.to_dict(
 
 - Wide report tables are not checked by eye on real data at phone width after the last deploy.
 - Compare labels are tested, not checked by eye on a real chart of many designs.
-- geomind still installs with `-e ../geomind` until it has a release.
 - Whether Fatemeh Chitsaz's commit identity should also apply to the `ux/frontend` clone.
 - The WebSocket works on production for a finished run (replay, resume, refused token). A running run has not been seen there under the no-token order.
 - Study and document progress stay on polling, which is enough for them.

@@ -2,6 +2,7 @@ import uvicorn
 
 from fastapi import FastAPI
 from src.api import router
+from src.api.v1.assistant.runs.adapters.session import check_models
 from src.core.errors import include_exception_handlers
 from src.core.lifespan import lifespan
 from src.core.logging.logger import configure_logging, ignore_client_disconnects
@@ -22,6 +23,7 @@ ignore_client_disconnects()
 
 def run() -> None:
     configure_logging()
+    check_models()
     uvicorn.run(
         "src.fastapi:app",
         host="0.0.0.0",

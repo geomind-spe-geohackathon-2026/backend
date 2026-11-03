@@ -28,7 +28,7 @@ python -m src.main --celery
 ```
 
 `requirements.txt` pins gemini to its released wheel by URL, so `../gemini` is not needed.
-geomind has no release yet and installs from `../geomind`, which must sit next to this folder.
+geomind installs from the released wheel in `vendor/`, because its repository is private.
 
 Configure the placeholder values in `.env` before starting the services.
 
@@ -71,10 +71,10 @@ alembic revision --autogenerate -m "describe change"
 ## Docker
 
 This folder deploys the API and the worker from its own `compose.yml` and `.env.production`. The
-image installs gemini from its released wheel and takes `../geomind` as an extra build context:
+image installs gemini from its released wheel and geomind from the wheel in `vendor/`:
 
 ```sh
-docker build --build-context geomind=../geomind -t geomind-backend .
+docker build -t geomind-backend .
 docker pull ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:<gemini version>
 docker tag ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:<gemini version> gemini-sandbox:<gemini version>
 ```

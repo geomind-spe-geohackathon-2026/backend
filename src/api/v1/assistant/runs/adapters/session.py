@@ -126,12 +126,22 @@ def refused_models() -> list[str]:
     )
 
 
-def build_llm(resumed: bool, message: str) -> Any:
+def check_models() -> None:
+    """Refuse model settings that would fail a run: unset or not allowed."""
     if settings.ASSISTANT_LLM == "fake":
-        return scripted_llm(resumed, message)
+        return
     refused = refused_models()
     if refused:
         raise AdapterFailedError(f"Models not allowed: {', '.join(refused)}")
+    missing = gd.runtime.model_problems()
+    if missing:
+        raise AdapterFailedError(f"Models not set: {'; '.join(missing)}")
+
+
+def build_llm(resumed: bool, message: str) -> Any:
+    if settings.ASSISTANT_LLM == "fake":
+        return scripted_llm(resumed, message)
+    check_models()
     return gd.providers.OpenRouter(
         api_key=settings.OPENROUTER_API_KEY,
         base_url=settings.OPENROUTER_BASE_URL,

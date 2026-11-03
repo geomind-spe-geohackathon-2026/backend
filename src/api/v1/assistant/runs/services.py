@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.concurrency import run_in_threadpool
 
 from src.api.v1.assistant.runs import schemas
+from src.api.v1.assistant.runs.adapters.callbacks import TOOL_RECORDED, ToolProblems
 from src.api.v1.assistant.runs.adapters.errors import LogUnavailableError
 from src.api.v1.assistant.runs.adapters.replay import rebuilt, to_runlog
 from src.api.v1.assistant.runs.markdown import to_markdown
@@ -161,13 +162,18 @@ async def stored_events(
     with it, and the step's ``step.finished`` replaces that.
     """
     async with factory() as session:
-        rows = await RunEventRepository(session).after(run_id, after, public_only=True)
-    known = [(row, rebuilt(row.data)) for row in rows]
-    events = [
-        StreamEvent(row.type, event.data(), row.sequence)
-        for row, event in known
-        if event is not None
-    ]
+        rows = await RunEventRepository(session).after(
+            run_id, after, public_only=True, also=(TOOL_RECORDED,)
+        )
+    problems = ToolProblems()
+    events = []
+    for row in rows:
+        event = rebuilt(row.data)
+        if event is None:
+            continue
+        problems.note(event)
+        if row.public:
+            events.append(StreamEvent(row.type, problems.public(event), row.sequence))
     for delta in await deltas.pending(str(run_id)):
         data = {
             "index": delta.index,

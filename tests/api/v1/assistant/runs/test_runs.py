@@ -272,3 +272,36 @@ async def test_buffered_text_is_one_event_per_step_after_the_stored_events(
     assert buffered[0].data["text"] == "partial"
     assert all(e.sequence is not None for e in events[:-1])
     assert not any(e.data.get("buffered") for e in events[:-1])
+
+
+async def test_replay_gives_a_failed_tool_its_problem_and_no_internal_event(
+    client,
+    session,
+    session_factory,
+    redis,
+    make_user,
+    make_project,
+    make_chat,
+    make_run,
+) -> None:
+    user = await make_user()
+    run = await make_run(await make_chat(await make_project(user), user), user)
+    events = await play(run.id)
+    recorded = next(e for e in events if e.type == "tool.result" and e.call_id)
+    missing = {
+        "code": "case_incomplete",
+        "path": "demand",
+        "message": "The case is not complete",
+        "suggestions": ["demand", "time.start"],
+    }
+    changed = recorded.model_copy(
+        update={"output": {"error": missing}, "is_error": True}
+    )
+    await store_events(session, run, [changed if e is recorded else e for e in events])
+    deltas = RunDeltaRepository(redis)
+
+    stored = await stored_events(session_factory, deltas, run.id, -1)
+
+    finished = [e for e in stored if e.type == "tool.finished"]
+    assert finished[0].data["problem"] == missing
+    assert all(e.type != "tool.result" for e in stored)

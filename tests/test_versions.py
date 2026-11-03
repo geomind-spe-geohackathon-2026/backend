@@ -1,10 +1,13 @@
+from hashlib import sha256
 from importlib import metadata
 from pathlib import Path
 
-REQUIREMENTS = Path(__file__).parents[1] / "requirements.txt"
+ROOT = Path(__file__).parents[1]
+REQUIREMENTS = ROOT / "requirements.txt"
+VENDOR = ROOT / "vendor"
 GEMINI = "gemini-geothermal-suite-open"
 GEMINI_VERSION = "0.5.5"
-GEOMIND_NEEDED = (0, 4, 1)
+GEOMIND_VERSION = "0.4.3"
 DIGEST_LENGTH = 64
 
 
@@ -18,10 +21,6 @@ def gemini_line() -> str:
     return lines[0]
 
 
-def parts(version: str) -> tuple[int, ...]:
-    return tuple(int(part) for part in version.split(".")[:3])
-
-
 def test_gemini_is_the_released_wheel_pinned() -> None:
     assert f"/v{GEMINI_VERSION}/" in gemini_line()
     wheel, _, digest = gemini_line().partition("#sha256=")
@@ -30,11 +29,13 @@ def test_gemini_is_the_released_wheel_pinned() -> None:
     assert metadata.version(GEMINI) == GEMINI_VERSION
 
 
-def test_only_geomind_is_still_editable_until_it_has_a_release() -> None:
-    editable = [line for line in requirement_lines() if line.startswith("-e")]
-
-    assert editable == ["-e ../geomind"]
+def test_nothing_is_installed_editable() -> None:
+    assert not [line for line in requirement_lines() if line.startswith("-e")]
 
 
-def test_geomind_is_the_version_the_app_needs() -> None:
-    assert parts(metadata.version("geomind")) >= GEOMIND_NEEDED
+def test_geomind_is_the_released_wheel_with_its_hash() -> None:
+    wheel = f"geomind-{GEOMIND_VERSION}-py3-none-any.whl"
+    assert f"./vendor/{wheel}" in requirement_lines()
+    digest = sha256((VENDOR / wheel).read_bytes()).hexdigest()
+    assert f"{digest}  {wheel}" in (VENDOR / "SHA256SUMS").read_text().splitlines()
+    assert metadata.version("geomind") == GEOMIND_VERSION

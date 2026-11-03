@@ -10,9 +10,9 @@ In a new clone the prompt's `../docs/` paths do not exist, because `docs/` was n
 
 Tools: Python 3.12, Node 22 with npm, Docker with compose, git over SSH with access to the repos below.
 
-gemini is the released wheel pinned by URL in `requirements.txt`, never `-e`: 0.5.5. It releases from gemini's `dev`. geomind is still `-e ../geomind` at c9a5c1c (0.4.1) until it has a release, so `../geomind` must sit next to this folder; `../gemini` is not needed. See README, "Docker", for bumping a pin. `stack-up.sh` pulls `ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:<version>` and tags it `gemini-sandbox:<version>`, the name geomind expects, when it is absent. The local stack runs on Windows WSL2 with Docker Desktop; if the shell predates the `docker` group, run `sg docker -c "scripts/stack-up.sh"`. Do not copy `OPENROUTER_API_KEY` from `.env.example` into `.env`: its placeholder turns on the real LLM. Without root, Playwright's Chromium needs its libraries unpacked from `apt-get download` and named in `LD_LIBRARY_PATH`.
+gemini is the released wheel pinned by URL in `requirements.txt`, never `-e`: 0.5.5. It releases from gemini's `dev`. geomind is the 0.4.3 wheel in `vendor/`, checked against `vendor/SHA256SUMS`; `../gemini` is not needed. See README, "Docker", for bumping a pin. `stack-up.sh` pulls `ghcr.io/geomind-spe-geohackathon-2026/gemini-sandbox:<version>` and tags it `gemini-sandbox:<version>`, the name geomind expects, when it is absent. The local stack runs on Windows WSL2 with Docker Desktop; if the shell predates the `docker` group, run `sg docker -c "scripts/stack-up.sh"`. Do not copy `OPENROUTER_API_KEY` from `.env.example` into `.env`: its placeholder turns on the real LLM. Without root, Playwright's Chromium needs its libraries unpacked from `apt-get download` and named in `LD_LIBRARY_PATH`.
 
-Folder layout (geomind must sit next to the backend; gemini is only needed as a checkout to read it):
+Folder layout (gemini and geomind are only needed as checkouts to read them):
 
 ```
 geomind-spe-geohackathon-2026/

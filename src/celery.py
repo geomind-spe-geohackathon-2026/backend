@@ -2,6 +2,7 @@ from celery.signals import worker_ready
 
 from celery import Celery
 from src.api import TASK_MODULES
+from src.api.v1.assistant.runs.adapters.session import check_models
 from src.core.clients.minio.client import create_minio_client, prepare_bucket
 from src.core.settings import settings
 
@@ -26,4 +27,5 @@ def prepare_storage(**_details: object) -> None:
 
 
 def run() -> None:
+    check_models()
     app.worker_main(["worker", "--loglevel=INFO"])

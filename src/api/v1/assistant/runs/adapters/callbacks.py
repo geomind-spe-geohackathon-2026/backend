@@ -23,10 +23,53 @@ from src.core.sse.publish import publish_event_async
 
 TERMINAL_STATUSES = ("done", "failed", "cancelled")
 TEXT_DELTA = "text.delta"
+TOOL_RECORDED = "tool.result"
+TOOL_FINISHED = "tool.finished"
 STEP_FINISHED = "step.finished"
 STUDY_RECORDED = "study.recorded"
 STUDY_PREFIX = "study/"
 AGENT_NAME = "Assistant"
+
+
+class ToolProblems:
+    """Add the structured problem of a failed tool to its public ``tool.finished``.
+
+    geomind's public event holds a cut text; the whole problem is in the internal
+    ``tool.result`` that comes right before it, with the code and the missing paths.
+    """
+
+    def __init__(self) -> None:
+        self.found: dict[tuple[str, str], dict[str, Any]] = {}
+
+    def note(self, event: Any) -> None:
+        """Keep the problem of a recorded tool result."""
+        problem = problem_of(event)
+        if problem is not None:
+            self.found[(event.agent, event.call_id)] = problem
+
+    def public(self, event: Any) -> dict[str, Any]:
+        """Return an event's public data, with its problem when it has one."""
+        data = event.data()
+        if event.type != TOOL_FINISHED:
+            return data
+        problem = self.found.pop((event.agent, event.call_id), None)
+        return data if problem is None else {**data, "problem": problem}
+
+
+def problem_of(event: Any) -> dict[str, Any] | None:
+    """Return a failed tool's problem, or ``None`` when its output has no code."""
+    if event.type != TOOL_RECORDED or not event.is_error:
+        return None
+    output = event.output if isinstance(event.output, dict) else {}
+    error = output.get("error")
+    if not isinstance(error, dict) or not isinstance(error.get("code"), str):
+        return None
+    return {
+        "code": error["code"],
+        "path": error.get("path"),
+        "message": error.get("message", ""),
+        "suggestions": list(error.get("suggestions") or ()),
+    }
 
 
 class EventPublisher(gd.callbacks.Callback):
@@ -43,9 +86,11 @@ class EventPublisher(gd.callbacks.Callback):
         self.run_id = str(run_id)
         self.ttl = ttl
         self.deltas = RunDeltaRepository(redis)
+        self.problems = ToolProblems()
 
     async def on_event(self, engine: Any, event: Any) -> None:
         """Publish one event if it is public."""
+        self.problems.note(event)
         if not event.is_public:
             return
         if event.type == TEXT_DELTA:
@@ -54,7 +99,7 @@ class EventPublisher(gd.callbacks.Callback):
         else:
             await self.forget(event)
             sequence = event.sequence
-        stream_event = StreamEvent(event.type, event.data(), sequence)
+        stream_event = StreamEvent(event.type, self.problems.public(event), sequence)
         await publish_event_async(self.redis, self.channel, stream_event)
 
     async def buffer(self, event: Any) -> None:
