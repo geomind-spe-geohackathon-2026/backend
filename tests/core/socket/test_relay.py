@@ -2,9 +2,9 @@ import asyncio
 import json
 
 from starlette.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from fastapi import FastAPI, WebSocket
-from starlette.websockets import WebSocketDisconnect
 from src.core.socket.relay import (
     CLOSE_BAD_HELLO,
     read_hello,
