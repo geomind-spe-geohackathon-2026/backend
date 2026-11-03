@@ -15,6 +15,8 @@ tests pass.
 - A project chooses `memory` (on or off) and its `connectors`; runs get them through the
   workspace (`memory`, `connectors`), as agreed with geomind.
 - Migration 0011.
+- gemini 0.5.14 (backward compatible; multi-plant studies run their plants in parallel), sandbox
+  image `gemini-sandbox:0.5.14`.
 
 ## [1.1.1] - 2026-11-03
 
