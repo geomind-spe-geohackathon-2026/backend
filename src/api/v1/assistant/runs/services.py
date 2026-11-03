@@ -26,7 +26,7 @@ from src.core.errors import ConflictError, ValidationFailedError
 from src.core.jobs import control
 from src.core.pagination.page import Page, PageRequest, build_page
 from src.core.sse.events import StreamEvent, channel_name
-from src.core.sse.follow import follow
+from src.core.sse.follow import follow_events, to_sse_stream
 
 STREAM_KIND = "run"
 RESUME_TASK = "assistant.runs.resume"
@@ -180,33 +180,39 @@ async def stored_events(
     return events
 
 
-def ends_the_run(item: ServerSentEvent) -> bool:
-    return (
-        item.event == "run.finished"
-        and isinstance(item.data, dict)
-        and item.data.get("parent") is None
-    )
+def ends_the_run(event: StreamEvent) -> bool:
+    return event.type == "run.finished" and event.data.get("parent") is None
 
 
-async def follow_run(
+async def follow_run_events(
     run_id: UUID,
     redis: Redis,
     factory: async_sessionmaker[AsyncSession],
     after: int,
-) -> AsyncIterator[ServerSentEvent]:
-    """Stream a run: stored events after ``after``, buffered text, then live events.
+) -> AsyncIterator[StreamEvent | None]:
+    """Yield a run: stored events after ``after``, buffered text, then live events.
 
-    The stream ends after the root run's ``run.finished``; the run finished events of
-    delegated runs do not end it.
+    It ends after the root run's ``run.finished``; the run finished events of delegated
+    runs do not end it. ``None`` marks a quiet interval.
     """
     deltas = RunDeltaRepository(redis)
 
     async def replay(sequence: int) -> list[StreamEvent]:
         return await stored_events(factory, deltas, run_id, sequence)
 
-    stream = follow(redis, run_channel(run_id), replay, after, final_types=())
+    stream = follow_events(redis, run_channel(run_id), replay, after, final_types=())
     async with aclosing(stream):
-        async for item in stream:
-            yield item
-            if ends_the_run(item):
+        async for event in stream:
+            yield event
+            if event is not None and ends_the_run(event):
                 return
+
+
+def follow_run(
+    run_id: UUID,
+    redis: Redis,
+    factory: async_sessionmaker[AsyncSession],
+    after: int,
+) -> AsyncIterator[ServerSentEvent]:
+    """Stream a run over SSE; see ``follow_run_events``."""
+    return to_sse_stream(follow_run_events(run_id, redis, factory, after))

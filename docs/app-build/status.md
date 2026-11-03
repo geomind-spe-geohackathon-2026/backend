@@ -14,7 +14,7 @@ geomind.team runs from this laptop. Deploys go through the hosting thread.
 | geomind | c9a5c1c (0.4.1) | |
 | sandbox image | `gemini-sandbox:0.5.4` | `gemini-sandbox:0.5.5`, pulled from ghcr |
 
-Contract version 42. Latest migration 0009.
+Contract version 48. Latest migration 0009.
 
 The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `src.scripts.projects`.
 
@@ -30,6 +30,7 @@ The projects SPE GeoHackathon 2026 and Live tests b, c and d were moved with `sr
 - Compare: designs only, labels clear of each other, check text says all passed only when all were assessed.
 - Range hints in the parameter form, for every module of a class.
 - Golden path: refusal on an incomplete case, then a saved profile that lands in the case.
+- Assistant text streams over a WebSocket with SSE as a fallback; the chat shows it live at a natural pace.
 
 ## Context window
 
@@ -46,6 +47,8 @@ Results, summary and report read gemini's display units through `report.to_dict(
 - A run shows `done` when its last tool failed; the chat shows the failure and the panel shows the count.
 - geomind still installs with `-e ../geomind` until it has a release.
 - Whether Fatemeh Chitsaz's commit identity should also apply to the `ux/frontend` clone.
+- The WebSocket is checked on a local stack only; the path through Traefik and the Cloudflare tunnel is not seen yet. If a socket cannot open, the chat uses SSE.
+- Study and document progress stay on polling, which is enough for them.
 - Budget caps are not retested on DeepSeek, and the two live checks were skipped under the no-token order.
 
 ## Requests

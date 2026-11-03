@@ -18,6 +18,9 @@ PUBLIC_API_PATHS = {
     "/api/v1/system/health",
 }
 
+SOCKET_PATHS = {"/api/v1/assistant/runs/{run_id}/stream"}
+"""Sockets check the token of their first message, see ``test_socket.py``."""
+
 
 def dependency_calls(dependant: Dependant) -> Iterator[object]:
     for dependency in dependant.dependencies:
@@ -34,7 +37,7 @@ def unguarded_routes(routes: Iterable[object]) -> list[str]:
     """Name every route that neither needs a user nor is public."""
     found = []
     for route in api_routes(routes):
-        if route.path in PUBLIC_PATHS:
+        if route.path in PUBLIC_PATHS or route.path in SOCKET_PATHS:
             continue
         if current_user not in dependency_calls(route.dependant):
             methods = ",".join(sorted(route.methods))

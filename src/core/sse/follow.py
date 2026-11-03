@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator, Awaitable, Callable, Collection
+from contextlib import aclosing
 from typing import Annotated
 
 from fastapi.sse import ServerSentEvent
@@ -38,20 +39,20 @@ def advance(last: int, event: StreamEvent) -> int:
     return last if event.sequence is None else max(last, event.sequence)
 
 
-async def follow(
+async def follow_events(
     redis: Redis,
     channel: str,
     replay: Replay,
     after: int,
     final_types: Collection[str],
     heartbeat_seconds: float | None = None,
-) -> AsyncIterator[ServerSentEvent]:
-    """Stream a job's events to a client.
+) -> AsyncIterator[StreamEvent | None]:
+    """Yield a job's events, whatever carries them to the client.
 
     It subscribes to ``channel`` first, so nothing published afterwards is lost; then it
     yields the stored events ``replay(after)`` returns, then the live events, skipping
-    any whose sequence it has already sent. A comment is sent whenever nothing arrives
-    for ``heartbeat_seconds``, so proxies keep the connection open. The stream ends
+    any whose sequence it has already sent. ``None`` is yielded whenever nothing arrives
+    for ``heartbeat_seconds``, so a transport can keep its connection open. It ends
     after an event whose type is in ``final_types``; the subscription is always closed.
     """
     interval = heartbeat_seconds or settings.SSE_HEARTBEAT_SECONDS
@@ -61,7 +62,7 @@ async def follow(
         last = after
         for event in await replay(after):
             last = advance(last, event)
-            yield to_sse(event)
+            yield event
             if event.type in final_types:
                 return
         while True:
@@ -70,15 +71,41 @@ async def follow(
                 timeout=interval,
             )
             if message is None:
-                yield ServerSentEvent(comment=HEARTBEAT_COMMENT)
+                yield None
                 continue
             event = decode_event(message["data"])
             if event.sequence is not None and event.sequence <= last:
                 continue
             last = advance(last, event)
-            yield to_sse(event)
+            yield event
             if event.type in final_types:
                 return
     finally:
         await pubsub.unsubscribe(channel)
         await pubsub.aclose()
+
+
+async def to_sse_stream(
+    events: AsyncIterator[StreamEvent | None],
+) -> AsyncIterator[ServerSentEvent]:
+    """Write events as SSE; a quiet interval becomes a heartbeat comment."""
+    async with aclosing(events):
+        async for event in events:
+            if event is None:
+                yield ServerSentEvent(comment=HEARTBEAT_COMMENT)
+            else:
+                yield to_sse(event)
+
+
+def follow(
+    redis: Redis,
+    channel: str,
+    replay: Replay,
+    after: int,
+    final_types: Collection[str],
+    heartbeat_seconds: float | None = None,
+) -> AsyncIterator[ServerSentEvent]:
+    """Stream a job's events to a client over SSE; see ``follow_events``."""
+    return to_sse_stream(
+        follow_events(redis, channel, replay, after, final_types, heartbeat_seconds)
+    )

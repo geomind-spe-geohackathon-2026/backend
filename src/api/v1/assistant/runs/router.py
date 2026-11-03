@@ -1,10 +1,11 @@
 from collections.abc import AsyncIterable
 from typing import Annotated, Literal
+from uuid import UUID
 
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 
-from fastapi import APIRouter, Depends, Query, Response
-from src.api.v1.assistant.runs import schemas, services
+from fastapi import APIRouter, Depends, Query, Response, WebSocket
+from src.api.v1.assistant.runs import schemas, services, socket
 from src.core.assistant import schemas as shared
 from src.core.assistant.access import (
     AccessibleRun,
@@ -59,6 +60,11 @@ async def stream_events(
     await session.close()
     async for item in services.follow_run(run_id, redis, factory, after):
         yield item
+
+
+@router.websocket("/{run_id}/stream")
+async def stream_socket(websocket: WebSocket, run_id: UUID) -> None:
+    await socket.serve_run(websocket, run_id)
 
 
 @router.get("/{run_id}/log")
