@@ -1,3 +1,5 @@
+import json
+
 import fakeredis
 import geomind as gd
 import pytest
@@ -9,6 +11,7 @@ from src.api.v1.assistant.runs.adapters.session import Resources
 from src.api.v1.assistant.runs.services import run_channel
 from src.core.clients.postgres.repositories.activity import ActivityRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
+from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.redis.repositories.job import SyncJobRepository
@@ -143,10 +146,11 @@ async def test_a_run_that_cannot_start_fails_with_geomind_message(
     assert [event.type for event in events] == ["run.finished"]
 
 
-async def test_a_design_run_reads_plants_and_files_off_the_event_loop(
-    session, resources, make_user, make_project, make_chat, make_run, monkeypatch
+@pytest.mark.parametrize("loop", ["design", "compare", "tool"])
+async def test_every_loop_starts_and_resumes_off_the_event_loop(
+    session, resources, make_user, make_project, make_chat, make_run, monkeypatch, loop
 ) -> None:
-    route = '{"kind": "loop", "loop": "design", "agent": "analyst"}'
+    route = json.dumps({"kind": "loop", "loop": loop, "agent": "analyst"})
     replies = [says(route), *[says("No case yet.") for _ in range(12)]]
     monkeypatch.setattr(
         session_adapter, "build_llm", lambda *_: gd.providers.FakeLLM(replies)
@@ -157,7 +161,41 @@ async def test_a_design_run_reads_plants_and_files_off_the_event_loop(
 
     await execution.begin(resources, run.id)
     ended = await reload(session, run.id)
+    for _ in range(2):
+        if ended.status != "waiting":
+            break
+        pending = ended.request
+        answer = (
+            {"approved": True}
+            if pending["kind"] == "approval"
+            else {"text": "Use the values in the case."}
+        )
+        await RunRepository(session).claim(
+            run.id, "waiting", {"status": "running", "request": None}
+        )
+        await execution.carry_on(resources, run.id, pending["request"], answer)
+        ended = await reload(session, run.id)
 
-    assert ended.loop == "design"
+    assert ended.loop == loop
     message = (ended.error or {}).get("message", "")
     assert "event loop" not in message
+
+
+async def test_a_paused_run_counts_toward_the_budget_of_the_next(
+    session, resources, make_user, make_project, make_chat, make_run
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    chat = await make_chat(project, owner)
+    first = await make_run(chat, owner)
+    await execution.begin(resources, first.id)
+    spent = (await reload(session, first.id)).cost
+    projects = ProjectRepository(session)
+    await projects.set_budget(await projects.get_by_id(project.id), None, spent * 1.5)
+    second = await make_run(chat, owner)
+
+    await execution.begin(resources, second.id)
+    ended = await reload(session, second.id)
+
+    assert ended.status == "failed"
+    assert "project cost budget" in ended.error["message"]

@@ -325,7 +325,7 @@ async def test_a_recorded_study_joins_the_study_list(
     assert study["started_by"]["run"] == str(run.id)
 
 
-async def test_the_ledger_counts_only_finished_runs(
+async def test_the_ledger_counts_every_other_run_a_waiting_one_too(
     session_factory, make_user, make_project, make_chat, make_run
 ) -> None:
     owner = await make_user()
@@ -334,13 +334,15 @@ async def test_the_ledger_counts_only_finished_runs(
     spent = {"input_tokens": 10, "output_tokens": 5, "cost": 0.5}
     await make_run(chat, owner, status="done", values=spent)
     await make_run(chat, owner, status="failed", values=spent)
-    await make_run(chat, owner, status="running", values=spent)
+    await make_run(chat, owner, status="waiting", values=spent)
+    current = await make_run(chat, owner, status="running", values=spent)
     bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+    ledger = DatabaseUsageLedger(bridge, current.id)
 
-    usage = await asyncio.to_thread(DatabaseUsageLedger(bridge).spent, str(project.id))
+    usage = await asyncio.to_thread(ledger.spent, str(project.id))
 
-    assert (usage.input_tokens, usage.output_tokens) == (20, 10)
-    assert usage.cost == 1.0
+    assert (usage.input_tokens, usage.output_tokens) == (30, 15)
+    assert usage.cost == 1.5
 
 
 def environment_with(budget: dict[str, Any]) -> Environment:

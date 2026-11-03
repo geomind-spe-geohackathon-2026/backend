@@ -106,7 +106,7 @@ def build_environment(
         ),
         callbacks=[recorder, studies, publisher],
         is_cancelled=lambda: resources.jobs.is_cancel_requested(str(run.id)),
-        ledger=DatabaseUsageLedger(bridge),
+        ledger=DatabaseUsageLedger(bridge, run.id),
         project=str(run.project_id),
         budget=budget,
     )

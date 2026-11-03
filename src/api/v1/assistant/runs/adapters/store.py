@@ -78,19 +78,24 @@ async def read_chat_artifact(session: AsyncSession, chat_id: UUID, key: str) -> 
     return None if row is None else row.data
 
 
-async def read_spent(session: AsyncSession, project_id: UUID) -> gd.types.Usage:
-    row = await RunRepository(session).finished_usage(project_id)
+async def read_spent(
+    session: AsyncSession, project_id: UUID, run_id: UUID | None
+) -> gd.types.Usage:
+    row = await RunRepository(session).usage_of_others(project_id, run_id)
     return gd.types.Usage(input_tokens=row[0], output_tokens=row[1], cost=row[2])
 
 
 class DatabaseUsageLedger:
     """geomind's ``UsageLedger`` on the runs table.
 
-    geomind's hook asks from the event loop, so the sum is read ahead of the run.
+    geomind's hook asks from the event loop, so the sum is read ahead of the run. It
+    counts every other run of the project, a waiting one too, so pausing a chat does
+    not take its spending out of the budget; the run itself geomind counts.
     """
 
-    def __init__(self, bridge: LoopBridge) -> None:
+    def __init__(self, bridge: LoopBridge, run_id: UUID | None = None) -> None:
         self.bridge = bridge
+        self.run_id = run_id
         self.warmed: gd.types.Usage | None = None
 
     async def warm(self, project_id: str) -> None:
@@ -98,10 +103,10 @@ class DatabaseUsageLedger:
         self.warmed = await asyncio.to_thread(self.spent, project_id)
 
     def spent(self, project_id: str) -> gd.types.Usage:
-        """Return the tokens and cost of every finished run of a project."""
+        """Return the tokens and cost of the project's runs other than this one."""
         if self.bridge.in_loop() and self.warmed is not None:
             return self.warmed
-        return self.bridge.call(read_spent, UUID(project_id))
+        return self.bridge.call(read_spent, UUID(project_id), self.run_id)
 
 
 class DatabaseRunStore:

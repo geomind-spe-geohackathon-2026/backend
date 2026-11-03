@@ -5,4 +5,4 @@ addition raises the minor and a fix raises the patch. Each release is tagged
 ``v<version>`` on ``main``.
 """
 
-VERSION = "1.0.2"
+VERSION = "1.0.3"

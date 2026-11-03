@@ -5,7 +5,6 @@ from sqlalchemy import func, select, update
 
 from src.core.clients.postgres.models.run import (
     ACTIVE_RUN_STATUSES,
-    FINISHED_STATUSES,
     Run,
 )
 from src.core.clients.postgres.repositories.base import BaseRepository, DatabaseSession
@@ -104,13 +103,21 @@ class RunRepository(BaseRepository):
         row = (await self.session.execute(statement)).one()
         return row[0], int(row[1]), int(row[2]), float(row[3])
 
-    async def finished_usage(self, project_id: UUID) -> tuple[int, int, float]:
-        """Return input tokens, output tokens and cost of the finished runs."""
+    async def usage_of_others(
+        self, project_id: UUID, run_id: UUID | None
+    ) -> tuple[int, int, float]:
+        """Return input tokens, output tokens and cost of the project's other runs.
+
+        A run that waits or runs has spent too, and counts; only ``run_id``, whose own
+        spending geomind adds from its log, is left out.
+        """
         statement = select(
             func.coalesce(func.sum(Run.input_tokens), 0),
             func.coalesce(func.sum(Run.output_tokens), 0),
             func.coalesce(func.sum(Run.cost), 0.0),
-        ).where(Run.project_id == project_id, Run.status.in_(FINISHED_STATUSES))
+        ).where(Run.project_id == project_id)
+        if run_id is not None:
+            statement = statement.where(Run.id != run_id)
         row = (await self.session.execute(statement)).one()
         return int(row[0]), int(row[1]), float(row[2])
 

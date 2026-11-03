@@ -5,6 +5,12 @@ The backend and its API contract (`docs/app-build/contracts.md`) share one versi
 addition raises the minor and a fix raises the patch. Each release is tagged `v<version>` on
 `main`. Work goes to `dev` first and reaches `main` when its tests pass.
 
+## [1.0.3] - 2026-11-03
+
+- Fix: a project's budget left out the runs that were waiting for an answer, so chats that
+  paused could spend past the cap together. Every other run of the project now counts.
+- Tests: the design, compare and tool loops start and resume with a scripted model.
+
 ## [1.0.2] - 2026-11-03
 
 - geomind 0.4.15: a run's time limit also bounds model and tool calls in flight, and the run
