@@ -4,12 +4,12 @@ Updated 2026-11-02. `handover.md` says how to work on the app; this file says wh
 
 ## Production
 
-geomind.team runs from this laptop. Deploys go through the hosting thread.
+geomind.team runs from this laptop. Deploys go through the Deploy thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
 | backend | 7ca0c44 (v1.0.1) | see `git log` |
-| frontend | ffd7673 | see `git log` |
+| frontend | e575cf6 | see `git log` |
 | gemini | wheel 0.5.5 | wheel 0.5.5 |
 | geomind | 0.4.13 wheel by URL | 0.4.13 wheel by URL |
 | sandbox image | `gemini-sandbox:0.5.5` | `gemini-sandbox:0.5.5`, pulled from ghcr |
