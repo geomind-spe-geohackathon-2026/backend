@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -433,6 +434,17 @@ def test_an_unset_model_falls_to_geomind_default_and_is_refused(monkeypatch) -> 
     monkeypatch.delenv("GEOMIND_CHEAP_MODEL", raising=False)
 
     assert refused_models()
+
+
+@pytest.mark.parametrize("name", [".env.example", ".env.dev.example"])
+def test_env_examples_name_only_allowed_models(name: str) -> None:
+    lines = Path(name).read_text(encoding="utf-8").splitlines()
+    models = dict(line.split("=", 1) for line in lines if "_MODEL=" in line)
+
+    assert set(models) >= {"GEOMIND_MODEL", "GEOMIND_CHEAP_MODEL"}
+    assert all(
+        value.startswith(settings.ASSISTANT_MODEL_PREFIX) for value in models.values()
+    )
 
 
 def test_deepseek_everywhere_is_allowed(monkeypatch) -> None:
