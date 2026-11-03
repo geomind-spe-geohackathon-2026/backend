@@ -5,6 +5,12 @@ The backend and its API contract (`docs/app-build/contracts.md`) share one versi
 addition raises the minor and a fix raises the patch. Each release is tagged `v<version>` on
 `main`. Work goes to `dev` first and reaches `main` when its tests pass.
 
+## [1.0.1] - 2026-11-03
+
+- Fix: every design chat failed at once with "called inside its own event loop". Since
+  geomind 0.4.4 the design and compare loops read the project's plants and file names on the
+  event loop; the backend now reads them before the run starts.
+
 ## [1.0.0] - 2026-11-03
 
 The first numbered release: the contract as it stood at number 52.

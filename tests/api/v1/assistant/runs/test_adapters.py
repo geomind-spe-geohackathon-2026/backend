@@ -196,6 +196,28 @@ async def test_workspace_gives_the_newest_upload_of_each_name(
     assert missing is None
 
 
+async def test_the_loop_reads_warmed_plants_and_files_without_blocking(
+    session_factory, session, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    await seed_workspace(session, owner, project, blobs)
+    workspace = DatabaseWorkspace(
+        LoopBridge(asyncio.get_running_loop(), session_factory), blobs
+    )
+    project_id = str(project.id)
+    with pytest.raises(LoopBridgeError):
+        workspace.files(project_id)
+
+    await workspace.warm(project_id)
+
+    assert [item["name"] for item in workspace.files(project_id)] == ["notes.txt"]
+    assert workspace.file(project_id, "notes.txt") == b"Brine salinity is high"
+    assert list(workspace.plants(project_id)) == list(
+        await asyncio.to_thread(workspace.plants, project_id)
+    )
+
+
 async def test_workspace_passes_geomind_conformance(
     session_factory, session, make_user, make_project, blobs
 ) -> None:

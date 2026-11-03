@@ -1,3 +1,4 @@
+import asyncio
 import mimetypes
 from typing import Any
 from uuid import UUID
@@ -55,15 +56,28 @@ class DatabaseWorkspace:
     """geomind's ``Workspace`` on the backend's tables; every method blocks.
 
     ``plants`` holds the project's latest plant under the name in its document. ``case``
-    returns the case as written with the bytes of every file it holds.
+    returns the case as written with the bytes of every file it holds. geomind's loops
+    read plants and file names on the event loop, where a blocking read would stall the
+    loop it needs, so ``warm`` reads them ahead of the run and the loop gets that copy.
     """
 
     def __init__(self, bridge: LoopBridge, blobs: BlobStore) -> None:
         self.bridge = bridge
         self.blobs = blobs
+        self.warmed: dict[str, tuple[dict[str, Any], list[Document]]] = {}
+
+    async def warm(self, project_id: str) -> None:
+        """Read a project's plants and uploaded files ahead of a run."""
+        plants = await asyncio.to_thread(
+            self.bridge.call, read_plants, UUID(project_id)
+        )
+        rows = await asyncio.to_thread(self.bridge.call, read_files, UUID(project_id))
+        self.warmed[project_id] = (plants, rows)
 
     def plants(self, project_id: str) -> dict[str, dict[str, Any]]:
         """Return ``{name: plant file dict}`` of the project, ``{}`` without a plant."""
+        if self.bridge.in_loop() and project_id in self.warmed:
+            return self.warmed[project_id][0]
         return self.bridge.call(read_plants, UUID(project_id))
 
     def case(
@@ -83,9 +97,14 @@ class DatabaseWorkspace:
             raise FileNotFoundError(f"case file {key!r} is missing from storage")
         return data
 
+    def file_rows(self, project_id: str) -> list[Document]:
+        if self.bridge.in_loop() and project_id in self.warmed:
+            return self.warmed[project_id][1]
+        return self.bridge.call(read_files, UUID(project_id))
+
     def files(self, project_id: str) -> list[dict[str, Any]]:
         """Return the project's uploaded files as ``[{name, size, media_type}]``."""
-        rows = self.bridge.call(read_files, UUID(project_id))
+        rows = self.file_rows(project_id)
         return [
             {"name": row.name, "size": row.size, "media_type": to_media_type(row.name)}
             for row in rows
@@ -93,7 +112,7 @@ class DatabaseWorkspace:
 
     def file(self, project_id: str, name: str) -> bytes | None:
         """Return the bytes of an uploaded file, or ``None`` when it does not exist."""
-        rows = self.bridge.call(read_files, UUID(project_id))
+        rows = self.file_rows(project_id)
         found = next((row for row in rows if row.name == name), None)
         return None if found is None else self.blobs.get_sync(found.object_key)
 

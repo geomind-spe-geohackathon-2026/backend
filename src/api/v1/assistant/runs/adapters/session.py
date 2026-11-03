@@ -244,6 +244,7 @@ async def start(
     await asyncio.to_thread(seed_problem, environment, chat_id, project_id)
     await environment.store.warm_chat(str(chat_id))
     await environment.ledger.warm(environment.project)
+    await environment.workspace.warm(environment.project)
     try:
         run = gd.Run(
             message=message,
@@ -269,6 +270,7 @@ async def resume(
         await environment.store.warm(run_id.hex)
         await environment.store.warm_chat(str(environment.store.chat_id))
         await environment.ledger.warm(environment.project)
+        await environment.workspace.warm(environment.project)
         run = await asyncio.to_thread(
             gd.Run.load,
             run_id.hex,

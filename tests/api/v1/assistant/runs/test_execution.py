@@ -1,7 +1,10 @@
 import fakeredis
+import geomind as gd
 import pytest
 
 from src.api.v1.assistant.runs import execution
+from src.api.v1.assistant.runs.adapters import session as session_adapter
+from src.api.v1.assistant.runs.adapters.fake import says
 from src.api.v1.assistant.runs.adapters.session import Resources
 from src.api.v1.assistant.runs.services import run_channel
 from src.core.clients.postgres.repositories.activity import ActivityRepository
@@ -138,3 +141,23 @@ async def test_a_run_that_cannot_start_fails_with_geomind_message(
     assert failed.error["code"] == "error"
     assert "OPENROUTER_API_KEY" in failed.error["message"]
     assert [event.type for event in events] == ["run.finished"]
+
+
+async def test_a_design_run_reads_plants_and_files_off_the_event_loop(
+    session, resources, make_user, make_project, make_chat, make_run, monkeypatch
+) -> None:
+    route = '{"kind": "loop", "loop": "design", "agent": "analyst"}'
+    replies = [says(route), *[says("No case yet.") for _ in range(12)]]
+    monkeypatch.setattr(
+        session_adapter, "build_llm", lambda *_: gd.providers.FakeLLM(replies)
+    )
+    owner = await make_user()
+    project = await make_project(owner)
+    run = await make_run(await make_chat(project, owner), owner)
+
+    await execution.begin(resources, run.id)
+    ended = await reload(session, run.id)
+
+    assert ended.loop == "design"
+    message = (ended.error or {}).get("message", "")
+    assert "event loop" not in message
