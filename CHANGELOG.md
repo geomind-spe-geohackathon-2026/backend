@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.43] - 2026-11-04
+
+- QA-045, QA-047: geomind 0.4.45 from the local wheel
+  `.tmp/hotfix-wheels/geomind-0.4.45-py3-none-any.whl` (tags v0.4.44, v0.4.45, commit 5ec7d83):
+  `ask_economics` leaves out a catalogue row with no 2015 value; after a stopped run the leads go
+  on from the stored design. Hotfix mode: no tests ran.
+
 ## [1.1.42] - 2026-11-04
 
 - QA-044: an empty or non-numeric `Last-Event-ID` starts the run's stream from the beginning
