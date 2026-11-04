@@ -80,8 +80,27 @@ async def root_spending(run: Run, events: RunEventRepository) -> shared.RunSpend
     return shared.RunSpending()
 
 
+async def current_request(run: Run, session: Any) -> None:
+    """Make a waiting run's ``request`` its newest stored ``request`` event (QA-056).
+
+    A waiting run pauses on the newest request of its run tree; the row kept an older one
+    (request-3455 after the case lead asked request-3519), so the chat showed the old one and
+    answering it failed the run. The row is corrected whenever a waiting run is read.
+    """
+    if run.status != "waiting":
+        return
+    rows = await RunEventRepository(session).of_type(run.id, "request")
+    event = rebuilt(rows[0].data) if rows else None
+    if event is None:
+        return
+    newest = event.data()
+    if newest.get("request") != (run.request or {}).get("request"):
+        await RunRepository(session).update(run, {"request": newest})
+
+
 async def read_run(run: Run, events: RunEventRepository) -> shared.Run:
     """Return a run with geomind's per-session and total figures when it has them."""
+    await current_request(run, events.session)
     spending = await root_spending(run, events)
     return shared.Run.model_validate(run).model_copy(update=dict(spending))
 
@@ -172,6 +191,7 @@ async def answer_run(
 ) -> Run:
     if run.status != "waiting":
         raise RunNotWaitingError("Run is not waiting for an answer")
+    await current_request(run, runs.session)
     check_answer(run.request, body)
     await hand_over(runs, run, enqueue, (body.request, body.to_dict()))
     await runs.session.refresh(run)
@@ -205,6 +225,7 @@ async def cancel_run(
         raise ConflictError("The run has already ended")
     await control.request_cancel(jobs, str(run.id))
     if run.status == "waiting":
+        await current_request(run, runs.session)
         pending = run.request
         await hand_over(
             runs, run, enqueue, (pending["request"], cancel_answer(pending))

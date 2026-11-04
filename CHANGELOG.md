@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.48] - 2026-11-05
+
+- QA-056 (root cause): a waiting run's `request` follows the newest stored `request` event of the
+  run tree whenever the run is read (`GET /assistant/runs/{id}`), answered or cancelled; the row
+  had kept an older request (3455 after the case lead asked 3519), so the chat showed the old one.
+  Hotfix mode: no tests ran.
+
 ## [1.1.47] - 2026-11-05
 
 - QA-016, QA-052, QA-054: geomind 0.4.48 from the local wheel
