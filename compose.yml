@@ -34,6 +34,12 @@ services:
     <<: *service
     container_name: geomind-celery
     command: [python, -m, src.main, --celery]
+    # run_python starts one sandbox container per run on the host daemon (no network, limits
+    # from GEOMIND_SANDBOX_*); DOCKER_GID is the host's docker group.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - ${DOCKER_GID:?Set DOCKER_GID in .env}
 
 networks:
   geomind:

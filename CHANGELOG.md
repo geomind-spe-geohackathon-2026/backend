@@ -6,6 +6,15 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.55] - 2026-11-05
+
+- Agent tools (feature agent-tools-2026-11-05): the worker container gets the docker CLI and the
+  host's docker socket (group `DOCKER_GID`) for geomind's `run_python` sandbox
+  (`ASSISTANT_SANDBOX=docker`, `GEOMIND_SANDBOX_IMAGE`, `GEOMIND_SANDBOX_TIMEOUT`, `_MEMORY`,
+  `_DISK`, `_CPU`); `GEOMIND_SEARCH_URL` points `web_search` at SearXNG
+  (`../infrastructure/searxng`, internal only). New keys in both env examples. Hotfix mode: no
+  tests ran (test_env_examples.py passed).
+
 ## [1.1.54] - 2026-11-05
 
 - gemini 0.6.5 from the local wheel `.tmp/hotfix-wheels/gemini_geothermal_suite_open-0.6.5-py3-none-any.whl`

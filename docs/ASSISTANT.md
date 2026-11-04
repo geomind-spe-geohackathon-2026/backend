@@ -37,5 +37,5 @@ copies a case's MinIO files into a per-run temp folder; documents use
 ## Settings
 
 `ASSISTANT_LLM` (`openrouter` or `fake`, fake refused in production),
-`ASSISTANT_SANDBOX` (`none` or `docker`), `ASSISTANT_RUN_MAX_TOKENS` (per run),
+`ASSISTANT_SANDBOX` (`none` or `docker`; `docker` starts geomind's `run_python` sandbox containers from the worker through the host socket, image and limits in `GEOMIND_SANDBOX_IMAGE`, `_TIMEOUT`, `_MEMORY`, `_DISK`, `_CPU`; `DOCKER_GID` is the host's docker group for the worker container), `GEOMIND_SEARCH_URL` (SearXNG for `web_search`, `http://searxng:8080` in production; empty means the web tools are not offered), , `ASSISTANT_RUN_MAX_TOKENS` (per run),
 `ASSISTANT_DELTA_TTL_SECONDS`.

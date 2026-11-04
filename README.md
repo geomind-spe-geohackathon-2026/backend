@@ -54,7 +54,10 @@ value missing. The assistant uses OpenRouter only when `OPENROUTER_API_KEY` is s
 `.env.dev`; otherwise `ASSISTANT_LLM=fake` plays a scripted run. Logs and pids are in
 `.tmp/stack/`. With the image `gemini-sandbox:<gemini version>` present (built from a gemini
 checkout with `make sandbox-image`; stack-up builds it from `.tmp/snap` when missing) the stack
-uses `ASSISTANT_SANDBOX=docker`.
+uses `ASSISTANT_SANDBOX=docker`. In production the worker container gets the docker CLI and the
+host's socket (`compose.yml`, group `DOCKER_GID`) and runs `GEOMIND_SANDBOX_IMAGE` with the
+`GEOMIND_SANDBOX_*` limits; `GEOMIND_SEARCH_URL` points the agents' `web_search` at SearXNG
+(`../infrastructure/searxng`, internal only). Dev has no SearXNG, so the web tools are off there.
 
 ## Database and checks
 
