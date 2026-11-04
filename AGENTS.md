@@ -6,6 +6,13 @@ Only when a task creates, modifies, reviews, or tests code, also read and follow
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Do not read the development guide for
 non-code tasks.
 
+## Read both: `.claude/` for agents, `docs/` for people
+
+`.claude/` is written for agents: start with [.claude/README.md](.claude/README.md) (`notes/`
+current work, `archive/` history). `docs/` is written for people and holds the reference for this
+repo (conventions, development, the contract). Read both, and the project-wide context in the
+project root (`../AGENTS.md`, the shared memory `../.claude/memory/MEMORY.md`, `../docs/`).
+
 ## Start here
 
 The app build is at Phase D: read [docs/app-build/handover.md](docs/app-build/handover.md) first.
