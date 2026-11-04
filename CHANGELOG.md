@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.38] - 2026-11-04
+
+- QA-041: geomind 0.4.41 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.41-py3-none-any.whl`
+  (tag v0.4.41, commit 03e776b; holds 0.4.33 to 0.4.40 too): the economics rows follow the site's
+  country, and bounds or proxies are not recommended. Hotfix mode: no tests ran.
+
 ## [1.1.37] - 2026-11-04
 
 - QA-037: geomind 0.4.40 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.40-py3-none-any.whl`
