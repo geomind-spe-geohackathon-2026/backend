@@ -1,3 +1,4 @@
+import os
 import re
 from typing import Literal
 
@@ -75,7 +76,7 @@ class Settings(BaseSettings):
         return None if isinstance(value, str) and value.strip() == "off" else value
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=os.environ.get("APP_ENV_FILE", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

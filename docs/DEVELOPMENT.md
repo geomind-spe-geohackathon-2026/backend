@@ -114,7 +114,8 @@ Write tests for behavior, security boundaries, and failure handling. Do not add 
 
 ## Compose
 
-This folder's `compose.yml` and `.env.production` deploy the API and the worker behind
-Traefik; `.env` stays with the tests.
+This folder's `compose.yml` and `.env` deploy the API and the worker behind Traefik. The
+tests read `.env.example`, never `.env`. `.env.example` and `.env.dev.example` name the same
+settings (a test checks it).
 The data services and Traefik come from `../infrastructure`. The backend image installs
 gemini and geomind from the released wheels pinned in `requirements.txt`.

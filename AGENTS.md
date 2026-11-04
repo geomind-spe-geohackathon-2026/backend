@@ -67,8 +67,8 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
   event publisher, recorder) and answers/cancels resume it with `assistant.runs.resume`.
   `ASSISTANT_LLM=fake` plays a scripted run (tests and the end-to-end pass only). Details
   in `docs/ASSISTANT.md`.
-- **Deploy:** `compose.yml` here runs the API and the worker from `.env.production`
-  (`.env` is for the tests): `cp .env.example .env.production && docker compose up -d --build`. The data services and Traefik
+- **Deploy:** `compose.yml` here runs the API and the worker from `.env`
+  (the tests read `.env.example`, never `.env`): `cp .env.example .env && docker compose up -d --build`. The data services and Traefik
   come from `../infrastructure`. geomind, like gemini, is its released wheel
   pinned by URL and sha256 in `requirements.txt`.
 - **Tests:** `.venv/bin/python -m pytest -n auto`, including the import boundary test,

@@ -66,7 +66,7 @@ Verified on the real local stack (see README, "Local stack") with geomind 0.3.0 
 
 - Verified: backend 504 tests, frontend 957 tests, Playwright real. Migrations 0001 to 0009 on PostgreSQL 16 were last run on 0.5.1.
 - `tests/test_versions.py` checks that the installed engines are the versions pinned in `requirements.txt` and that nothing is editable.
-- `backend/.env` is for tests, `.env.dev` for the local stack, `.env.production` for deploys. Compose: `compose.dev.yml` and `compose.yml`.
+- `backend/.env` is for deploys and `.env.dev` for the local stack; the tests read `.env.example`. Both examples name the same settings. Compose: `compose.dev.yml` and `compose.yml`.
 - Requests: `gemini-requests.md` for gemini, `requests.md` for geomind.
 - `size` is a study kind (method `run`, `prepare: ["size"]`); the example project seeds `HeatingFullCoolingPlant` (`tests/fixtures/hackathon/seed_plant.json`), feasible once the case is complete.
 - `src/core/problems.py:readable` rewords gemini's range text; gemini should give bounds as data, see the request in `requests.md`.
@@ -76,7 +76,7 @@ Verified on the real local stack (see README, "Local stack") with geomind 0.3.0 
 ## State after the production move (2026-11-02)
 
 - geomind.team runs from main on this laptop; the app is tested there. Any fix needs a production rebuild, done by the hosting thread. Dev volumes were deleted after the move.
-- The assistant runs on DeepSeek only: `ASSISTANT_MODEL_PREFIX` refuses any other model before a real run starts. Set `GEOMIND_MODEL`, `GEOMIND_CHEAP_MODEL` and `GEOMIND_PROVIDER` in `.env.dev` and `.env.production`.
+- The assistant runs on DeepSeek only: `ASSISTANT_MODEL_PREFIX` refuses any other model before a real run starts. Set `GEOMIND_MODEL`, `GEOMIND_CHEAP_MODEL` and `GEOMIND_PROVIDER` in `.env.dev` and `.env`.
 - `python -m scripts.projects export --project <id> --out bundle.tar` and `import bundle.tar --owner <email>` move whole projects: rows and objects, ids kept, users remapped to one owner, refused if an id exists. A new table with no rule in `rows_of_table` stops the tool.
 - The report draws a process diagram (`frontend/src/shared/plant/flowsheet-sheet.ts`, `flowsheet-layout.ts`) and, in the appendix, the full flowsheet on a landscape PDF page. Modules merge only when type, connections and settings are equal.
 - A failed chat run names an internal error and links the studies it recorded; the raw message stays in the run log. Any `stop_reason` of `error` reads this way, a model provider failure included.

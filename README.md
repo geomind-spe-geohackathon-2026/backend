@@ -70,7 +70,7 @@ alembic revision --autogenerate -m "describe change"
 
 ## Docker
 
-This folder deploys the API and the worker from its own `compose.yml` and `.env.production`. The
+This folder deploys the API and the worker from its own `compose.yml` and `.env`. The
 image installs gemini and geomind from their released wheels:
 
 ```sh
@@ -89,11 +89,11 @@ and tags it when it is missing.
 
 PostgreSQL, Redis, MinIO, ChromaDB and InfluxDB come from `../infrastructure`, which
 also runs Traefik. Create the external `geomind` and `traefik` networks, start those
-services, configure `.env.production` with their passwords, then run. Keep it apart
-from `.env`, which the tests read:
+services, configure `.env` with their passwords, then run. The tests never read `.env`; they
+read `.env.example`:
 
 ```sh
-cp .env.example .env.production
+cp .env.example .env
 docker compose config -q
 docker compose up -d --build
 ```

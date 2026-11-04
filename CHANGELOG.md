@@ -6,7 +6,7 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
-## Unreleased
+## [1.1.11] - 2026-11-04
 
 - `GET /assistant/runs/{id}/agents`: one row per agent session of a run, running or finished,
   with its model, status, steps, LLM calls, tokens (cached included), cost, tool calls (name,
@@ -20,6 +20,9 @@ tests pass.
   the single `GEOMIND_CONTEXT_WINDOW` (still the fallback); geomind's own value passes through.
 - `ASSISTANT_RUN_MAX_TOKENS` may be `off`: no token cap for a run. It caps the whole run's tokens
   over every call and sub-run (a cost guard), never an agent's context.
+- Production reads a plain `.env` (`compose.yml`), no longer `.env.production`. The tests read
+  `.env.example` (`APP_ENV_FILE`), never `.env`. `.env.example` and `.env.dev.example` name the
+  same settings, with `ASSISTANT_RUN_MAX_TOKENS` in both.
 
 ## [1.1.10] - 2026-11-04
 
