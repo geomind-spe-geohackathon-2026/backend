@@ -6,6 +6,19 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## Unreleased
+
+- `GET /assistant/runs/{id}/agents`: one row per agent session of a run, running or finished,
+  with its model, status, steps, LLM calls, tokens (cached included), cost, tool calls (name,
+  outcome, time; no inputs or outputs) and its context used, peak, window and left against its
+  own model's window. Context is per session, never summed over the run; the run total counts
+  each LLM call once and equals `runlog`'s `run.usage`. geomind's own per-session figures
+  (0.4.24: `step.started.session` / `context_window`, `step.finished.context`, the root
+  `run.finished.sessions` / `total`) are used where the log has them; older logs are counted
+  from their LLM calls.
+- `step.started.context_window` is the window of that step's model, as geomind looks it up, not
+  the single `GEOMIND_CONTEXT_WINDOW` (still the fallback); geomind's own value passes through.
+
 ## [1.1.10] - 2026-11-04
 
 - Connector Check works again: the backend gives geomind's MCP client its `gd.mcp.Server` record,

@@ -10,9 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.concurrency import run_in_threadpool
 
 from src.api.v1.assistant.runs import schemas
-from src.api.v1.assistant.runs.adapters.callbacks import TOOL_RECORDED, ToolProblems
+from src.api.v1.assistant.runs.adapters.callbacks import (
+    STEP_STARTED,
+    TOOL_RECORDED,
+    ToolProblems,
+)
 from src.api.v1.assistant.runs.adapters.errors import LogUnavailableError
 from src.api.v1.assistant.runs.adapters.replay import rebuilt, to_runlog
+from src.api.v1.assistant.runs.adapters.sessions import agent_sessions, run_totals
 from src.api.v1.assistant.runs.markdown import to_markdown
 from src.core.assistant import schemas as shared
 from src.core.assistant.errors import QueueUnavailableError, RunNotWaitingError
@@ -24,6 +29,7 @@ from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.redis.repositories.job import JobRepository
 from src.core.clients.redis.repositories.run_delta import RunDeltaRepository
 from src.core.errors import ConflictError, ValidationFailedError
+from src.core.geomind.windows import load_windows
 from src.core.jobs import control
 from src.core.pagination.page import Page, PageRequest, build_page
 from src.core.sse.events import StreamEvent, channel_name
@@ -56,6 +62,17 @@ async def read_log(run: Run, events: RunEventRepository) -> dict[str, Any]:
         return to_runlog([row.data for row in rows])
     except LogUnavailableError as error:
         raise ConflictError(str(error)) from error
+
+
+async def read_agents(run: Run, events: RunEventRepository) -> schemas.RunAgents:
+    """Return the agent sessions of a run from the events stored so far.
+
+    A run with no events yet has no sessions; each session's context is its own.
+    """
+    rows = await events.after(run.id, -1)
+    sessions, total = await agent_sessions([row.data for row in rows])
+    totals = {"id": run.id, "status": run.status, **run_totals(sessions, total)}
+    return schemas.RunAgents.model_validate({"run": totals, "agents": sessions})
 
 
 async def export_log(
@@ -177,9 +194,11 @@ async def stored_events(
             run_id, after, public_only=True, also=(TOOL_RECORDED,)
         )
     problems = ToolProblems()
+    known = [(row, rebuilt(row.data)) for row in rows]
+    steps = [event for _, event in known if event and event.type == STEP_STARTED]
+    await load_windows(event.model for event in steps)
     events = []
-    for row in rows:
-        event = rebuilt(row.data)
+    for row, event in known:
         if event is None:
             continue
         problems.note(event)

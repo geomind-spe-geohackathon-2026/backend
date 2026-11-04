@@ -72,6 +72,13 @@ async def get_log(run: AccessibleRun, events: RunEventRepositoryDependency) -> d
     return await services.read_log(run, events)
 
 
+@router.get("/{run_id}/agents", response_model=schemas.RunAgents)
+async def get_agents(
+    run: AccessibleRun, events: RunEventRepositoryDependency
+) -> schemas.RunAgents:
+    return await services.read_agents(run, events)
+
+
 @router.get(
     "/{run_id}/log/export",
     response_class=Response,

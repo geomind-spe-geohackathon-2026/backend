@@ -76,6 +76,258 @@
         "title": "AdoptedDesign",
         "type": "object"
       },
+      "AgentRunTotals": {
+        "description": "A run's figures: geomind's ``total`` when the log has it, else the sum over\nits agent sessions, each LLM call once.",
+        "properties": {
+          "cached_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cached Tokens"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "llm_calls": {
+            "title": "Llm Calls",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "waiting",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "steps": {
+            "title": "Steps",
+            "type": "integer"
+          },
+          "tool_calls": {
+            "title": "Tool Calls",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "input_tokens",
+          "output_tokens",
+          "cached_tokens",
+          "cost",
+          "steps",
+          "llm_calls",
+          "tool_calls"
+        ],
+        "title": "AgentRunTotals",
+        "type": "object"
+      },
+      "AgentSession": {
+        "description": "One agent session of a run, with its context against its own model's window.\n\n``context_used`` is the session's current context: geomind's last reported\n``used``, else the input of its latest LLM call. ``context_peak`` is the largest\nit has been. ``context_left`` is geomind's ``remaining``, else the window minus\nthe context used, never below zero; ``None`` when either is unknown.\n``cached_tokens`` is part of ``input_tokens``, ``None`` when no call reported it.",
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "cached_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cached Tokens"
+          },
+          "context_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Left"
+          },
+          "context_peak": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Peak"
+          },
+          "context_used": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Used"
+          },
+          "context_window": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Window"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "llm_calls": {
+            "title": "Llm Calls",
+            "type": "integer"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "parent_session": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Session"
+          },
+          "session": {
+            "title": "Session",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "running",
+                  "finished",
+                  "failed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "steps": {
+            "title": "Steps",
+            "type": "integer"
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/AgentToolCall"
+            },
+            "title": "Tool Calls",
+            "type": "array"
+          }
+        },
+        "required": [
+          "session",
+          "parent_session",
+          "agent",
+          "model",
+          "status",
+          "steps",
+          "llm_calls",
+          "input_tokens",
+          "output_tokens",
+          "cached_tokens",
+          "cost",
+          "context_used",
+          "context_peak",
+          "context_window",
+          "context_left",
+          "tool_calls"
+        ],
+        "title": "AgentSession",
+        "type": "object"
+      },
+      "AgentToolCall": {
+        "description": "One tool call of an agent session: its name, outcome and time, no contents.",
+        "properties": {
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "duration": {
+            "title": "Duration",
+            "type": "number"
+          },
+          "error": {
+            "title": "Error",
+            "type": "boolean"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "tool",
+          "error",
+          "duration"
+        ],
+        "title": "AgentToolCall",
+        "type": "object"
+      },
       "Approval": {
         "additionalProperties": false,
         "properties": {
@@ -3779,6 +4031,27 @@
         "title": "Run",
         "type": "object"
       },
+      "RunAgents": {
+        "description": "The agent sessions of a run so far, in the order they started.",
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentSession"
+            },
+            "title": "Agents",
+            "type": "array"
+          },
+          "run": {
+            "$ref": "#/components/schemas/AgentRunTotals"
+          }
+        },
+        "required": [
+          "run",
+          "agents"
+        ],
+        "title": "RunAgents",
+        "type": "object"
+      },
       "RunAnswer": {
         "additionalProperties": false,
         "description": "The user's answer to the request a waiting run shows.",
@@ -5357,6 +5630,49 @@
           }
         },
         "summary": "Get Run",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs/{run_id}/agents": {
+      "get": {
+        "operationId": "get_agents_api_v1_assistant_runs__run_id__agents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunAgents"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Agents",
         "tags": [
           "Runs"
         ]

@@ -5,7 +5,6 @@ import geomind as gd
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.core.assistant.context import context_window
 from src.core.clients.postgres.client import utc_now
 from src.core.clients.postgres.repositories.activity import ActivityRepository
 from src.core.clients.postgres.repositories.case_version import (
@@ -18,6 +17,7 @@ from src.core.clients.postgres.repositories.run_artifact import (
 from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.clients.redis.models.run_delta import PendingDelta
 from src.core.clients.redis.repositories.run_delta import RunDeltaRepository
+from src.core.geomind.windows import window_of
 from src.core.routes import STUDY_ROUTE
 from src.core.sse.events import StreamEvent
 from src.core.sse.publish import publish_event_async
@@ -50,10 +50,14 @@ class ToolProblems:
             self.found[(event.agent, event.call_id)] = problem
 
     def public(self, event: Any) -> dict[str, Any]:
-        """Return an event's public data, with its problem when it has one."""
+        """Return an event's public data, with its problem when it has one.
+
+        A ``step.started`` also says the context window of the model on that step:
+        geomind's own when it sends one, else the window looked up for the model.
+        """
         data = event.data()
-        if event.type == STEP_STARTED:
-            window = context_window()
+        if event.type == STEP_STARTED and data.get("context_window") is None:
+            window = window_of(getattr(event, "model", None))
             return data if window is None else {**data, "context_window": window}
         if event.type != TOOL_FINISHED:
             return data

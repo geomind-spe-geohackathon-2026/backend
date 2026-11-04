@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 
 import fakeredis
 import pytest
@@ -18,6 +18,7 @@ from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.user import User
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.user import UserRepository
+from src.core.geomind import windows
 from src.core.security.jwt import create_token_pair
 from src.core.security.passwords import hash_password
 from src.fastapi import app
@@ -29,6 +30,20 @@ PASSWORD_HASH = hash_password(PASSWORD)
 def bearer(user: User) -> dict[str, str]:
     token = create_token_pair(user.id).access_token
     return {"Authorization": f"Bearer {token}"}
+
+
+def no_model_list() -> dict[str, int]:
+    """Stand in for the provider's model list, which tests never fetch."""
+    raise OSError("tests read no provider model list")
+
+
+@pytest.fixture(autouse=True)
+def offline_windows(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Keep the context windows of each test its own, read from no network."""
+    monkeypatch.setattr(windows, "fetch_windows", no_model_list)
+    windows.forget()
+    yield
+    windows.forget()
 
 
 @pytest.fixture
