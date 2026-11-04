@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.34] - 2026-11-04
+
+- QA-023: geomind 0.4.38 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.38-py3-none-any.whl`
+  (tag v0.4.38, commit d804283; holds 0.4.33 to 0.4.37 too): a project with a `ready` case gets
+  the plant's next steps. Hotfix mode: no tests ran.
+
 ## [1.1.33] - 2026-11-04
 
 - QA-020: geomind 0.4.37 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.37-py3-none-any.whl`
