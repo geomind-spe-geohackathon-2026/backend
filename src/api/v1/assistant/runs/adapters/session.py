@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import json
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -138,6 +139,11 @@ def refused_models() -> list[str]:
     )
 
 
+def memory_source() -> str:
+    """Return where a run's memory comes from: the workspace's store when on."""
+    return "store" if os.environ.get("GEOMIND_MEMORY") == "on" else "off"
+
+
 def check_models() -> None:
     """Refuse model settings that would fail a run: unset or not allowed."""
     if settings.ASSISTANT_LLM == "fake":
@@ -145,7 +151,7 @@ def check_models() -> None:
     refused = refused_models()
     if refused:
         raise AdapterFailedError(f"Models not allowed: {', '.join(refused)}")
-    missing = gd.runtime.model_problems()
+    missing = gd.runtime.model_problems(memory_source())
     if missing:
         raise AdapterFailedError(f"Settings missing: {'; '.join(missing)}")
 

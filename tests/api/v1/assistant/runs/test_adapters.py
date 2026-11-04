@@ -520,6 +520,30 @@ def test_unset_retries_stop_the_app_with_the_setting_to_add(monkeypatch) -> None
         check_models()
 
 
+def test_memory_on_needs_the_similarity_but_never_a_memory_folder(monkeypatch) -> None:
+    use_models(monkeypatch, DEEPSEEK)
+    monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
+    monkeypatch.setenv("GEOMIND_MEMORY", "on")
+    monkeypatch.delenv("GEOMIND_MEMORY_DIR", raising=False)
+    monkeypatch.setenv("GEOMIND_MEMORY_SIMILARITY", "0.8")
+
+    check_models()
+
+    monkeypatch.delenv("GEOMIND_MEMORY_SIMILARITY")
+    with pytest.raises(AdapterFailedError, match="GEOMIND_MEMORY_SIMILARITY"):
+        check_models()
+
+
+def test_memory_off_needs_no_memory_setting(monkeypatch) -> None:
+    use_models(monkeypatch, DEEPSEEK)
+    monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
+    monkeypatch.setenv("GEOMIND_MEMORY", "off")
+    monkeypatch.delenv("GEOMIND_MEMORY_DIR", raising=False)
+    monkeypatch.delenv("GEOMIND_MEMORY_SIMILARITY", raising=False)
+
+    check_models()
+
+
 def test_the_scripted_assistant_needs_no_model(monkeypatch) -> None:
     use_models(monkeypatch, None)
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "fake")

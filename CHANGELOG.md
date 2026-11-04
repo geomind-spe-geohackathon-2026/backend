@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.9] - 2026-11-04
+
+- geomind 0.4.23. The workspace gives each project its memory (or none when the project has it
+  off), so the model check asks for the `store` memory settings: `GEOMIND_MEMORY=on` needs only
+  `GEOMIND_MEMORY_SIMILARITY`, never `GEOMIND_MEMORY_DIR`. The examples set `GEOMIND_MEMORY=on`.
+
 ## [1.1.8] - 2026-11-04
 
 - gemini 0.6.3 (additions only).
