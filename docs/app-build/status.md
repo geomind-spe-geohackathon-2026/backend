@@ -8,10 +8,10 @@ geomind.team runs from this laptop. Deploys go through the Deploy thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | c977746 (v1.1.8) | see `git log` |
+| backend | d120b8e (v1.1.9) | see `git log` |
 | frontend | v1.1.27 | see `git log` |
 | gemini | wheel 0.6.3 | wheel 0.6.3 |
-| geomind | 0.4.22 wheel by URL | 0.4.22 wheel by URL |
+| geomind | 0.4.23 wheel by URL | 0.4.23 wheel by URL |
 | sandbox image | `gemini-sandbox:0.5.14` | `gemini-sandbox:0.5.14`, pulled from ghcr |
 
 Backend and contract version 1.1.8 (`src/version.py`, `CHANGELOG.md`). Latest migration 0014.
