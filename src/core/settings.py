@@ -65,7 +65,7 @@ class Settings(BaseSettings):
 
     ASSISTANT_LLM: Literal["openrouter", "fake"] = "openrouter"
     ASSISTANT_SANDBOX: Literal["none", "docker"] = "none"
-    ASSISTANT_MODEL_PREFIX: str = "deepseek/"
+    ASSISTANT_MODEL_PREFIX: str = "nvidia/nemotron-3.5-super-vl:free"
     ASSISTANT_RUN_MAX_TOKENS: int | None = 10_000_000
     ASSISTANT_DELTA_TTL_SECONDS: int = 600
 

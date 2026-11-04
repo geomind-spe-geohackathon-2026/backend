@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.16] - 2026-11-04
+
+- Every geomind role runs on `nvidia/nemotron-3.5-super-vl:free` (OpenRouter), no longer DeepSeek:
+  `ASSISTANT_MODEL_PREFIX` defaults to it, `.env.example` sets all 17 `GEOMIND_<ROLE>_MODEL` to
+  it, `GEOMIND_PROVIDER` is empty (OpenRouter chooses), `GEOMIND_CONTEXT_WINDOW=200000`. Hotfix
+  mode: no tests ran.
+
 ## [1.1.15] - 2026-11-04
 
 - geomind 0.4.26, pinned by URL and sha256: next-step suggestions are always English (no Persian
