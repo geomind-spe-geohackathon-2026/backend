@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.22] - 2026-11-04
+
+- Every geomind role runs on `deepseek/deepseek-v4.1-flash-1017` with the OpenRouter provider
+  `morph/fp8` first (`GEOMIND_PROVIDER=morph/fp8`); `ASSISTANT_MODEL_PREFIX` defaults to that
+  model; `.env.example` sets all 17 roles to it. Hotfix mode: no tests ran.
+
 ## [1.1.21] - 2026-11-04
 
 - Every geomind role runs on `~deepseek/deepseek-flash-latest` (OpenRouter's alias of the latest
