@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.35] - 2026-11-04
+
+- QA-032: a CSV added to the case (`POST /design/case/files`) whose first column is named
+  `date`, `datetime` or `timestamp` is saved with that column named `time`, the name gemini's
+  series reader takes; the competition's demand files work on the Case page as given. Hotfix
+  mode: no tests ran.
+
 ## [1.1.34] - 2026-11-04
 
 - QA-023: geomind 0.4.38 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.38-py3-none-any.whl`

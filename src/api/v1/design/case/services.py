@@ -36,6 +36,27 @@ def check_name(name: str) -> None:
         raise ValidationFailedError({"name": "Name must be a relative path"})
 
 
+TIME_NAMES = ("date", "datetime", "timestamp")
+"""First-column names of a series CSV that mean its time column (QA-032)."""
+
+
+def with_time_column(name: str, data: bytes) -> bytes:
+    """Return a CSV whose first column is named ``date``/``datetime``/``timestamp`` as ``time``.
+
+    gemini reads a series only when the first column is named ``time``; the competition's own
+    demand files start with ``date`` and were refused on the Case page, with no way to say which
+    column is the time (QA-032). Other files are returned as they are.
+    """
+    if not name.lower().endswith(".csv"):
+        return data
+    text = data.decode("utf-8-sig", errors="strict") if data else ""
+    head, newline, rest = text.partition("\n")
+    first, comma, others = head.partition(",")
+    if not comma or first.strip().strip('"').lower() not in TIME_NAMES:
+        return data
+    return ("time," + others + newline + rest).encode()
+
+
 async def build_case(
     version: CaseVersion,
     files_repository: CaseFileRepository,
@@ -184,6 +205,10 @@ async def add_file(
 ) -> schemas.Case:
     """Save a new case version that holds the file, replacing one of the same name."""
     check_name(name)
+    try:
+        data = with_time_column(name, data)
+    except UnicodeDecodeError:
+        pass
     latest = await latest_version(repository, project.id, CaseNotFoundError)
     check_base(latest, base)
     rows = await files_repository.list_for_version(latest.id)
