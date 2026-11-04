@@ -6,6 +6,27 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.12] - 2026-11-04
+
+- geomind 0.4.24 and gemini 0.6.4, pinned by URL and sha256. geomind needs
+  `GEOMIND_EVOLVE_STOP_GENERATIONS` and `GEOMIND_EVOLVE_STOP_SECONDS` (a number or `off`); a live
+  run without them is refused naming them. Both examples set them to `off`, and so do the tests.
+  The sandbox image follows the installed gemini (`gemini-sandbox:0.6.4`).
+- `GET /assistant/runs/{id}` has `sessions`, `agents` and `total`: geomind's per-session, per-agent
+  and run-tree figures (`cached_tokens` included), read from the root run's stored `run.finished`.
+  They are null for a run still going, for a run logged before geomind 0.4.24, and in every other
+  answer that holds a run (the runs list, answer, cancel, the overview, a message's run). No
+  migration.
+- Live and replayed events (SSE and WebSocket) carry geomind 0.4.24's new fields as they come:
+  `step.started.session`, `step.finished.context` and per-call `usage.cached_tokens`, and the root
+  `run.finished.sessions` / `agents` / `total`. `/agents` reads these keys as geomind's event
+  classes name them.
+- New geomind codes: a Connector Check whose server refuses the request's arguments (JSON-RPC
+  -32602) fails with `invalid_arguments`, no longer `bad_response`; `invalid_unit` (and
+  `memory_unavailable`, `invalid_input`) reach `tool.finished.problem` like the other tool codes.
+- `python -m scripts.knowledge add` replaces every shared Knowledge document of the file's name,
+  older copies uploaded on the Knowledge page included, so a search finds only the new text.
+
 ## [1.1.11] - 2026-11-04
 
 - `GET /assistant/runs/{id}/agents`: one row per agent session of a run, running or finished,

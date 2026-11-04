@@ -5,6 +5,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from fastapi.sse import ServerSentEvent
+from pydantic import ValidationError
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.concurrency import run_in_threadpool
@@ -37,6 +38,7 @@ from src.core.sse.follow import follow_events, to_sse_stream
 
 STREAM_KIND = "run"
 RESUME_TASK = "assistant.runs.resume"
+RUN_FINISHED = "run.finished"
 STEP_LIMIT_OPTIONS = ("continue", "stop")
 
 
@@ -52,6 +54,36 @@ async def list_runs(
 ) -> Page:
     rows = await runs.list_page(project.id, page, active_only=status == "active")
     return build_page(rows, page, shared.Run)
+
+
+def spending_of(stored: dict[str, Any]) -> shared.RunSpending:
+    """Return geomind's ``sessions``, ``agents`` and ``total`` of a stored event.
+
+    A field the event lacks, as in a log before geomind 0.4.24, stays ``None``, and
+    figures that do not fit their shape are left out whole.
+    """
+    names = ("sessions", "agents", "total")
+    try:
+        return shared.RunSpending.model_validate({n: stored.get(n) for n in names})
+    except ValidationError:
+        return shared.RunSpending()
+
+
+async def root_spending(run: Run, events: RunEventRepository) -> shared.RunSpending:
+    """Return the spending of the root run's newest ``run.finished``.
+
+    A run that has not ended, or ended before geomind summed it, has none.
+    """
+    for row in await events.of_type(run.id, RUN_FINISHED):
+        if row.data.get("parent") is None:
+            return spending_of(row.data)
+    return shared.RunSpending()
+
+
+async def read_run(run: Run, events: RunEventRepository) -> shared.Run:
+    """Return a run with geomind's per-session and total figures when it has them."""
+    spending = await root_spending(run, events)
+    return shared.Run.model_validate(run).model_copy(update=dict(spending))
 
 
 async def read_log(run: Run, events: RunEventRepository) -> dict[str, Any]:
@@ -217,7 +249,7 @@ async def stored_events(
 
 
 def ends_the_run(event: StreamEvent) -> bool:
-    return event.type == "run.finished" and event.data.get("parent") is None
+    return event.type == RUN_FINISHED and event.data.get("parent") is None
 
 
 async def follow_run_events(

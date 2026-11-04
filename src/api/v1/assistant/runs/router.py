@@ -44,8 +44,10 @@ async def list_runs(
 
 
 @router.get("/{run_id}", response_model=shared.Run)
-async def get_run(run: AccessibleRun) -> shared.Run:
-    return shared.Run.model_validate(run)
+async def get_run(
+    run: AccessibleRun, events: RunEventRepositoryDependency
+) -> shared.Run:
+    return await services.read_run(run, events)
 
 
 @router.get("/{run_id}/events", response_class=EventSourceResponse)

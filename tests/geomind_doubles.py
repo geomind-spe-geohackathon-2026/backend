@@ -23,7 +23,8 @@ class FakeMcpServer:
 
     ``token`` is the bearer it takes (``None`` takes any request); ``fail`` names a
     method that answers ``status`` instead; ``down`` makes every request fail to
-    connect. ``seen`` keeps the headers of each request.
+    connect. ``error`` makes ``tools/list`` answer a JSON-RPC error of that text,
+    with the code ``error_code``. ``seen`` keeps the headers of each request.
     """
 
     tools: list[dict[str, Any]] = field(default_factory=lambda: list(TOOLS))
@@ -32,6 +33,7 @@ class FakeMcpServer:
     status: int = 500
     down: bool = False
     error: str | None = None
+    error_code: int = -32000
     seen: list[dict[str, str]] = field(default_factory=list)
 
     def transport(self) -> httpx.MockTransport:
@@ -52,7 +54,7 @@ class FakeMcpServer:
         if "id" not in body:
             return httpx.Response(202)
         if method == self.fail_with_error():
-            error = {"code": -32000, "message": self.error}
+            error = {"code": self.error_code, "message": self.error}
             answer = {"jsonrpc": "2.0", "id": body["id"], "error": error}
             return httpx.Response(200, json=answer)
         return httpx.Response(200, json=self.answer(body))

@@ -16,6 +16,65 @@ class Tokens(BaseModel):
     cost: float
 
 
+class CallUsage(BaseModel):
+    """Tokens and cost, as geomind counts them; ``input_tokens`` holds the cached."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_tokens: int = 0
+    cost: float = 0.0
+
+
+class SessionContext(BaseModel):
+    """The context of one session: the largest and the last input of its own calls."""
+
+    peak_used: int
+    last_used: int
+    window: int | None = None
+
+
+class SessionUsage(BaseModel):
+    """What one agent session (one geomind run) spent on its own model calls."""
+
+    session: str
+    agent: str
+    parent: str | None = None
+    model: str | None = None
+    steps: int = 0
+    tool_calls: int = 0
+    usage: CallUsage = CallUsage()
+    context: SessionContext | None = None
+
+
+class AgentUsage(BaseModel):
+    """The sessions of one agent path added up; ``sessions`` counts them."""
+
+    agent: str
+    sessions: int
+    steps: int = 0
+    tool_calls: int = 0
+    usage: CallUsage = CallUsage()
+
+
+class TotalUsage(BaseModel):
+    """What the whole run tree spent, each model call counted once."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_tokens: int = 0
+    cost: float = 0.0
+    steps: int = 0
+    tool_calls: int = 0
+
+
+class RunSpending(BaseModel):
+    """geomind's ``sessions``, ``agents`` and ``total`` of a root ``run.finished``."""
+
+    sessions: list[SessionUsage] | None = None
+    agents: list[AgentUsage] | None = None
+    total: TotalUsage | None = None
+
+
 class Failure(BaseModel):
     code: str
     message: str
@@ -47,7 +106,13 @@ def to_chat(chat: chat_model.Chat, last: run_model.Run | None) -> Chat:
 
 
 class Run(BaseModel):
-    """A run of the assistant, as the runs page and the chat show it."""
+    """A run of the assistant, as the runs page and the chat show it.
+
+    ``sessions``, ``agents`` and ``total`` are geomind's figures from the root run's
+    last ``run.finished``. Only ``GET /assistant/runs/{id}`` reads them; every other
+    answer that holds a run, and a run that is still going or that geomind ended
+    without them, has ``None``.
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -61,6 +126,9 @@ class Run(BaseModel):
     usage: Tokens
     request: dict[str, Any] | None
     error: Failure | None
+    sessions: list[SessionUsage] | None = None
+    agents: list[AgentUsage] | None = None
+    total: TotalUsage | None = None
 
     @model_validator(mode="before")
     @classmethod

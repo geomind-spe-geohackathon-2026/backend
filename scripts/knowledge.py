@@ -1,8 +1,9 @@
 """Add a file to the shared Knowledge from the command line, such as the cost catalogue.
 
 ``python -m scripts.knowledge add <file> --by <admin email>`` stores the file, reads
-its text at once and makes it searchable for every project's agents. A shared document
-of the same name is replaced, so running it again with a newer catalogue is safe.
+its text at once and makes it searchable for every project's agents. Every shared
+document of the same name is replaced (also older copies uploaded on the Knowledge
+page), so running it again with a newer catalogue is safe and leaves one document.
 """
 
 import argparse
@@ -34,20 +35,24 @@ async def add_file(
     path: Path,
     author_id: Any,
 ) -> dict[str, Any]:
-    """Store a file as a shared Knowledge document, replacing one of the same name."""
+    """Store a file as a shared Knowledge document, replacing all of the same name.
+
+    The new document is stored and made searchable before the old ones are removed,
+    so a search never finds the name missing.
+    """
     if not is_supported(path.name):
         raise KnowledgeError(f"{path.name}: this file type cannot be read")
     data = path.read_bytes()
-    replaced = [
-        row for row in await documents.newest_by_name(None) if row.name == path.name
-    ]
+    replaced = await documents.named(None, path.name)
     key = f"{KNOWLEDGE_FOLDER}/{path.stem}-{len(data)}/{path.name}"
     await blobs.put(key, data)
     document = await documents.create(None, path.name, len(data), key, author_id)
     await documents.set_text(document, extract_text(path.name, data))
+    kept = {key}
     for row in replaced:
         await documents.delete(row.id)
-        if row.object_key != key:
+        if row.object_key not in kept:
+            kept.add(row.object_key)
             await blobs.delete(row.object_key)
     return {
         "id": str(document.id),

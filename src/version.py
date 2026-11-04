@@ -5,4 +5,4 @@ and raises only the patch (Sahand, 2026-11-03). Each release is tagged
 ``v<version>`` on ``main``.
 """
 
-VERSION = "1.1.11"
+VERSION = "1.1.12"

@@ -46,6 +46,15 @@ class RunEventRepository(BaseRepository):
         statement = statement.order_by(RunEvent.sequence, RunEvent.id)
         return list(await self.session.scalars(statement))
 
+    async def of_type(self, run_id: UUID, event_type: str) -> list[RunEvent]:
+        """Return a run's events of one type, the newest first."""
+        statement = (
+            select(RunEvent)
+            .where(RunEvent.run_id == run_id, RunEvent.type == event_type)
+            .order_by(RunEvent.sequence.desc(), RunEvent.id.desc())
+        )
+        return list(await self.session.scalars(statement))
+
 
 def get_run_event_repository(session: DatabaseSession) -> RunEventRepository:
     return RunEventRepository(session)

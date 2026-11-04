@@ -3,8 +3,8 @@ from pathlib import Path
 
 REQUIREMENTS = Path(__file__).parents[1] / "requirements.txt"
 GEMINI = "gemini-geothermal-suite-open"
-GEMINI_VERSION = "0.6.3"
-GEOMIND_VERSION = "0.4.23"
+GEMINI_VERSION = "0.6.4"
+GEOMIND_VERSION = "0.4.24"
 DIGEST_LENGTH = 64
 
 

@@ -92,6 +92,16 @@ class RagDocumentRepository(BaseRepository):
         newest = {row.name: row for row in rows}
         return [newest[name] for name in sorted(newest)]
 
+    async def named(self, project_id: UUID | None, name: str) -> list[RagDocument]:
+        """Return every document of one name, a project's or shared, oldest first."""
+        owner = (
+            Doc.project_id.is_(None)
+            if project_id is None
+            else Doc.project_id == project_id
+        )
+        statement = select(Doc).where(owner, Doc.name == name).order_by(Doc.created)
+        return list(await self.session.scalars(statement))
+
     async def object_keys(self, project_id: UUID) -> list[str]:
         statement = select(Doc.object_key).where(Doc.project_id == project_id)
         return list(await self.session.scalars(statement))

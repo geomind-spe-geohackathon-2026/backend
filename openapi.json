@@ -328,6 +328,44 @@
         "title": "AgentToolCall",
         "type": "object"
       },
+      "AgentUsage": {
+        "description": "The sessions of one agent path added up; ``sessions`` counts them.",
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "sessions": {
+            "title": "Sessions",
+            "type": "integer"
+          },
+          "steps": {
+            "default": 0,
+            "title": "Steps",
+            "type": "integer"
+          },
+          "tool_calls": {
+            "default": 0,
+            "title": "Tool Calls",
+            "type": "integer"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/CallUsage",
+            "default": {
+              "cached_tokens": 0,
+              "cost": 0.0,
+              "input_tokens": 0,
+              "output_tokens": 0
+            }
+          }
+        },
+        "required": [
+          "agent",
+          "sessions"
+        ],
+        "title": "AgentUsage",
+        "type": "object"
+      },
       "Approval": {
         "additionalProperties": false,
         "properties": {
@@ -476,6 +514,33 @@
           }
         },
         "title": "Budget",
+        "type": "object"
+      },
+      "CallUsage": {
+        "description": "Tokens and cost, as geomind counts them; ``input_tokens`` holds the cached.",
+        "properties": {
+          "cached_tokens": {
+            "default": 0,
+            "title": "Cached Tokens",
+            "type": "integer"
+          },
+          "cost": {
+            "default": 0.0,
+            "title": "Cost",
+            "type": "number"
+          },
+          "input_tokens": {
+            "default": 0,
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "default": 0,
+            "title": "Output Tokens",
+            "type": "integer"
+          }
+        },
+        "title": "CallUsage",
         "type": "object"
       },
       "Capacity": {
@@ -3926,8 +3991,22 @@
         "type": "object"
       },
       "Run": {
-        "description": "A run of the assistant, as the runs page and the chat show it.",
+        "description": "A run of the assistant, as the runs page and the chat show it.\n\n``sessions``, ``agents`` and ``total`` are geomind's figures from the root run's\nlast ``run.finished``. Only ``GET /assistant/runs/{id}`` reads them; every other\nanswer that holds a run, and a run that is still going or that geomind ended\nwithout them, has ``None``.",
         "properties": {
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AgentUsage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents"
+          },
           "chat": {
             "format": "uuid",
             "title": "Chat",
@@ -3988,6 +4067,20 @@
             ],
             "title": "Request"
           },
+          "sessions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SessionUsage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessions"
+          },
           "started": {
             "anyOf": [
               {
@@ -4011,6 +4104,16 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TotalUsage"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "usage": {
             "$ref": "#/components/schemas/Tokens"
@@ -4181,6 +4284,106 @@
           "series"
         ],
         "title": "SeriesList",
+        "type": "object"
+      },
+      "SessionContext": {
+        "description": "The context of one session: the largest and the last input of its own calls.",
+        "properties": {
+          "last_used": {
+            "title": "Last Used",
+            "type": "integer"
+          },
+          "peak_used": {
+            "title": "Peak Used",
+            "type": "integer"
+          },
+          "window": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window"
+          }
+        },
+        "required": [
+          "peak_used",
+          "last_used"
+        ],
+        "title": "SessionContext",
+        "type": "object"
+      },
+      "SessionUsage": {
+        "description": "What one agent session (one geomind run) spent on its own model calls.",
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          },
+          "session": {
+            "title": "Session",
+            "type": "string"
+          },
+          "steps": {
+            "default": 0,
+            "title": "Steps",
+            "type": "integer"
+          },
+          "tool_calls": {
+            "default": 0,
+            "title": "Tool Calls",
+            "type": "integer"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/CallUsage",
+            "default": {
+              "cached_tokens": 0,
+              "cost": 0.0,
+              "input_tokens": 0,
+              "output_tokens": 0
+            }
+          }
+        },
+        "required": [
+          "session",
+          "agent"
+        ],
+        "title": "SessionUsage",
         "type": "object"
       },
       "SpecCheck": {
@@ -4849,6 +5052,43 @@
         "title": "TornadoRow",
         "type": "object"
       },
+      "TotalUsage": {
+        "description": "What the whole run tree spent, each model call counted once.",
+        "properties": {
+          "cached_tokens": {
+            "default": 0,
+            "title": "Cached Tokens",
+            "type": "integer"
+          },
+          "cost": {
+            "default": 0.0,
+            "title": "Cost",
+            "type": "number"
+          },
+          "input_tokens": {
+            "default": 0,
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "default": 0,
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "steps": {
+            "default": 0,
+            "title": "Steps",
+            "type": "integer"
+          },
+          "tool_calls": {
+            "default": 0,
+            "title": "Tool Calls",
+            "type": "integer"
+          }
+        },
+        "title": "TotalUsage",
+        "type": "object"
+      },
       "Usage": {
         "properties": {
           "cost": {
@@ -5093,7 +5333,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.11"
+    "version": "1.1.12"
   },
   "openapi": "3.1.0",
   "paths": {

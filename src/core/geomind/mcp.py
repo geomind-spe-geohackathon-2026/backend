@@ -27,6 +27,7 @@ UNREACHABLE = "unreachable"
 AUTH_REFUSED = "auth_refused"
 BAD_RESPONSE = "bad_response"
 BAD_SETTINGS = "bad_settings"
+INVALID_ARGUMENTS = "invalid_arguments"
 HTTP_STATUS = re.compile(r"\bHTTP (\d{3})\b")
 CLASS_NAME = re.compile(r"^\(?[A-Z][A-Za-z0-9_]*\)?$")
 REASON_LENGTH = 300
@@ -132,6 +133,23 @@ def response_reason(detail: str, headers: dict[str, str]) -> str:
     return f"The server answered with an error: {hidden(detail, headers)}"
 
 
+def arguments_reason(detail: str, headers: dict[str, str]) -> str:
+    """Return a readable reason for a request whose arguments the server refused."""
+    if not detail or CLASS_NAME.match(detail):
+        return "The server refused the arguments of the request"
+    return f"The server refused the arguments of the request: {hidden(detail, headers)}"
+
+
+def refused(check: Check, step: str, error: Exception, server: Any) -> None:
+    """Mark ``step`` failed with the code geomind gave, ``bad_response`` by default."""
+    detail = detail_of(error, server.name)
+    if getattr(error, "code", None) == INVALID_ARGUMENTS:
+        reason = arguments_reason(detail, server.headers)
+        check.failed(step, INVALID_ARGUMENTS, reason)
+        return
+    check.failed(step, BAD_RESPONSE, response_reason(detail, server.headers))
+
+
 def tool_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
@@ -156,7 +174,7 @@ def opening_failed(check: Check, error: Exception, server: Any, timeout: float) 
         check.failed(INITIALIZE, AUTH_REFUSED, reason)
         check.failed(AUTH, AUTH_REFUSED, reason)
         return
-    check.failed(INITIALIZE, BAD_RESPONSE, response_reason(detail, server.headers))
+    refused(check, INITIALIZE, error, server)
 
 
 def listing_failed(check: Check, error: Exception, server: Any) -> None:
@@ -170,8 +188,7 @@ def listing_failed(check: Check, error: Exception, server: Any) -> None:
         reason = "The server stopped answering while it listed its tools"
         check.failed(TOOLS, UNREACHABLE, reason)
         return
-    detail = detail_of(error, server.name)
-    check.failed(TOOLS, BAD_RESPONSE, response_reason(detail, server.headers))
+    refused(check, TOOLS, error, server)
 
 
 async def run_check(check: Check, server: Any, timeout: float) -> None:

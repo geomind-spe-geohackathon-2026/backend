@@ -8,8 +8,9 @@ never message contents, tool inputs or tool outputs.
 
 geomind's own figures come first wherever the events carry them: ``session`` and
 ``context_window`` on ``step.started``, ``context`` on ``step.finished``, and
-``sessions`` and ``total`` on the root ``run.finished``. A log without them, as
-geomind 0.4.23 writes it, is counted here from its LLM calls and tool results, the
+``sessions`` and ``total`` on the root ``run.finished`` (the keys of geomind
+0.4.24's ``StepStarted``, ``StepFinished`` and ``RunFinished``). A log written before
+0.4.24 has none of them and is counted here from its LLM calls and tool results, the
 way ``runlog`` counts them. The stored dicts are read as they are, so a field the
 installed geomind does not know yet is still seen.
 """
