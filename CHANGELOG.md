@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.54] - 2026-11-05
+
+- gemini 0.6.5 from the local wheel `.tmp/hotfix-wheels/gemini_geothermal_suite_open-0.6.5-py3-none-any.whl`
+  (dev b20c2964, tag v0.6.5): `gm.check` names the plant rules and a split well's pump depth
+  (QA-040), humidity takes `%` (QA-043), a local daily series is matched by date (QA-039), unit
+  problems carry `quantity` and `accepted`. With geomind 0.4.55 (tag v0.4.55, commit c3b167c).
+  Hotfix mode: no tests ran.
+
 ## [1.1.53] - 2026-11-05
 
 - QA-011, QA-013: geomind 0.4.54 from the local wheel
