@@ -8,7 +8,7 @@ geomind.team runs from this laptop. Deploys go through the Deploy thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | 8a1fa68 (v1.1.10) | see `git log` |
+| backend | 85ed4cf (v1.1.11) | see `git log` |
 | frontend | v1.1.27 | see `git log` |
 | gemini | wheel 0.6.3 | wheel 0.6.3 |
 | geomind | 0.4.23 wheel by URL | 0.4.23 wheel by URL |
