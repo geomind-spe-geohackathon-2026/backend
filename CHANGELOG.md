@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.25] - 2026-11-04
+
+- QA-016: geomind 0.4.30 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.30-py3-none-any.whl`
+  (tag v0.4.30, commit b6f61d6): a `fill_parts` engineer's approval is allowed instead of coming
+  back as output, so the run no longer stays `waiting` and the engineer's work is kept. Hotfix
+  mode: no tests ran.
+
 ## [1.1.24] - 2026-11-04
 
 - QA-024: the API rate limit counts per sign-in (the verified access token), not per user, so
