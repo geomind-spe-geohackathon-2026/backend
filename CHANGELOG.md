@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.20] - 2026-11-04
+
+- QA-009: geomind 0.4.29 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.29-py3-none-any.whl`
+  (tag v0.4.29, commit 0622c67; it holds the QA-004 fix of 0.4.28 too): every `ask_user` answer
+  is kept in the problem state, so no agent asks the same question again. Hotfix mode: no tests
+  ran.
+
 ## [1.1.19] - 2026-11-04
 
 - QA-017: when the worker starts, every run still `running` is ended as failed (code
