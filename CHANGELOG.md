@@ -6,6 +6,10 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.8] - 2026-11-04
+
+- gemini 0.6.3 (additions only).
+
 ## [1.1.7] - 2026-11-04
 
 - geomind 0.4.22 and gemini 0.6.2, pinned by URL and sha256. geomind takes one model per role
