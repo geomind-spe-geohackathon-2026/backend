@@ -6,6 +6,22 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.10] - 2026-11-04
+
+- Connector Check works again: the backend gives geomind's MCP client its `gd.mcp.Server` record,
+  not a plain dict, so a check no longer fails with "'dict' object has no attribute 'name'". Runs
+  get the project's connectors as `gd.mcp.Server` records too; with dicts, a run with a connector
+  failed as soon as geomind loaded the servers.
+- Check is a health check: one round trip through geomind's MCP client, answered with `steps`
+  (`reachable`, `initialize`, `auth`, `tools`, each `ok`, `failed` or `skipped` with a readable
+  reason, never a header value or a program error), `server_info` (null: geomind 0.4.23 does not
+  hand out the `initialize` answer) and `elapsed_ms`. The fields are additive; `status`, `error`
+  (`"<code>: <reason>"`) and `tools` stay as they were.
+- A case gemini accepts in a chat (`set_case`, a saved profile) and a plant `build_plant` stores
+  are saved as the project's next case or plant version, with the run's author, so the Case and
+  Plant pages show them. Content equal to the latest version saves nothing.
+- `ASSISTANT_RUN_MAX_TOKENS` defaults to 10,000,000 tokens per run (was 2,000,000).
+
 ## [1.1.9] - 2026-11-04
 
 - geomind 0.4.23. The workspace gives each project its memory (or none when the project has it

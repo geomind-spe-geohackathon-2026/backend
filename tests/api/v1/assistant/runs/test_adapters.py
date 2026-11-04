@@ -44,6 +44,7 @@ from tests import design_inputs
 from tests.api.v1.assistant.conftest import use_models
 from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
 from tests.conftest import bearer
+from tests.geomind_doubles import FakeMcpServer
 from tests.plants import example_plant
 
 
@@ -680,15 +681,52 @@ async def test_the_loop_reads_warmed_memory_and_connectors(
 
     await workspace.warm(project_id)
 
-    assert workspace.connectors(project_id) == [
+    servers = workspace.connectors(project_id)
+    assert all(isinstance(server, gd.mcp.Server) for server in servers)
+    assert [server.public() for server in servers] == [
         {
             "name": "wells",
             "url": "https://mcp.example.com",
             "transport": "http",
-            "headers": {"X-Key": "k"},
+            "headers": ["X-Key"],
         }
     ]
+    assert servers[0].headers == {"X-Key": "k"}
+    assert workspace.mcp(project_id) == servers
     assert workspace.memory(project_id).entries("experience") == []
+
+
+async def test_a_run_lists_the_tools_of_the_project_connectors(
+    session_factory, session, make_user, make_project, blobs, monkeypatch
+) -> None:
+    monkeypatch.setenv("GEOMIND_MCP_TIMEOUT", "5")
+    fake = FakeMcpServer(token="k")
+    owner = await make_user()
+    project = await make_project(owner)
+    connector = await McpServerRepository(session).create(
+        {
+            "name": "wells",
+            "url": "https://mcp.example.com",
+            "transport": "http",
+            "auth": "bearer",
+            "secret": seal("k"),
+        }
+    )
+    projects = ProjectRepository(session)
+    await projects.set_choices(
+        await projects.get_by_id(project.id), "off", [connector.id]
+    )
+    workspace = DatabaseWorkspace(
+        LoopBridge(asyncio.get_running_loop(), session_factory), blobs
+    )
+    await workspace.warm(str(project.id))
+    servers = workspace.mcp(str(project.id))
+
+    async with gd.mcp.McpClient(servers[0], 5, fake.transport()) as mcp_client:
+        tools = await mcp_client.list_tools()
+
+    assert [tool["name"] for tool in tools] == ["search", "write"]
+    assert fake.seen[0]["authorization"] == "Bearer k"
 
 
 async def test_the_shared_knowledge_is_searched_by_passage_with_its_page(

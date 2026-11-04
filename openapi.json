@@ -1301,8 +1301,50 @@
         "title": "Link",
         "type": "object"
       },
+      "McpCheckStep": {
+        "description": "One step of a check: ``ok``, ``failed`` with a reason, or ``skipped``.",
+        "properties": {
+          "name": {
+            "enum": [
+              "reachable",
+              "initialize",
+              "auth",
+              "tools"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "reason"
+        ],
+        "title": "McpCheckStep",
+        "type": "object"
+      },
       "McpServer": {
-        "description": "An MCP server as anyone may see it: the secret is only ``has_secret``.",
+        "description": "An MCP server as anyone may see it: the secret is only ``has_secret``.\n\n``steps``, ``server_info`` and ``elapsed_ms`` come with the answer of a check\n(``POST`` create and ``/check``) and are ``None`` everywhere else.",
         "properties": {
           "auth": {
             "enum": [
@@ -1329,6 +1371,17 @@
             "format": "date-time",
             "title": "Created",
             "type": "string"
+          },
+          "elapsed_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Ms"
           },
           "enabled": {
             "title": "Enabled",
@@ -1369,6 +1422,16 @@
             "title": "Name",
             "type": "string"
           },
+          "server_info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/McpServerInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "enum": [
               "unchecked",
@@ -1377,6 +1440,20 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/McpCheckStep"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
           },
           "tools": {
             "items": {
@@ -1479,6 +1556,46 @@
           "url"
         ],
         "title": "McpServerCreate",
+        "type": "object"
+      },
+      "McpServerInfo": {
+        "description": "What the server said of itself in ``initialize``; ``None`` when not known.",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "title": "McpServerInfo",
         "type": "object"
       },
       "McpServerUpdate": {
@@ -4703,7 +4820,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.9"
+    "version": "1.1.10"
   },
   "openapi": "3.1.0",
   "paths": {

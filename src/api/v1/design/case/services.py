@@ -1,9 +1,9 @@
 import asyncio
-import hashlib
 from pathlib import PurePosixPath
 from typing import Any
 
 from src.api.v1.design.case import schemas
+from src.core.case_versions import files_digest, object_key
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.models.case_file import CaseFile
 from src.core.clients.postgres.models.case_version import CaseVersion
@@ -15,7 +15,6 @@ from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
 from src.core.clients.postgres.repositories.user import UserRepository
-from src.core.clients.postgres.repositories.version import content_digest
 from src.core.errors import CaseInvalidError, ValidationFailedError
 from src.core.gemini import case, plant
 from src.core.gemini.errors import CaseFileNotFoundError, CaseNotFoundError
@@ -30,21 +29,11 @@ from src.core.versioning import (
 )
 
 
-def object_key(project_id: Any, data: bytes) -> str:
-    return f"case/{project_id}/{hashlib.sha256(data).hexdigest()}"
-
-
 def check_name(name: str) -> None:
     """Refuse a file name that is empty, absolute or climbs out of the case folder."""
     path = PurePosixPath(name)
     if not name or "\\" in name or path.is_absolute() or ".." in path.parts:
         raise ValidationFailedError({"name": "Name must be a relative path"})
-
-
-def files_digest(content: dict[str, Any], files: dict[str, bytes]) -> str:
-    """Hash a case document together with the bytes of its files."""
-    hashes = {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}
-    return content_digest({"content": content, "files": hashes})
 
 
 async def build_case(

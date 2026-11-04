@@ -25,6 +25,7 @@ from src.api.v1.assistant.runs.adapters.store import (
     DatabaseRunStore,
     DatabaseUsageLedger,
 )
+from src.api.v1.assistant.runs.adapters.versions import VersionRecorder
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.redis.repositories.job import SyncJobRepository
@@ -90,10 +91,15 @@ def build_environment(
 ) -> Environment:
     """Connect a run row to geomind: store, workspace, callbacks and budget.
 
-    The recorder comes first, so the row is current before the event is published.
+    The recorder comes first, so the row is current before the event is published;
+    the version recorder saves a settled case or plant before its event goes out.
     """
     bridge = LoopBridge(asyncio.get_running_loop(), resources.factory)
     recorder = RunRecorder(resources.factory, run.id)
+    blobs = BlobStore(resources.minio, settings.MINIO_BUCKET_NAME)
+    versions = VersionRecorder(
+        resources.factory, blobs, run.chat_id, run.project_id, run.author_id
+    )
     studies = StudyRecorder(resources.factory, run.id, run.chat_id, run.project_id)
     publisher = EventPublisher(
         resources.redis,
@@ -103,12 +109,8 @@ def build_environment(
     )
     return Environment(
         store=DatabaseRunStore(bridge, run.id, run.chat_id),
-        workspace=DatabaseWorkspace(
-            bridge,
-            BlobStore(resources.minio, settings.MINIO_BUCKET_NAME),
-            run.id.hex,
-        ),
-        callbacks=[recorder, studies, publisher],
+        workspace=DatabaseWorkspace(bridge, blobs, run.id.hex),
+        callbacks=[recorder, versions, studies, publisher],
         is_cancelled=lambda: resources.jobs.is_cancel_requested(str(run.id)),
         ledger=DatabaseUsageLedger(bridge, run.id),
         project=str(run.project_id),

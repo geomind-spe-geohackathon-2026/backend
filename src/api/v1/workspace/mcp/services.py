@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -18,7 +17,10 @@ class McpServerNotFoundError(NotFoundError):
     code = "mcp_server_not_found"
 
 
-def to_server(server: McpServer) -> schemas.McpServer:
+def to_server(
+    server: McpServer, check: dict[str, Any] | None = None
+) -> schemas.McpServer:
+    found = check or {}
     return schemas.McpServer(
         id=server.id,
         name=server.name,
@@ -33,6 +35,9 @@ def to_server(server: McpServer) -> schemas.McpServer:
         checked=server.checked,
         tools=server.tools,
         created=server.created,
+        steps=found.get("steps"),
+        server_info=found.get("server"),
+        elapsed_ms=found.get("elapsed_ms"),
     )
 
 
@@ -62,20 +67,26 @@ async def require_free_name(
 async def check_server(
     server: McpServer, repository: McpServerRepository
 ) -> schemas.McpServer:
-    """Ask the server for its tools through geomind and keep what it said."""
+    """Check the server in one round trip through geomind and keep what it said.
+
+    The answer has each step of the check; the row keeps the status, the tools and
+    the first failure as ``"<code>: <reason>"``.
+    """
     try:
-        tools = await asyncio.to_thread(mcp.list_tools, server_of(server))
-        values = {"status": "ok", "error": None, "tools": tools}
+        check = await mcp.check_server(server_of(server))
     except AppError as error:
         if error.code != "not_implemented":
             raise
         values = {"status": "unchecked", "error": NO_CLIENT}
-    except Exception as error:
-        code = getattr(error, "code", None)
-        reason = f"{code}: {error}" if code else str(error)
-        values = {"status": "error", "error": reason, "tools": []}
+        saved = await repository.update(server, {**values, "checked": utc_now()})
+        return to_server(saved)
+    if check["ok"]:
+        values = {"status": "ok", "error": None, "tools": check["tools"]}
+    else:
+        reason = f"{check['code']}: {check['reason']}"
+        values = {"status": "error", "error": reason, "tools": check["tools"]}
     saved = await repository.update(server, {**values, "checked": utc_now()})
-    return to_server(saved)
+    return to_server(saved, check)
 
 
 async def list_servers(repository: McpServerRepository) -> list[schemas.McpServer]:

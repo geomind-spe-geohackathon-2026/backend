@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     ASSISTANT_LLM: Literal["openrouter", "fake"] = "openrouter"
     ASSISTANT_SANDBOX: Literal["none", "docker"] = "none"
     ASSISTANT_MODEL_PREFIX: str = "deepseek/"
-    ASSISTANT_RUN_MAX_TOKENS: int = 2_000_000
+    ASSISTANT_RUN_MAX_TOKENS: int = 10_000_000
     ASSISTANT_DELTA_TTL_SECONDS: int = 600
 
     model_config = SettingsConfigDict(

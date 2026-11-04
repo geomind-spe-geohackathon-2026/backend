@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+import pydantic
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
@@ -25,6 +26,7 @@ from src.core.clients.postgres.repositories.plant_version import (
 )
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
+from src.core.geomind.mcp import server_record
 from src.core.mcp_servers import server_of
 from src.core.progress.project_state import project_state
 
@@ -156,11 +158,22 @@ class DatabaseWorkspace:
             )
         return self.memories[project_id]
 
-    def mcp(self, project_id: str) -> list[dict[str, Any]]:
-        """Return the enabled MCP servers the project chose, each with its headers."""
-        return list(self.choices_of(project_id).servers)
+    def mcp(self, project_id: str) -> list[Any]:
+        """Return the enabled MCP servers the project chose, each with its headers.
 
-    def connectors(self, project_id: str) -> list[dict[str, Any]]:
+        geomind's run reads each server's attributes (``name``, ``url``, ``transport``,
+        ``headers``), so each is its ``gd.mcp.Server`` record; one whose settings the
+        record refuses is left out.
+        """
+        found = []
+        for item in self.choices_of(project_id).servers:
+            try:
+                found.append(server_record(item))
+            except pydantic.ValidationError:
+                continue
+        return found
+
+    def connectors(self, project_id: str) -> list[Any]:
         """``mcp`` under the name geomind used before its rename."""
         return self.mcp(project_id)
 
