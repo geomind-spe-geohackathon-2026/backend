@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.42] - 2026-11-04
+
+- QA-044: an empty or non-numeric `Last-Event-ID` starts the run's stream from the beginning
+  instead of a 422 `validation_failed`, which stopped the chat's live stream for good after a
+  reconnect. Hotfix mode: no tests ran.
+
 ## [1.1.41] - 2026-11-04
 
 - QA-043: geomind 0.4.43 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.43-py3-none-any.whl`

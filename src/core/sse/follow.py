@@ -6,7 +6,6 @@ from fastapi.sse import ServerSentEvent
 from redis.asyncio import Redis
 
 from fastapi import Header
-from src.core.errors import ValidationFailedError
 from src.core.settings import settings
 from src.core.sse.events import StreamEvent, decode_event
 
@@ -19,15 +18,15 @@ Replay = Callable[[int], Awaitable[list[StreamEvent]]]
 def last_event_id(
     last_event_id: Annotated[str | None, Header()] = None,
 ) -> int:
-    """Return the sequence a client has seen, or ``NO_EVENT`` for a new stream."""
-    if last_event_id is None:
-        return NO_EVENT
+    """Return the sequence a client has seen, or ``NO_EVENT`` for a new stream.
+
+    An empty or non-numeric id (a reconnect after an event without an id) is a new stream, not
+    a 422: the 422 stopped the chat's live stream for good (QA-044).
+    """
     try:
-        return int(last_event_id)
-    except ValueError as error:
-        raise ValidationFailedError(
-            {"last-event-id": "Last-Event-ID must be an integer"}
-        ) from error
+        return int(last_event_id) if last_event_id else NO_EVENT
+    except ValueError:
+        return NO_EVENT
 
 
 def to_sse(event: StreamEvent) -> ServerSentEvent:
