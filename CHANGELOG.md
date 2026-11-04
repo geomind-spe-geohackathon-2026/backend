@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.17] - 2026-11-04
+
+- QA-007: geomind 0.4.27 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.27-py3-none-any.whl`
+  (tag v0.4.27, commit 68e7bb2): `ask_economics` leaves out a key that is not an economics key
+  with a note instead of refusing the whole question. Hotfix mode: no tests ran.
+
 ## [1.1.16] - 2026-11-04
 
 - Every geomind role runs on `nvidia/nemotron-3.5-super-vl:free` (OpenRouter), no longer DeepSeek:
