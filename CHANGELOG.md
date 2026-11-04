@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.29] - 2026-11-04
+
+- QA-035: when the worker starts, a run still `running` that started within 12 hours is resumed
+  from its event log (`assistant.runs.resume` with no request; geomind continues a run whose
+  process died), so a deploy no longer ends long agent runs. Older ones are still ended as
+  failed/interrupted (QA-017). Hotfix mode: no tests ran.
+
 ## [1.1.28] - 2026-11-04
 
 - QA-002: geomind 0.4.33 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.33-py3-none-any.whl`

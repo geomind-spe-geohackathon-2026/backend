@@ -30,14 +30,15 @@ def prepare_storage(**_details: object) -> None:
 
 
 @worker_ready.connect
-def end_interrupted_runs(**_details: object) -> None:
-    """End the runs a stopped worker left ``running`` (QA-017)."""
-    from src.api.v1.assistant.runs.execution import end_interrupted_runs as end_runs
+def resume_interrupted_runs(**_details: object) -> None:
+    """Resume the runs a stopped worker left ``running`` (QA-035); end the old ones (QA-017)."""
+    from src.api.v1.assistant.runs.execution import interrupted_runs
 
     try:
-        asyncio.run(end_runs())
+        for run_id in asyncio.run(interrupted_runs()):
+            app.send_task("assistant.runs.resume", args=[str(run_id), None, None])
     except Exception:
-        logging.getLogger(__name__).exception("Ending interrupted runs failed")
+        logging.getLogger(__name__).exception("Resuming interrupted runs failed")
 
 
 def run() -> None:

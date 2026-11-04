@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
@@ -66,22 +67,32 @@ async def resume_run(
 INTERRUPTED = (
     "The run stopped because the app was updated or restarted; send your message again."
 )
-"""What a run left ``running`` by a stopped worker says (QA-017)."""
+"""What a run left ``running`` too long ago by a stopped worker says (QA-017)."""
+RESUME_WITHIN = timedelta(hours=12)
+"""A run left ``running`` that started within this is resumed from its log (QA-035)."""
 
 
-async def end_interrupted_runs() -> None:
-    """End every run still ``running`` when the worker starts: its process is gone.
+async def interrupted_runs() -> list[UUID]:
+    """Return the runs a stopped worker left ``running`` that should go on; end the others.
 
-    A deploy or restart stops the worker and every run in it; the row stayed ``running`` and the
-    chat showed an active run that never ended (QA-017). Queued runs stay: the broker delivers
-    their task again. Waiting runs stay: they have no process until an answer resumes them.
+    A deploy or restart stops the worker and every run in it (QA-017). geomind rebuilds a run
+    from its event log, and ``aresume`` with no request continues a run whose process died, so a
+    run that started within ``RESUME_WITHIN`` is returned to be resumed (QA-035); an older one is
+    ended as failed with a message. Queued runs stay: the broker delivers their task again.
+    Waiting runs stay: they have no process until an answer resumes them.
     """
+    resume = []
     async with open_resources() as resources:
         async with resources.factory() as session:
             runs = await RunRepository(session).with_status("running")
         for run in runs:
+            if run.started is not None and utc_now() - run.started < RESUME_WITHIN:
+                logger.warning("Run %s was running when the worker started; resuming it", run.id)
+                resume.append(run.id)
+                continue
             logger.warning("Run %s was running when the worker started; ending it", run.id)
             await fail(resources, run, "interrupted", INTERRUPTED)
+    return resume
 
 
 async def get_run(resources: adapters.Resources, run_id: UUID) -> Run | None:
