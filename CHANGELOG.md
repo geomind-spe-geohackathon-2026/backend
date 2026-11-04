@@ -18,6 +18,8 @@ tests pass.
   from their LLM calls.
 - `step.started.context_window` is the window of that step's model, as geomind looks it up, not
   the single `GEOMIND_CONTEXT_WINDOW` (still the fallback); geomind's own value passes through.
+- `ASSISTANT_RUN_MAX_TOKENS` may be `off`: no token cap for a run. It caps the whole run's tokens
+  over every call and sub-run (a cost guard), never an agent's context.
 
 ## [1.1.10] - 2026-11-04
 

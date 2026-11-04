@@ -1,7 +1,7 @@
 import re
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.core.errors import AppError
@@ -65,8 +65,14 @@ class Settings(BaseSettings):
     ASSISTANT_LLM: Literal["openrouter", "fake"] = "openrouter"
     ASSISTANT_SANDBOX: Literal["none", "docker"] = "none"
     ASSISTANT_MODEL_PREFIX: str = "deepseek/"
-    ASSISTANT_RUN_MAX_TOKENS: int = 10_000_000
+    ASSISTANT_RUN_MAX_TOKENS: int | None = 10_000_000
     ASSISTANT_DELTA_TTL_SECONDS: int = 600
+
+    @field_validator("ASSISTANT_RUN_MAX_TOKENS", mode="before")
+    @classmethod
+    def run_cap_may_be_off(cls, value: object) -> object:
+        """Read ``off`` as no token cap for a run; any other value must be a count."""
+        return None if isinstance(value, str) and value.strip() == "off" else value
 
     model_config = SettingsConfigDict(
         env_file=".env",

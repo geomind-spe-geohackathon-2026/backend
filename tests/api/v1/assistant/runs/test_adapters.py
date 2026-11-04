@@ -18,6 +18,7 @@ from src.api.v1.assistant.runs.adapters.session import (
     allowed_model_prefixes,
     build_budget,
     build_llm,
+    build_run_cap,
     build_sandbox,
     check_models,
     refused_models,
@@ -39,7 +40,7 @@ from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
 from src.core.secrets import seal
-from src.core.settings import settings
+from src.core.settings import Settings, settings
 from tests import design_inputs
 from tests.api.v1.assistant.conftest import use_models
 from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
@@ -778,3 +779,11 @@ def test_the_next_steps_of_a_run_are_kept_and_checked() -> None:
         {"label": "Design the plant", "message": "Design a plant for this case."}
     ]
     assert suggestions_of(SimpleNamespace()) is None
+
+
+def test_the_run_token_cap_may_be_off(monkeypatch) -> None:
+    assert Settings(ASSISTANT_RUN_MAX_TOKENS="off").ASSISTANT_RUN_MAX_TOKENS is None
+    monkeypatch.setattr(settings, "ASSISTANT_RUN_MAX_TOKENS", None)
+    assert build_run_cap() == []
+    monkeypatch.setattr(settings, "ASSISTANT_RUN_MAX_TOKENS", 5)
+    assert isinstance(build_run_cap()[0], gd.hooks.TokenBudget)

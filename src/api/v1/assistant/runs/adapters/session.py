@@ -178,9 +178,15 @@ def build_budget(environment: Environment) -> list[Any]:
     ]
 
 
+def build_run_cap() -> list[Any]:
+    """Return the run's token cap hook; ``ASSISTANT_RUN_MAX_TOKENS=off`` gives none."""
+    cap = settings.ASSISTANT_RUN_MAX_TOKENS
+    return [] if cap is None else [gd.hooks.TokenBudget(cap)]
+
+
 def build_hooks(environment: Environment) -> list[Any]:
     return [
-        gd.hooks.TokenBudget(settings.ASSISTANT_RUN_MAX_TOKENS),
+        *build_run_cap(),
         *build_budget(environment),
         gd.hooks.Cancellation(environment.is_cancelled),
     ]
