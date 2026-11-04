@@ -30,6 +30,7 @@ from src.api.v1.assistant.runs.adapters.store import (
     DatabaseUsageLedger,
 )
 from src.api.v1.assistant.runs.adapters.versions import VersionRecorder
+from src.core.clients.redis.repositories.chat_auto_approve import auto_approve_on
 from src.api.v1.assistant.runs.adapters.workspace import DatabaseWorkspace
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.redis.repositories.job import SyncJobRepository
@@ -61,6 +62,7 @@ class Environment:
     ledger: DatabaseUsageLedger
     project: str
     budget: dict[str, Any]
+    auto_approve: bool = False
 
 
 @dataclass(frozen=True)
@@ -119,6 +121,7 @@ def build_environment(
         ledger=DatabaseUsageLedger(bridge, run.id),
         project=str(run.project_id),
         budget=budget,
+        auto_approve=auto_approve_on(resources.jobs.redis, str(run.chat_id)),
     )
 
 
@@ -208,8 +211,9 @@ def build_sandbox() -> dict[str, Any]:
     return {"sandbox": None}
 
 
-def build_permissions() -> Any:
-    return gd.Permissions(mode="ask")
+def build_permissions(auto_approve: bool = False) -> Any:
+    """Ask before writes, or allow every tool when the chat's auto-approve is on (QA-031)."""
+    return gd.Permissions(mode="auto" if auto_approve else "ask")
 
 
 def answer_text(answer: Any) -> str:
@@ -252,7 +256,7 @@ def keywords(
         "store": environment.store,
         "workspace": environment.workspace,
         **build_sandbox(),
-        "permissions": build_permissions(),
+        "permissions": build_permissions(environment.auto_approve),
         "callbacks": environment.callbacks,
         "hooks": build_hooks(environment),
     }

@@ -20,6 +20,12 @@ class ChatUpdate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
 
 
+class AutoApprove(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    auto_approve: bool
+
+
 class MessageCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

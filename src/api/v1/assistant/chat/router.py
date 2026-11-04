@@ -23,6 +23,10 @@ from src.core.clients.postgres.repositories.run_artifact import (
     RunArtifactRepository,
     get_run_artifact_repository,
 )
+from src.core.clients.redis.client import RedisClient
+from src.core.clients.redis.repositories.chat_auto_approve import (
+    ChatAutoApproveRepository,
+)
 from src.core.pagination.page import Page, PageParams
 from src.core.security.access import CurrentUser, QueriedProject, require_project
 
@@ -123,6 +127,22 @@ async def read_file(
     data = await services.read_file(chat, name, artifacts)
     media_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
     return Response(content=data, media_type=media_type)
+
+
+@router.get("/{chat_id}/auto-approve", response_model=schemas.AutoApprove)
+async def read_auto_approve(chat: AccessibleChat, redis: RedisClient) -> schemas.AutoApprove:
+    """Whether the worker approves this chat's tool calls itself (QA-031)."""
+    on = await ChatAutoApproveRepository(redis).is_on(str(chat.id))
+    return schemas.AutoApprove(auto_approve=on)
+
+
+@router.put("/{chat_id}/auto-approve", response_model=schemas.AutoApprove)
+async def set_auto_approve(
+    payload: schemas.AutoApprove, chat: AccessibleChat, redis: RedisClient
+) -> schemas.AutoApprove:
+    """Turn auto-approve on or off for this chat; runs started or resumed later follow it."""
+    await ChatAutoApproveRepository(redis).turn(str(chat.id), payload.auto_approve)
+    return payload
 
 
 @router.get("/{chat_id}/state", response_model=schemas.ChatState)
