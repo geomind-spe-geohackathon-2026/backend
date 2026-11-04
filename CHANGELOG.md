@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.45] - 2026-11-04
+
+- QA-010: geomind 0.4.46 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.46-py3-none-any.whl`
+  (tag v0.4.46, commit eb90156): delegated open values are searched for, then proposed as
+  engineering assumptions for the user to approve. Hotfix mode: no tests ran.
+
 ## [1.1.44] - 2026-11-04
 
 - QA-046: the run's totals grow while a nested agent works: the run row and a live root `usage`
