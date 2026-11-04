@@ -1,8 +1,8 @@
 # .claude: what agents read (backend)
 
 `.claude/` holds what agents and Claude Code sessions read about this repo; `docs/` holds what
-people read. Read both, and the project-wide context in the project root (`../AGENTS.md`,
-`../.claude/` with the shared memory, `../docs/`). Layout and naming rules:
+people read. Read both, and the project-wide context in the project root (`../.claude/AGENTS.md`,
+`../.claude/` with the shared memory, `../documents/`). Layout and naming rules:
 `../.claude/README.md`.
 
 | Folder | Holds |
