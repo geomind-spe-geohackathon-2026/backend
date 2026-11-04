@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.44] - 2026-11-04
+
+- QA-046: the run's totals grow while a nested agent works: the run row and a live root `usage`
+  event (no `id`) carry the root's last totals plus the latest totals of each running nested run;
+  before, they stayed flat until the nested run ended and then jumped. Hotfix mode: no tests ran.
+
 ## [1.1.43] - 2026-11-04
 
 - QA-045, QA-047: geomind 0.4.45 from the local wheel

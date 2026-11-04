@@ -102,6 +102,40 @@ def problem_of(event: Any) -> dict[str, Any] | None:
     }
 
 
+USAGE = "usage"
+USAGE_KEYS = ("input_tokens", "output_tokens", "cost")
+
+
+class UsageTree:
+    """The run tree's running totals while nested runs go (QA-046).
+
+    geomind's ``usage`` of the root run counts a nested run only after the nested run ends, so
+    the run's total stayed flat for minutes and then jumped. A nested run sends its own running
+    totals; the tree's total is the root's last totals plus the latest of each nested run whose
+    parent is the root, until the root's next ``usage`` (which then holds them).
+    """
+
+    def __init__(self, run_id: UUID) -> None:
+        self.root = run_id.hex
+        self.base: dict[str, Any] | None = None
+        self.children: dict[str, dict[str, Any]] = {}
+
+    def add(self, event: Any) -> dict[str, Any] | None:
+        """Take a ``usage`` event; return the tree's totals when a nested one changed them."""
+        totals = {key: getattr(event, key, 0) or 0 for key in USAGE_KEYS}
+        if event.parent is None:
+            self.base = totals
+            self.children = {}
+            return None
+        if str(event.parent).replace("-", "") != self.root or self.base is None:
+            return None
+        self.children[str(event.agent)] = totals
+        return {
+            key: self.base[key] + sum(child[key] for child in self.children.values())
+            for key in USAGE_KEYS
+        }
+
+
 class EventPublisher(gd.callbacks.Callback):
     """Send the public events of a run to the browser through Redis.
 
@@ -117,10 +151,21 @@ class EventPublisher(gd.callbacks.Callback):
         self.ttl = ttl
         self.deltas = RunDeltaRepository(redis)
         self.problems = ToolProblems()
+        self.usage = UsageTree(run_id)
+        self.root_agent = ""
 
     async def on_event(self, engine: Any, event: Any) -> None:
         """Publish one event if it is public."""
         self.problems.note(event)
+        if event.type == USAGE:
+            totals = self.usage.add(event)
+            if totals is not None:
+                tree = {"agent": self.root_agent, "parent": None, **totals}
+                await publish_event_async(
+                    self.redis, self.channel, StreamEvent(USAGE, tree, None)
+                )
+        if event.parent is None and getattr(event, "agent", None):
+            self.root_agent = event.agent
         if event.type == RETRY:
             notice = StreamEvent(RETRY, retry_notice(event), None)
             await publish_event_async(self.redis, self.channel, notice)
@@ -189,6 +234,7 @@ class RunRecorder(gd.callbacks.Callback):
     ) -> None:
         self.factory = factory
         self.run_id = run_id
+        self.usage = UsageTree(run_id)
 
     async def on_event(self, engine: Any, event: Any) -> None:
         """Write the columns an event changes."""
@@ -199,6 +245,10 @@ class RunRecorder(gd.callbacks.Callback):
     def columns(self, event: Any) -> dict[str, Any]:
         if event.type == "request":
             return {"status": "waiting", "request": event.data()}
+        if event.type == USAGE:
+            totals = self.usage.add(event)
+            if totals is not None:
+                return totals
         if event.parent is not None:
             return {}
         if event.type == "run.started" and event.loop is not None:
