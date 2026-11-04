@@ -19,7 +19,7 @@ The app build is at Phase D: read [docs/app-build/handover.md](docs/app-build/ha
 Run the whole app locally with `scripts/stack-up.sh` and stop it with `scripts/stack-down.sh` (README, "Local stack"); settings are in the git-ignored `.env.dev`.
 
 FastAPI backend for the geothermal digital twin. Routes and payloads follow
-`../docs/contracts.md`; change that file first, never a route on its own.
+`docs/app-build/contracts.md`; change that file first, never a route on its own.
 
 - **Features** live in `src/api/v1/<domain>/<feature>/`, with only the files they need
   out of `router.py`, `schemas.py`, `services.py` and `tasks.py`. Today: `system/health`,
