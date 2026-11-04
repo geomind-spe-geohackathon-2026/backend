@@ -8,9 +8,9 @@ geomind.team runs from this laptop. Deploys go through the Deploy thread.
 
 | Part | Sent to production | Pushed to main |
 | --- | --- | --- |
-| backend | dcd0cf4 (v1.1.7) | see `git log` |
-| frontend | c32f3e6 (v1.1.17) | see `git log` |
-| gemini | wheel 0.6.2 | wheel 0.6.3 |
+| backend | c977746 (v1.1.8) | see `git log` |
+| frontend | v1.1.27 | see `git log` |
+| gemini | wheel 0.6.3 | wheel 0.6.3 |
 | geomind | 0.4.22 wheel by URL | 0.4.22 wheel by URL |
 | sandbox image | `gemini-sandbox:0.5.14` | `gemini-sandbox:0.5.14`, pulled from ghcr |
 
