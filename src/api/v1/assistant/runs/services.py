@@ -122,7 +122,11 @@ async def export_log(
 def check_answer(pending: dict[str, Any] | None, body: schemas.RunAnswer) -> None:
     """Refuse an answer that does not fit the request the run waits for."""
     if pending is None or body.request != pending.get("request"):
-        raise ValidationFailedError({"request": "This is not the pending request"})
+        current = (pending or {}).get("request")
+        message = "This is not the pending request" + (
+            f"; the run waits on {current}" if current else "; the run waits on nothing"
+        )
+        raise ValidationFailedError({"request": message})
     expected = schemas.Approval if pending["kind"] == "approval" else schemas.Reply
     if not isinstance(body.answer, expected):
         raise ValidationFailedError({"answer": f"Expected a {pending['kind']} answer"})

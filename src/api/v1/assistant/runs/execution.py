@@ -9,7 +9,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from src.api.v1.assistant.runs.adapters import session as adapters
 from src.api.v1.assistant.runs.adapters.callbacks import TERMINAL_STATUSES
-from src.api.v1.assistant.runs.adapters.errors import AdapterFailedError
+from src.api.v1.assistant.runs.adapters.errors import (
+    AdapterFailedError,
+    StaleRequestError,
+)
 from src.api.v1.assistant.runs.services import run_channel
 from src.core.clients.minio.client import create_minio_client
 from src.core.clients.postgres.client import create_postgres_client, utc_now
@@ -157,6 +160,9 @@ async def carry_out(
     )
     try:
         outcome = await action(environment)
+    except StaleRequestError as error:
+        await wait_again(resources, run, error.expected)
+        return
     except AdapterFailedError as error:
         await fail(resources, run, "error", str(error))
         return
@@ -165,6 +171,34 @@ async def carry_out(
         await fail(resources, run, "internal", "The run failed unexpectedly")
         return
     await settle(resources, run.id, outcome)
+
+
+async def wait_again(resources: adapters.Resources, run: Run, expected: str) -> None:
+    """Put a run back to wait on geomind's pending request after an answer to another one.
+
+    The row could name an older request than the one geomind waits on (parallel or nested
+    agents), the user answered that one and the run failed (QA-056). Now the run waits again on
+    the pending request, read from its stored ``request`` event, and the chat gets it again.
+    """
+    async with resources.factory() as session:
+        stored = await RunEventRepository(session).of_type(run.id, "request")
+        found = None
+        for row in stored:
+            event = adapters.gd.event_from_dict(row.data)
+            if event.data().get("request") == expected:
+                found = (row, event)
+                break
+        runs = RunRepository(session)
+        current = await runs.get_by_id(run.id)
+        if found is None:
+            logger.warning("Run %s waits on %s, which has no stored request", run.id, expected)
+            await runs.update(current, {"status": "waiting"})
+            return
+        row, event = found
+        await runs.update(current, {"status": "waiting", "request": event.data()})
+    logger.warning("Run %s answered a stale request; waiting again on %s", run.id, expected)
+    stream = StreamEvent(row.type, event.data(), row.sequence)
+    await publish_event_async(resources.redis, run_channel(run.id), stream)
 
 
 async def settle(

@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.46] - 2026-11-05
+
+- QA-056: an answer to a request that is not geomind's pending one no longer fails the run: when
+  geomind refuses it ("expected 'request-N'"), the run waits again on the pending request, read
+  from its stored `request` event, and the chat receives that request again. A refused answer's
+  422 names the request the run waits on. Hotfix mode: no tests ran.
+
 ## [1.1.45] - 2026-11-04
 
 - QA-010: geomind 0.4.46 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.46-py3-none-any.whl`

@@ -2,6 +2,7 @@ import asyncio
 import copy
 import json
 import os
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -19,7 +20,10 @@ from src.api.v1.assistant.runs.adapters.callbacks import (
     RunRecorder,
     StudyRecorder,
 )
-from src.api.v1.assistant.runs.adapters.errors import AdapterFailedError
+from src.api.v1.assistant.runs.adapters.errors import (
+    AdapterFailedError,
+    StaleRequestError,
+)
 from src.api.v1.assistant.runs.adapters.fake import scripted_llm
 from src.api.v1.assistant.runs.adapters.store import (
     DatabaseRunStore,
@@ -323,8 +327,17 @@ async def resume(
             **keywords(environment, resumed=True),
         )
         return to_outcome(await run.aresume(request_id, answer))
+    except gd.errors.RequestError as error:
+        found = EXPECTED_REQUEST.search(str(error))
+        if found:
+            raise StaleRequestError(found.group(1)) from error
+        raise AdapterFailedError(str(error)) from error
     except gd.errors.GeomindError as error:
         raise AdapterFailedError(str(error)) from error
+
+
+EXPECTED_REQUEST = re.compile(r"expected '([^']+)'")
+"""geomind's refusal of an answer to a request that is not the pending one (QA-056)."""
 
 
 def failure_event(run_id: UUID, sequence: int, message: str) -> EventRecord:
