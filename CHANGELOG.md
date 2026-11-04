@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.30] - 2026-11-04
+
+- QA-012: geomind 0.4.34 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.34-py3-none-any.whl`
+  (tag v0.4.34, commit a682362; holds 0.4.33 too): an answer the provider ends early gets a true
+  note instead of "cut at the output limit". Hotfix mode: no tests ran.
+
 ## [1.1.29] - 2026-11-04
 
 - QA-035: when the worker starts, a run still `running` that started within 12 hours is resumed
