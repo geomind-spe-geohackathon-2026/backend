@@ -105,9 +105,11 @@ class DatabaseWorkspace:
         self.memories: dict[str, DatabaseMemory] = {}
         self.knowledge: list[RagDocument] | None = None
         self.cases: dict[str, tuple[dict[str, Any], dict[str, bytes]] | None] = {}
+        self.project: str | None = None
 
     async def warm(self, project_id: str) -> None:
         """Read a project's plants, files, case and the Knowledge ahead of a run."""
+        self.project = project_id
         plants = await asyncio.to_thread(
             self.bridge.call, read_plants, UUID(project_id)
         )
@@ -139,18 +141,23 @@ class DatabaseWorkspace:
         self.states[project_id] = state
         return state
 
-    def choices_of(self, project_id: str) -> Choices:
+    def choices_of(self, project_id: str | None) -> Choices:
+        """Return the project's choices; no project means the run's own."""
+        project_id = project_id or self.project
+        if project_id is None:
+            return Choices(False, ())
         if project_id not in self.choices:
             self.choices[project_id] = self.bridge.call(read_choices, UUID(project_id))
         return self.choices[project_id]
 
-    def memory(self, project_id: str) -> DatabaseMemory | None:
+    def memory(self, project_id: str | None) -> DatabaseMemory | None:
         """Return the shared memory as the project sees it, or ``None`` when it is off.
 
         A project uses the memory only when it chose ``on``; one that has not chosen
         does not, so a competition run never reads it by chance.
         """
-        if not self.choices_of(project_id).memory_on:
+        project_id = project_id or self.project
+        if project_id is None or not self.choices_of(project_id).memory_on:
             return None
         if project_id not in self.memories:
             self.memories[project_id] = DatabaseMemory(

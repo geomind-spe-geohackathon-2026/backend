@@ -695,6 +695,24 @@ async def test_the_loop_reads_warmed_memory_and_connectors(
     assert servers[0].headers == {"X-Key": "k"}
     assert workspace.mcp(project_id) == servers
     assert workspace.memory(project_id).entries("experience") == []
+    assert workspace.memory(None).entries("experience") == []
+
+
+async def test_memory_without_a_project_is_the_runs_project_or_off(
+    session_factory, session, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    projects = ProjectRepository(session)
+    await projects.set_choices(await projects.get_by_id(project.id), "on", [])
+    bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+    cold = DatabaseWorkspace(bridge, blobs)
+    warm = DatabaseWorkspace(bridge, blobs)
+
+    await warm.warm(str(project.id))
+
+    assert cold.memory(None) is None
+    assert warm.memory(None) is warm.memory(str(project.id))
 
 
 async def test_a_run_lists_the_tools_of_the_project_connectors(

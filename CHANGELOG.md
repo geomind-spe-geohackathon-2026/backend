@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.13] - 2026-11-04
+
+- Fix: every run that geomind led as a project failed with an internal error when the project
+  had memory on. geomind asks the workspace for the memory before the run knows its project,
+  so the workspace got no project id; it now uses the run's own project (or memory off).
+
 ## [1.1.12] - 2026-11-04
 
 - geomind 0.4.24 and gemini 0.6.4, pinned by URL and sha256. geomind needs
