@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.51] - 2026-11-05
+
+- QA-050, QA-009: geomind 0.4.51 from the local wheel
+  `.tmp/hotfix-wheels/geomind-0.4.51-py3-none-any.whl` (tags v0.4.50, v0.4.51, commit 5ed3269):
+  read-only MCP calls wait out a rate limit; an approve-all answer leaves open keys open. Hotfix
+  mode: no tests ran.
+
 ## [1.1.50] - 2026-11-05
 
 - QA-031: auto-approve is stored per chat in the backend: `GET` and `PUT
