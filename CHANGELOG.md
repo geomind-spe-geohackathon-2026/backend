@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.53] - 2026-11-05
+
+- QA-011, QA-013: geomind 0.4.54 from the local wheel
+  `.tmp/hotfix-wheels/geomind-0.4.54-py3-none-any.whl` (tags v0.4.53, v0.4.54, commit edd7927):
+  a nested run a provider failure stopped is run again once; `ask_economics` fills the
+  recommended catalogue rows itself (geomind 0.4.52's sourced catalogue included). Hotfix mode:
+  no tests ran.
+
 ## [1.1.52] - 2026-11-05
 
 - QA-049: the plant's problems and a study's missing list name, first, every plant-level value
