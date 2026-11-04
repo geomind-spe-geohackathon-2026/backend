@@ -52,7 +52,11 @@ def printed_codepoints(document: bytes) -> set[int]:
 
 
 def test_persian_text_is_embedded_without_question_marks() -> None:
-    name = "پروژه زمین گرمایی"
+    name = (
+        "\u067e\u0631\u0648\u0698\u0647 "
+        "\u0632\u0645\u06cc\u0646 "
+        "\u06af\u0631\u0645\u0627\u06cc\u06cc"
+    )
 
     document = pdf.to_pdf(f"# {name}\n\nSite: {name}")
 

@@ -31,16 +31,16 @@ def relay_app(events, seen: list[str] | None = None) -> FastAPI:
 async def two_events(after, seen):
     yield StreamEvent("usage", {"after": after}, 3)
     yield None
-    yield StreamEvent("text.delta", {"text": "سلام"})
+    yield StreamEvent("text.delta", {"text": "\u0633\u0644\u0627\u0645"})
 
 
 def test_frames_keep_persian_text_and_carry_the_sequence() -> None:
-    frame = to_frame(StreamEvent("text.delta", {"text": "سلام"}, 4))
-    assert "سلام" in frame
+    frame = to_frame(StreamEvent("text.delta", {"text": "\u0633\u0644\u0627\u0645"}, 4))
+    assert "\u0633\u0644\u0627\u0645" in frame
     assert json.loads(frame) == {
         "event": "text.delta",
         "id": 4,
-        "data": {"text": "سلام"},
+        "data": {"text": "\u0633\u0644\u0627\u0645"},
     }
 
 
