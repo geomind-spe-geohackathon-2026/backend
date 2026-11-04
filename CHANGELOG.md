@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.14] - 2026-11-04
+
+- geomind 0.4.25, pinned by URL and sha256. Fixes run 86ddac2a: the case lead's `ask_economics`
+  call ran past the model's output limit three times and the run stopped without economics. The
+  case lead now names catalogue rows by id and geomind reads their values from the knowledge base
+  (`cost-sources.csv`); a completion at the output limit gets the cut note. No migration, no new
+  settings.
+
 ## [1.1.13] - 2026-11-04
 
 - Fix: every run that geomind led as a project failed with an internal error when the project
