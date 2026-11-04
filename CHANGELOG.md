@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.18] - 2026-11-04
+
+- QA-004: geomind 0.4.28 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.28-py3-none-any.whl`
+  (tag v0.4.28, commit 64ac883): `ask_economics` checks a key that takes no unit before the user
+  is asked (`kg CO2e/kg CH4` on the CH4 GWP is set with no unit). Hotfix mode: no tests ran.
+
 ## [1.1.17] - 2026-11-04
 
 - QA-007: geomind 0.4.27 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.27-py3-none-any.whl`
