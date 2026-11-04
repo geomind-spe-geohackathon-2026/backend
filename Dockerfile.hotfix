@@ -1,0 +1,6 @@
+ARG BASE=geomind-backend:candidate
+FROM ${BASE}
+
+COPY *.whl /tmp/hotfix-wheels/
+RUN pip install --no-cache-dir --no-deps --force-reinstall /tmp/hotfix-wheels/*.whl \
+    && rm -rf /tmp/hotfix-wheels
