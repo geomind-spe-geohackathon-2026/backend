@@ -41,6 +41,7 @@ from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepos
 from src.core.secrets import seal
 from src.core.settings import settings
 from tests import design_inputs
+from tests.api.v1.assistant.conftest import use_models
 from tests.cases import DEMAND_CSV, DEMAND_FILE, example_case
 from tests.conftest import bearer
 from tests.plants import example_plant
@@ -487,9 +488,12 @@ async def test_a_file_the_assistant_wrote_can_be_read_from_the_chat(
     assert missing.status_code == 404
 
 
+DEEPSEEK = "deepseek/deepseek-v4.1-flash-1017"
+FIRST_ROLE, SECOND_ROLE = gd.runtime.ROLES[:2]
+
+
 def test_a_model_outside_the_allowed_family_is_refused(monkeypatch) -> None:
-    monkeypatch.setenv("GEOMIND_MODEL", "anthropic/claude-sonnet-5.5")
-    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    use_models(monkeypatch, DEEPSEEK, **{FIRST_ROLE: "anthropic/claude-sonnet-5.5"})
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
 
     with pytest.raises(AdapterFailedError, match="claude-sonnet"):
@@ -497,17 +501,18 @@ def test_a_model_outside_the_allowed_family_is_refused(monkeypatch) -> None:
 
 
 def test_an_unset_model_stops_the_app_with_the_setting_to_add(monkeypatch) -> None:
-    monkeypatch.delenv("GEOMIND_MODEL", raising=False)
-    monkeypatch.delenv("GEOMIND_CHEAP_MODEL", raising=False)
+    use_models(monkeypatch, DEEPSEEK)
+    monkeypatch.delenv(gd.runtime.model_variable(SECOND_ROLE))
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
 
-    with pytest.raises(AdapterFailedError, match="GEOMIND_CHEAP_MODEL"):
+    with pytest.raises(
+        AdapterFailedError, match=gd.runtime.model_variable(SECOND_ROLE)
+    ):
         check_models()
 
 
 def test_unset_retries_stop_the_app_with_the_setting_to_add(monkeypatch) -> None:
-    monkeypatch.setenv("GEOMIND_MODEL", "deepseek/deepseek-v4.1-flash-1017")
-    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    use_models(monkeypatch, DEEPSEEK)
     monkeypatch.delenv("GEOMIND_RETRY_COUNT", raising=False)
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
 
@@ -516,7 +521,7 @@ def test_unset_retries_stop_the_app_with_the_setting_to_add(monkeypatch) -> None
 
 
 def test_the_scripted_assistant_needs_no_model(monkeypatch) -> None:
-    monkeypatch.delenv("GEOMIND_MODEL", raising=False)
+    use_models(monkeypatch, None)
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "fake")
 
     check_models()
@@ -527,7 +532,7 @@ def test_env_examples_name_only_allowed_models(name: str) -> None:
     lines = Path(name).read_text(encoding="utf-8").splitlines()
     models = dict(line.split("=", 1) for line in lines if "_MODEL=" in line)
 
-    assert set(models) >= {"GEOMIND_MODEL", "GEOMIND_CHEAP_MODEL"}
+    assert set(models) >= {gd.runtime.model_variable(role) for role in gd.runtime.ROLES}
     assert all(value.startswith(allowed_model_prefixes()) for value in models.values())
 
 
@@ -536,23 +541,22 @@ def test_several_model_prefixes_may_be_allowed(monkeypatch) -> None:
     monkeypatch.setattr(
         settings, "ASSISTANT_MODEL_PREFIX", "deepseek/, nvidia/nemotron-"
     )
-    monkeypatch.setenv("GEOMIND_MODEL", nemotron)
-    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    use_models(monkeypatch, DEEPSEEK, **{FIRST_ROLE: nemotron})
 
     assert refused_models() == []
 
 
 def test_a_model_outside_every_prefix_is_refused(monkeypatch) -> None:
     monkeypatch.setattr(settings, "ASSISTANT_MODEL_PREFIX", "nvidia/nemotron-")
-    monkeypatch.setenv("GEOMIND_MODEL", "nvidia/nemotron-3.5-super-vl:free")
-    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    use_models(
+        monkeypatch, DEEPSEEK, **{FIRST_ROLE: "nvidia/nemotron-3.5-super-vl:free"}
+    )
 
-    assert refused_models() == ["deepseek/deepseek-v4.1-flash-1017"]
+    assert refused_models() == [DEEPSEEK]
 
 
 def test_deepseek_everywhere_is_allowed(monkeypatch) -> None:
-    monkeypatch.setenv("GEOMIND_MODEL", "deepseek/deepseek-v4.1-flash-1017")
-    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/deepseek-v4.1-flash-1017")
+    use_models(monkeypatch, DEEPSEEK)
 
     assert refused_models() == []
 

@@ -243,8 +243,8 @@ def keywords(
 def seed_problem(environment: Environment, chat_id: UUID, project_id: UUID) -> None:
     """Give a chat whose state has no case the project's case, when that is complete.
 
-    The analyst agent has no ``set_case``, so a chat that started empty could never
-    read or change the case the project already has. A case in the state is kept: it
+    A chat that started empty would otherwise never read or change the case the
+    project already has. A case in the state is kept: it
     may hold the assistant's own changes.
     """
     store = environment.store
@@ -273,6 +273,7 @@ async def start(
     """Start a run under the id the backend gave it; geomind chooses loop and agent."""
     history = await asyncio.to_thread(environment.store.load_history, str(chat_id))
     await asyncio.to_thread(seed_problem, environment, chat_id, project_id)
+    await environment.store.warm(run_id.hex)
     await environment.store.warm_chat(str(chat_id))
     await environment.ledger.warm(environment.project)
     await environment.workspace.warm(environment.project)

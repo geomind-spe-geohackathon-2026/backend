@@ -6,7 +6,7 @@ import geomind.types as gd_types
 
 MODEL = "scripted/model"
 USAGE = gd_types.Usage(input_tokens=120, output_tokens=40, cost=0.001)
-ROUTE = '{"kind": "loop", "loop": "tool", "agent": "analyst"}'
+ROUTE = '{"kind": "loop", "loop": "tool", "agent": "analysis_lead"}'
 ANSWER = "The scripted assistant finished after your approval."
 FAILED_ANSWER = "The scripted assistant could not finish: the last step failed."
 ERROR_MARK = "error"

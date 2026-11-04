@@ -17,7 +17,7 @@ from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.redis.repositories.job import JobRepository, SyncJobRepository
 from src.core.jobs import control
 from src.core.settings import settings
-from tests.api.v1.assistant.conftest import run_url
+from tests.api.v1.assistant.conftest import run_url, use_models
 from tests.conftest import bearer
 from tests.routes import route_exists
 
@@ -58,6 +58,7 @@ async def test_run_pauses_for_approval_then_finishes(
     await execution.begin(resources, run.id)
     waiting = await reload(session, run.id)
 
+    assert waiting.error is None
     assert waiting.status == "waiting"
     assert waiting.loop == "tool"
     assert waiting.request["kind"] == "approval"
@@ -132,8 +133,7 @@ async def test_a_run_that_cannot_start_fails_with_geomind_message(
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
     monkeypatch.setenv("GEOMIND_RETRY_COUNT", "3")
     monkeypatch.setenv("GEOMIND_RETRY_DELAY", "0.5")
-    monkeypatch.setenv("GEOMIND_MODEL", "deepseek/model")
-    monkeypatch.setenv("GEOMIND_CHEAP_MODEL", "deepseek/model")
+    use_models(monkeypatch, "deepseek/model")
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     owner = await make_user()
@@ -153,7 +153,7 @@ async def test_a_run_that_cannot_start_fails_with_geomind_message(
 async def test_every_loop_starts_and_resumes_off_the_event_loop(
     session, resources, make_user, make_project, make_chat, make_run, monkeypatch, loop
 ) -> None:
-    route = json.dumps({"kind": "loop", "loop": loop, "agent": "analyst"})
+    route = json.dumps({"kind": "loop", "loop": loop, "agent": "analysis_lead"})
     replies = [says(route), *[says("No case yet.") for _ in range(12)]]
     monkeypatch.setattr(
         session_adapter, "build_llm", lambda *_: gd.providers.FakeLLM(replies)

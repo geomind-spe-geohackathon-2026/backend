@@ -207,7 +207,8 @@ async def test_suggest_names_the_ports_a_port_may_connect_to(
     project = await make_project(owner)
     await save_plant(client, bearer(owner), project)
     path = f"{FLOWSHEET}/suggest"
-    query = {"project": str(project.id), "port": "hx.cold_out", "limit": 2}
+    port = "heating_return_pipe.air_in"
+    query = {"project": str(project.id), "port": port, "limit": 2}
 
     response = await client.get(path, params=query, headers=bearer(owner))
 
@@ -216,7 +217,7 @@ async def test_suggest_names_the_ports_a_port_may_connect_to(
         return
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["port"] == "hx.cold_out"
-    assert len(body["suggestions"]) <= 2
+    assert body["port"] == port
+    assert 0 < len(body["suggestions"]) <= 2
     keys = {"port", "match", "exact", "loose", "closes_loop"}
     assert all(set(item) == keys for item in body["suggestions"])

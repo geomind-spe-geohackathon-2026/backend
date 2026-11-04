@@ -86,8 +86,9 @@ class DatabaseWorkspace:
 
     ``plants`` holds the project's latest plant under the name in its document. ``case``
     returns the case as written with the bytes of every file it holds. geomind's loops
-    read plants and file names on the event loop, where a blocking read would stall the
-    loop it needs, so ``warm`` reads them ahead of the run and the loop gets that copy.
+    read plants, file names, the case and the shared Knowledge on the event loop, where
+    a blocking read would stall the loop it needs, so ``warm`` reads them ahead of the
+    run and the loop gets that copy.
     """
 
     def __init__(
@@ -100,14 +101,18 @@ class DatabaseWorkspace:
         self.choices: dict[str, Choices] = {}
         self.states: dict[str, dict[str, Any]] = {}
         self.memories: dict[str, DatabaseMemory] = {}
+        self.knowledge: list[RagDocument] | None = None
+        self.cases: dict[str, tuple[dict[str, Any], dict[str, bytes]] | None] = {}
 
     async def warm(self, project_id: str) -> None:
-        """Read a project's plants and uploaded files ahead of a run."""
+        """Read a project's plants, files, case and the Knowledge ahead of a run."""
         plants = await asyncio.to_thread(
             self.bridge.call, read_plants, UUID(project_id)
         )
         rows = await asyncio.to_thread(self.bridge.call, read_files, UUID(project_id))
         self.warmed[project_id] = (plants, rows)
+        self.knowledge = await asyncio.to_thread(self.bridge.call, read_knowledge_files)
+        self.cases[project_id] = await asyncio.to_thread(self.read_case, project_id)
         choices = await asyncio.to_thread(
             self.bridge.call, read_choices, UUID(project_id)
         )
@@ -169,7 +174,21 @@ class DatabaseWorkspace:
         self,
         project_id: str,
     ) -> tuple[dict[str, Any], dict[str, bytes]] | None:
-        """Return the latest case as written and ``{name: bytes}``, or ``None``."""
+        """Return the latest case as written and ``{name: bytes}``, or ``None``.
+
+        Off the event loop it is read fresh, so a run's own changes count; on the loop
+        the copy read last, before the run or since.
+        """
+        if self.bridge.in_loop() and project_id in self.cases:
+            return self.cases[project_id]
+        found = self.read_case(project_id)
+        self.cases[project_id] = found
+        return found
+
+    def read_case(
+        self,
+        project_id: str,
+    ) -> tuple[dict[str, Any], dict[str, bytes]] | None:
         found = self.bridge.call(read_case, UUID(project_id))
         if found is None:
             return None
@@ -206,9 +225,15 @@ class DatabaseWorkspace:
         text, score}]``, best first; ``document`` is what ``knowledge_file`` reads."""
         return self.bridge.call(search_knowledge, query)
 
+    def knowledge_rows(self) -> list[RagDocument]:
+        """Return the shared Knowledge documents; on the event loop the warmed copy."""
+        if self.bridge.in_loop() and self.knowledge is not None:
+            return self.knowledge
+        return self.bridge.call(read_knowledge_files)
+
     def knowledge_files(self) -> list[dict[str, Any]]:
         """Return the shared Knowledge documents as ``[{name, size, media_type}]``."""
-        rows = self.bridge.call(read_knowledge_files)
+        rows = self.knowledge_rows()
         return [
             {"name": row.name, "size": row.size, "media_type": to_media_type(row.name)}
             for row in rows
@@ -216,7 +241,7 @@ class DatabaseWorkspace:
 
     def knowledge_file(self, name: str) -> bytes | None:
         """Return the bytes of a shared Knowledge document, or ``None``."""
-        rows = self.bridge.call(read_knowledge_files)
+        rows = self.knowledge_rows()
         found = next((row for row in rows if row.name == name), None)
         return None if found is None else self.blobs.get_sync(found.object_key)
 

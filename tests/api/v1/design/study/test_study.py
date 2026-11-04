@@ -37,6 +37,7 @@ async def test_kinds_are_geminis_methods(client, make_user) -> None:
         "minimize",
         "sample",
         "sensitivity",
+        "evolve",
         "size",
     ]
     assert kinds[0]["schema"]["title"] == "Study"

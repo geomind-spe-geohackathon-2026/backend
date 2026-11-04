@@ -2,6 +2,7 @@ from collections.abc import Awaitable, Callable, Iterator
 from typing import Any
 from uuid import UUID, uuid4
 
+import geomind as gd
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -15,6 +16,39 @@ from src.core.clients.postgres.repositories.chat import ChatRepository
 from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.fastapi import app
+
+RUN_SETTINGS = {
+    "GEOMIND_MAX_STEPS": "30",
+    "GEOMIND_MAX_OUTPUT_TOKENS": "4000",
+    "GEOMIND_RETRY_COUNT": "1",
+    "GEOMIND_RETRY_DELAY": "0",
+    "GEOMIND_MEMORY": "off",
+    "GEOMIND_DESIGN_CONCURRENCY": "1",
+    "GEOMIND_ENGINEER_MAX_STEPS": "15",
+    "GEOMIND_EVOLVE_EVALUATIONS": "8",
+    "GEOMIND_EVOLVE_POPULATION": "4",
+    "GEOMIND_EVOLVE_SEED": "0",
+    "GEOMIND_EVOLVE_POLISH": "0",
+}
+
+
+@pytest.fixture(autouse=True)
+def run_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Give every run the settings geomind needs beside its models."""
+    for name, value in RUN_SETTINGS.items():
+        monkeypatch.setenv(name, value)
+
+
+def use_models(
+    monkeypatch: pytest.MonkeyPatch, model: str | None, **models: str
+) -> None:
+    """Set each role's model variable to ``model``, or its own from ``models``."""
+    for role in gd.runtime.ROLES:
+        value = models.get(role, model)
+        if value is None:
+            monkeypatch.delenv(gd.runtime.model_variable(role), raising=False)
+        else:
+            monkeypatch.setenv(gd.runtime.model_variable(role), value)
 
 
 class Queue:

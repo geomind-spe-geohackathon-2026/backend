@@ -162,8 +162,11 @@ async def test_state_is_empty_then_the_newest_version(
     await ChatStateRepository(session).save(chat.id, {"goal": "cool"})
     newest = await client.get(f"{CHAT}/{chat.id}/state", headers=headers)
 
-    assert empty.json() == {"version": 0, "state": None, "suggestions": []}
-    assert newest.json() == {"version": 2, "state": {"goal": "cool"}, "suggestions": []}
+    assert (empty.json()["version"], empty.json()["state"]) == (0, None)
+    assert (newest.json()["version"], newest.json()["state"]) == (2, {"goal": "cool"})
+    assert empty.json()["suggestions"]
+    for body in (empty.json(), newest.json()):
+        assert all(set(item) == {"label", "message"} for item in body["suggestions"])
 
 
 async def test_usage_totals_the_runs(

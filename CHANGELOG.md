@@ -8,6 +8,14 @@ tests pass.
 
 ## [1.1.7] - 2026-11-04
 
+- geomind 0.4.22 and gemini 0.6.2, pinned by URL and sha256. geomind takes one model per role
+  (`GEOMIND_<ROLE>_MODEL`, 17 roles), and needs `GEOMIND_MAX_STEPS`, `GEOMIND_MAX_OUTPUT_TOKENS`,
+  `GEOMIND_DESIGN_CONCURRENCY`, `GEOMIND_ENGINEER_MAX_STEPS` and `GEOMIND_EVOLVE_*`; the examples set
+  them and `GEOMIND_PROVIDER=deepseek`. `GEOMIND_MEMORY=off` for now: with `on`, geomind 0.4.22
+  wants a memory folder and would use it for every project that has no memory of its own.
+- geomind reads the case, the Knowledge list and a run's events on the event loop; the workspace
+  and the store now read them before the run and keep them current.
+- gemini 0.6 adds the study method `evolve`; `GET /plant/flowsheet/suggest` works.
 - A question with options also takes the user's own typed answer (geomind 0.4.22 marks it as
   typed); only the step-limit question still takes only `continue` or `stop`. Answers that were
   accepted before are accepted as before.

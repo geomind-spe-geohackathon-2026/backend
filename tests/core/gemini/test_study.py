@@ -37,6 +37,7 @@ def test_kinds_are_the_method_values_with_the_shared_schema() -> None:
         "minimize",
         "sample",
         "sensitivity",
+        "evolve",
         "size",
     ]
     assert all(item["schema"]["title"] == "Study" for item in kinds)

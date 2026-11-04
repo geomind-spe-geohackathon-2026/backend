@@ -123,12 +123,16 @@ class DatabaseRunStore:
         self.bridge = bridge
         self.run_id = run_id
         self.chat_id = chat_id
-        self.warmed: list[Any] | None = None
+        self.warmed: dict[str, list[Any]] = {}
         self.warmed_artifacts: dict[str, Any] = {}
 
     async def warm(self, run_id: str) -> None:
-        """Read a run's events ahead of ``resume``, which reads them on the loop."""
-        self.warmed = await asyncio.to_thread(self.load_events, run_id)
+        """Read a run's events ahead of the run, which reads them on the loop.
+
+        The events this store saves afterwards join that copy, so the loop reads every
+        event of the run.
+        """
+        self.warmed[run_id] = list(await asyncio.to_thread(self.load_events, run_id))
 
     async def warm_chat(self, chat_id: str) -> None:
         """Read a chat's artifacts ahead of the run: geomind's async tools read them.
@@ -150,11 +154,13 @@ class DatabaseRunStore:
             event.is_public,
             event.to_dict(),
         )
+        if run_id in self.warmed:
+            self.warmed[run_id].append(event)
 
     def load_events(self, run_id: str) -> list[Any]:
         """Return the run's events in sequence order, rebuilt by geomind."""
-        if self.warmed is not None and self.bridge.in_loop():
-            return self.warmed
+        if run_id in self.warmed and self.bridge.in_loop():
+            return list(self.warmed[run_id])
         rows = self.bridge.call(read_events, UUID(run_id))
         return known_events(rows)
 
