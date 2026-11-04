@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.21] - 2026-11-04
+
+- Every geomind role runs on `~deepseek/deepseek-flash-latest` (OpenRouter's alias of the latest
+  DeepSeek flash model), no longer nemotron: `ASSISTANT_MODEL_PREFIX` defaults to it,
+  `.env.example` sets all 17 roles to it, `GEOMIND_PROVIDER=deepseek`. Hotfix mode: no tests ran.
+
 ## [1.1.20] - 2026-11-04
 
 - QA-009: geomind 0.4.29 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.29-py3-none-any.whl`
