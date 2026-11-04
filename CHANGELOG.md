@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.39] - 2026-11-04
+
+- QA-040: the plant's own choice parameters (gemini's plant `describe()`, e.g. `backup`: `peak` or
+  `none`) are listed by `GET /plant/parameters/plant` with `options` and set by
+  `POST /plant/parameters/plant` `values`; a choice with more than one option and no value is
+  named as a `missing_value` problem of the plant (gemini's check did not name `params.backup`,
+  and sizing refused the study). Hotfix mode: no tests ran.
+
 ## [1.1.38] - 2026-11-04
 
 - QA-041: geomind 0.4.41 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.41-py3-none-any.whl`

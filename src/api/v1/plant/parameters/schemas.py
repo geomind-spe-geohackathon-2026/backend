@@ -21,6 +21,7 @@ class SearchRange(RangeEnds):
 
 class PlantSearchRange(SearchRange):
     value: Any
+    options: list[str] | None = None
 
 
 class PlantSearch(BaseModel):
@@ -34,7 +35,7 @@ class RangeUpdate(BaseModel):
 
 
 class ValueUpdate(BaseModel):
-    value: float
+    value: float | str
     unit: str | None = None
 
 

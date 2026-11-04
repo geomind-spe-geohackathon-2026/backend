@@ -2808,6 +2808,20 @@
             ],
             "title": "Min"
           },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
           "unit": {
             "anyOf": [
               {
@@ -5291,8 +5305,15 @@
             "title": "Unit"
           },
           "value": {
-            "title": "Value",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
           }
         },
         "required": [
@@ -5333,7 +5354,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.38"
+    "version": "1.1.39"
   },
   "openapi": "3.1.0",
   "paths": {

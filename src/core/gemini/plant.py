@@ -58,17 +58,61 @@ def validate_content(content: Any) -> dict[str, Any]:
     return normalised
 
 
+def plant_options(plant: gm.Plant) -> dict[str, dict[str, Any]]:
+    """Return the plant's own choice parameters: ``{name: {options, value, description}}``.
+
+    A plant class has options of its own (``backup``: ``peak`` or ``none``) that no module holds;
+    sizing refuses a plant without ``backup``, and neither ``check`` nor the search ranges named
+    it, so a plant made by hand could never run a study (QA-040).
+    """
+    try:
+        described = plant.describe().get("parameters") or {}
+        values = plant.params_at(None, None) or {}
+    except (AttributeError, TypeError, gm.errors.ValidationError):
+        return {}
+    return {
+        name: {
+            "options": list(item["enum"]),
+            "value": values.get(name),
+            "description": item.get("description"),
+        }
+        for name, item in described.items()
+        if item.get("type") == "string" and item.get("enum")
+    }
+
+
+def missing_options(plant: gm.Plant) -> list[dict[str, Any]]:
+    """Return a missing-value problem for each plant option with a choice and no value."""
+    return [
+        problem_of(
+            {
+                "path": f"params.{name}",
+                "code": MISSING_CODE,
+                "message": (
+                    f"{name}: no value; expected one of {', '.join(item['options'])}"
+                    + (f": {item['description']}" if item["description"] else "")
+                ),
+                "suggestions": item["options"],
+            }
+        )
+        for name, item in plant_options(plant).items()
+        if item["value"] is None and len(item["options"]) > 1
+    ]
+
+
 def problems_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str]]:
     """Return the structural problems of a document, else what the case leaves."""
     try:
         plant = gm.Plant.from_dict(content)
     except gm.errors.ValidationError as error:
         return [problem_of(problem) for problem in error.problems]
-    return [
+    found = [
         problem_of(issue.problem())
         for issue in gm.check(plant, case)
         if not issue.is_warning
     ]
+    named = {item["path"] for item in found}
+    return found + [item for item in missing_options(plant) if item["path"] not in named]
 
 
 def warnings_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str]]:
@@ -417,6 +461,15 @@ def plant_search(plant: gm.Plant) -> dict[str, dict[str, Any]]:
             leaf or {}, [leaf["unit"]] if leaf and leaf.get("unit") else []
         )
         found[path] = {**limits, "value": None if leaf is None else leaf["value"]}
+    for name, item in plant_options(plant).items():
+        found[name] = {
+            "min": None,
+            "max": None,
+            "unit": None,
+            "units": {},
+            "value": item["value"],
+            "options": item["options"],
+        }
     return found
 
 
@@ -509,8 +562,17 @@ def set_plant_value(plant: gm.Plant, path: str, value: float, unit: str | None) 
 
 def set_plant_values(plant: gm.Plant, values: dict[str, dict[str, Any]]) -> gm.Plant:
     """Return the plant with its plant-level values set, a size last, as it rebuilds."""
+    options = plant_options(plant)
     known = plant_paths(plant)
-    for path in values:
+    for path, item in values.items():
+        if path in options:
+            if item["value"] not in options[path]["options"]:
+                raise plant_invalid(
+                    [],
+                    f"{path} = {item['value']!r}; expected one of "
+                    + ", ".join(options[path]["options"]),
+                )
+            continue
         if path not in known:
             raise plant_invalid([], f"{path}: this is not a plant-level value")
     sizes = {
