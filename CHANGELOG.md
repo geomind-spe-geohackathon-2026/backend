@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.19] - 2026-11-04
+
+- QA-017: when the worker starts, every run still `running` is ended as failed (code
+  `interrupted`, "The run stopped because the app was updated or restarted; send your message
+  again."), with its `run.finished` event; a deploy no longer leaves a run active forever. Queued
+  and waiting runs stay. Hotfix mode: no tests ran.
+
 ## [1.1.18] - 2026-11-04
 
 - QA-004: geomind 0.4.28 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.28-py3-none-any.whl`

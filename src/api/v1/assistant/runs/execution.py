@@ -63,6 +63,27 @@ async def resume_run(
         await carry_on(resources, run_id, request_id, answer)
 
 
+INTERRUPTED = (
+    "The run stopped because the app was updated or restarted; send your message again."
+)
+"""What a run left ``running`` by a stopped worker says (QA-017)."""
+
+
+async def end_interrupted_runs() -> None:
+    """End every run still ``running`` when the worker starts: its process is gone.
+
+    A deploy or restart stops the worker and every run in it; the row stayed ``running`` and the
+    chat showed an active run that never ended (QA-017). Queued runs stay: the broker delivers
+    their task again. Waiting runs stay: they have no process until an answer resumes them.
+    """
+    async with open_resources() as resources:
+        async with resources.factory() as session:
+            runs = await RunRepository(session).with_status("running")
+        for run in runs:
+            logger.warning("Run %s was running when the worker started; ending it", run.id)
+            await fail(resources, run, "interrupted", INTERRUPTED)
+
+
 async def get_run(resources: adapters.Resources, run_id: UUID) -> Run | None:
     async with resources.factory() as session:
         return await RunRepository(session).get_by_id(run_id)

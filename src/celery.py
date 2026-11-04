@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 from celery.signals import worker_ready
 
 from celery import Celery
@@ -24,6 +27,17 @@ app.conf.update(
 @worker_ready.connect
 def prepare_storage(**_details: object) -> None:
     prepare_bucket(create_minio_client())
+
+
+@worker_ready.connect
+def end_interrupted_runs(**_details: object) -> None:
+    """End the runs a stopped worker left ``running`` (QA-017)."""
+    from src.api.v1.assistant.runs.execution import end_interrupted_runs as end_runs
+
+    try:
+        asyncio.run(end_runs())
+    except Exception:
+        logging.getLogger(__name__).exception("Ending interrupted runs failed")
 
 
 def run() -> None:
