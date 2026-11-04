@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.28] - 2026-11-04
+
+- QA-002: geomind 0.4.33 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.33-py3-none-any.whl`
+  (tag v0.4.33, commit 02a8364): the case lead writes efficiencies as fractions with no unit.
+  Hotfix mode: no tests ran.
+
 ## [1.1.27] - 2026-11-04
 
 - QA-026: geomind 0.4.32 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.32-py3-none-any.whl`
