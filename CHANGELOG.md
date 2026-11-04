@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.52] - 2026-11-05
+
+- QA-049: the plant's problems and a study's missing list name, first, every plant-level value
+  with no value (such as `params.depth`, "with it each doublet takes its reservoir values from
+  the case", and `params.backup`); gemini's check did not name `depth`, so the plant asked for the
+  reservoir values the case already has. Hotfix mode: no tests ran.
+
 ## [1.1.51] - 2026-11-05
 
 - QA-050, QA-009: geomind 0.4.51 from the local wheel

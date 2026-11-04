@@ -100,6 +100,49 @@ def missing_options(plant: gm.Plant) -> list[dict[str, Any]]:
     ]
 
 
+def missing_numbers(plant: gm.Plant) -> list[dict[str, Any]]:
+    """Return a missing-value problem for each plant-level number with no value (QA-049).
+
+    gemini's check does not name the plant's own ``depth``, and without it a doublet cannot take
+    its reservoir values from the case, so the plant listed the reservoir's pressure,
+    permeability and thickness as missing although the case has them.
+    """
+    try:
+        described = plant.describe().get("parameters") or {}
+        values = plant.params_at(None, None) or {}
+    except (AttributeError, TypeError, gm.errors.ValidationError):
+        return []
+    found = []
+    for name, item in described.items():
+        if item.get("type") != "number" or values.get(name) is not None:
+            continue
+        unit = f" [{item['unit']}]" if item.get("unit") else ""
+        hint = (
+            "; with it each doublet takes its reservoir values from the case"
+            if name == "depth"
+            else ""
+        )
+        found.append(
+            problem_of(
+                {
+                    "path": f"params.{name}",
+                    "code": MISSING_CODE,
+                    "message": f"{name}: no value{unit}: {item.get('description') or ''}{hint}",
+                }
+            )
+        )
+    return found
+
+
+def missing_plant_values(content: Any) -> list[dict[str, Any]]:
+    """Return the plant-level values a plant document leaves: choices and numbers."""
+    try:
+        plant = gm.Plant.from_dict(content)
+    except gm.errors.ValidationError:
+        return []
+    return missing_options(plant) + missing_numbers(plant)
+
+
 def problems_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str]]:
     """Return the structural problems of a document, else what the case leaves."""
     try:
@@ -112,7 +155,8 @@ def problems_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str
         if not issue.is_warning
     ]
     named = {item["path"] for item in found}
-    return found + [item for item in missing_options(plant) if item["path"] not in named]
+    plant_level = missing_options(plant) + missing_numbers(plant)
+    return [item for item in plant_level if item["path"] not in named] + found
 
 
 def warnings_of(content: Any, case: gm.Case | None = None) -> list[dict[str, str]]:

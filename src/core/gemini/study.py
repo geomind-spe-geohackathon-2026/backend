@@ -152,7 +152,16 @@ def missing_inputs(
     others = [item for item in problems if item["code"] != MISSING_CODE]
     if others:
         raise validation_failed(others)
-    return [{"path": item["path"], "message": item["message"]} for item in problems]
+    named = {item["path"] for item in problems}
+    plant_level = [
+        item
+        for item in plant_document.missing_plant_values(plant_content)
+        if item["path"] not in named
+    ]
+    return [
+        {"path": item["path"], "message": item["message"]}
+        for item in plant_level + problems
+    ]
 
 
 def progress_of(
