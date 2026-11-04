@@ -10,6 +10,15 @@ from tests.api.v1.assistant.recorded import play
 from tests.conftest import bearer
 
 REQUEST = {"request": "request-14", "kind": "approval", "message": "Allow?"}
+STEP_LIMIT = {
+    "request": "request-9",
+    "kind": "question",
+    "message": "designer: the run took its 30 steps; continue or stop?",
+    "options": [
+        {"value": "continue", "label": "continue"},
+        {"value": "stop", "label": "stop"},
+    ],
+}
 QUESTION = {
     "request": "request-3",
     "kind": "question",
@@ -110,21 +119,38 @@ async def test_answer_must_fit_the_request(
     assert queue.sent == []
 
 
-async def test_question_answer_must_be_an_option(
+async def test_a_question_with_options_takes_typed_words_too(
     client, make_user, make_project, make_chat, make_run, queue
 ) -> None:
     owner = await make_user()
     chat = await make_chat(await make_project(owner), owner)
     run = await make_run(chat, owner, "waiting", {"request": QUESTION})
 
+    typed = await client.post(
+        run_url(run.id, "/answer"),
+        json={"request": "request-3", "answer": {"text": "use 45 C instead"}},
+        headers=bearer(owner),
+    )
+
+    assert typed.status_code == 200, typed.text
+    assert queue.sent[0][-1] == {"text": "use 45 C instead"}
+
+
+async def test_the_step_limit_question_takes_only_its_options(
+    client, make_user, make_project, make_chat, make_run, queue
+) -> None:
+    owner = await make_user()
+    chat = await make_chat(await make_project(owner), owner)
+    run = await make_run(chat, owner, "waiting", {"request": STEP_LIMIT})
+
     bad = await client.post(
         run_url(run.id, "/answer"),
-        json={"request": "request-3", "answer": {"text": "z"}},
+        json={"request": "request-9", "answer": {"text": "keep going a bit"}},
         headers=bearer(owner),
     )
     good = await client.post(
         run_url(run.id, "/answer"),
-        json={"request": "request-3", "answer": {"text": "a"}},
+        json={"request": "request-9", "answer": {"text": "continue"}},
         headers=bearer(owner),
     )
 

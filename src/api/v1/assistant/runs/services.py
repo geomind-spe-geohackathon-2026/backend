@@ -31,6 +31,7 @@ from src.core.sse.follow import follow_events, to_sse_stream
 
 STREAM_KIND = "run"
 RESUME_TASK = "assistant.runs.resume"
+STEP_LIMIT_OPTIONS = ("continue", "stop")
 
 
 def run_channel(run_id: UUID) -> str:
@@ -76,9 +77,19 @@ def check_answer(pending: dict[str, Any] | None, body: schemas.RunAnswer) -> Non
     expected = schemas.Approval if pending["kind"] == "approval" else schemas.Reply
     if not isinstance(body.answer, expected):
         raise ValidationFailedError({"answer": f"Expected a {pending['kind']} answer"})
-    options = pending.get("options")
-    if options and body.answer.text not in [item["value"] for item in options]:
+    values = [item["value"] for item in pending.get("options") or ()]
+    if is_step_limit(pending) and body.answer.text not in values:
         raise ValidationFailedError({"answer": "Not one of the options"})
+
+
+def is_step_limit(pending: dict[str, Any]) -> bool:
+    """Tell the question at a run's step limit, which takes only continue or stop.
+
+    Any other question with options also takes the user's own typed words; geomind
+    marks them as typed for the model.
+    """
+    values = [item["value"] for item in pending.get("options") or ()]
+    return values == list(STEP_LIMIT_OPTIONS) and not pending.get("call_id")
 
 
 async def hand_over(

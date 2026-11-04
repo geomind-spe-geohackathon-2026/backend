@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.7] - 2026-11-04
+
+- A question with options also takes the user's own typed answer (geomind 0.4.22 marks it as
+  typed); only the step-limit question still takes only `continue` or `stop`. Answers that were
+  accepted before are accepted as before.
+
 ## [1.1.6] - 2026-11-03
 
 - Next-step suggestions (Sahand): an assistant answer keeps the steps geomind suggests with it
