@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.49] - 2026-11-05
+
+- QA-055: geomind 0.4.49 from the local wheel `.tmp/hotfix-wheels/geomind-0.4.49-py3-none-any.whl`
+  (tag v0.4.49, commit ddeb5be): an ESP with no curve is `unspecified` and the doublet derives its
+  curves; no question for a pump curve. Hotfix mode: no tests ran.
+
 ## [1.1.48] - 2026-11-05
 
 - QA-056 (root cause): a waiting run's `request` follows the newest stored `request` event of the
