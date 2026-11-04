@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.24] - 2026-11-04
+
+- QA-024: the API rate limit counts per sign-in (the verified access token), not per user, so
+  browsers signed in as the same user no longer share 100 requests a minute; requests without a
+  user count per visitor address (`CF-Connecting-IP`), not per proxy. Hotfix mode: no tests ran.
+
 ## [1.1.23] - 2026-11-04
 
 - QA-021: a failed model call that geomind retries is streamed to the chat as a live `retry`

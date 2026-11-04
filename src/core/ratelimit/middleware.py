@@ -1,3 +1,5 @@
+import hashlib
+
 from redis.exceptions import RedisError
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -5,6 +7,28 @@ from fastapi import Request
 from src.core.clients.redis.repositories.rate_limit import RateLimitRepository
 from src.core.ratelimit.errors import RateLimitExceededError
 from src.core.settings import settings
+
+
+def client_key(request: Request) -> str:
+    """Return the bucket of a request: its access token, else the visitor's address.
+
+    One bucket per user made every browser signed in as the same user share 100 requests a
+    minute, and pages showed only "Rate limit exceeded" (QA-024). A verified token (the auth
+    middleware set ``user_id``) is one sign-in, so each browser has its own bucket. Behind the
+    Cloudflare tunnel ``request.client`` is the proxy for everyone, so the visitor's address is
+    Cloudflare's ``CF-Connecting-IP``.
+    """
+    user_id = getattr(request.state, "user_id", None)
+    authorization = request.headers.get("authorization", "")
+    if user_id and authorization.lower().startswith("bearer "):
+        token = hashlib.sha256(authorization[7:].strip().encode()).hexdigest()[:32]
+        return f"token:{token}"
+    if user_id:
+        return f"user:{user_id}"
+    address = request.headers.get("cf-connecting-ip") or (
+        request.client.host if request.client else "unknown"
+    )
+    return f"ip:{address}"
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -20,9 +44,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if redis is None:
             return await call_next(request)
 
-        user_id = getattr(request.state, "user_id", None)
-        client_ip = request.client.host if request.client else "unknown"
-        client = f"user:{user_id}" if user_id else f"ip:{client_ip}"
+        client = client_key(request)
 
         try:
             rate_limit = await RateLimitRepository(redis).increment(
