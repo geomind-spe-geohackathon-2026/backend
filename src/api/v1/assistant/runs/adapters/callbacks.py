@@ -1,3 +1,4 @@
+import re
 from typing import Any
 from uuid import UUID
 
@@ -31,6 +32,26 @@ STEP_FINISHED = "step.finished"
 STUDY_RECORDED = "study.recorded"
 STUDY_PREFIX = "study/"
 AGENT_NAME = "Assistant"
+RETRY = "retry"
+STATUS = re.compile(r"status = (\d{3})")
+
+
+def retry_notice(event: Any) -> dict[str, Any]:
+    """Return the live ``retry`` notice of a failed provider call (QA-021).
+
+    geomind's ``retry`` event is internal; the chat showed only Thinking while the provider
+    refused every call. The notice says that the provider is retried and when; it carries the
+    HTTP status only, never the provider's text.
+    """
+    found = STATUS.search(str(getattr(event, "error", "") or ""))
+    return {
+        "agent": event.agent,
+        "parent": event.parent,
+        "attempt": event.attempt,
+        "model": event.model,
+        "delay": event.delay,
+        "status": int(found.group(1)) if found else None,
+    }
 
 
 class ToolProblems:
@@ -100,6 +121,10 @@ class EventPublisher(gd.callbacks.Callback):
     async def on_event(self, engine: Any, event: Any) -> None:
         """Publish one event if it is public."""
         self.problems.note(event)
+        if event.type == RETRY:
+            notice = StreamEvent(RETRY, retry_notice(event), None)
+            await publish_event_async(self.redis, self.channel, notice)
+            return
         if not event.is_public:
             return
         if event.type == TEXT_DELTA:

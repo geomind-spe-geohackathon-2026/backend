@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.23] - 2026-11-04
+
+- QA-021: a failed model call that geomind retries is streamed to the chat as a live `retry`
+  event `{attempt, model, delay, status}` (never stored; the HTTP status only, no provider text),
+  so the chat can say the provider is busy instead of only Thinking. Contract: the `retry` row of
+  the live event table. Hotfix mode: no tests ran.
+
 ## [1.1.22] - 2026-11-04
 
 - Every geomind role runs on `deepseek/deepseek-v4.1-flash-1017` with the OpenRouter provider
