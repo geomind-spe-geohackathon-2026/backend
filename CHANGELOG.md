@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.125] - 2026-11-05
+
+- QA-332: studies no longer fail on gemini 0.6.31 coverage days ('bool' has no to_dict).
+- QA-322: coverage days carry electricity, no_demand and labels; report day counts use them.
+- QA-325: the report states what the checks cover. QA-323: fuel and produced gas burned in the energy table.
+- geomind main HEAD, gemini dev HEAD (0.6.32).
+
 ## [1.1.124] - 2026-11-05
 
 - No backend change: geomind main HEAD (QA-326 and more), gemini 0.6.31.
