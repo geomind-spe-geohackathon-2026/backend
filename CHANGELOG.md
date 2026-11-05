@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.98] - 2026-11-05
+
+- QA-144: a running run's row (Runs and logs) showed 0 tokens and 0 USD. The live totals (`UsageTree`) now
+  keep every nested run at any depth by run id and parent (a lead's instances are grandchildren of
+  the root) and no longer need a root `usage` first; a run counts as the larger of its own totals
+  and its children's sum, so ended children are not counted twice.
+
 ## [1.1.97] - 2026-11-05
 
 - geomind 0.4.95 and gemini 0.6.16 as local wheels. gemini 0.6.16: QA-128 (carbon price only on

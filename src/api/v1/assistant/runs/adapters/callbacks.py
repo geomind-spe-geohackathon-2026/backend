@@ -169,32 +169,41 @@ USAGE_KEYS = ("input_tokens", "output_tokens", "cost")
 
 
 class UsageTree:
-    """The run tree's running totals while nested runs go (QA-046).
+    """The run tree's running totals while nested runs go (QA-046, QA-144).
 
-    geomind's ``usage`` of the root run counts a nested run only after the nested run ends, so
-    the run's total stayed flat for minutes and then jumped. A nested run sends its own running
-    totals; the tree's total is the root's last totals plus the latest of each nested run whose
-    parent is the root, until the root's next ``usage`` (which then holds them).
+    geomind's ``usage`` of a run counts a nested run only after the nested run ends, so the
+    run's total stayed flat for minutes and then jumped. A nested run sends its own running
+    totals. Every run of the tree, at any depth (a lead's instances are grandchildren of the
+    root), is kept by its run id with its parent; a run's total is the larger of its own totals
+    and the sum of its children's totals (its own totals already hold the children that ended).
+    The root may have sent no ``usage`` yet: its own totals are then zero.
     """
 
     def __init__(self, run_id: UUID) -> None:
         self.root = run_id.hex
-        self.base: dict[str, Any] | None = None
-        self.children: dict[str, dict[str, Any]] = {}
+        self.own: dict[str, dict[str, Any]] = {self.root: dict.fromkeys(USAGE_KEYS, 0)}
+        self.parents: dict[str, str] = {}
 
     def add(self, event: Any) -> dict[str, Any] | None:
         """Take a ``usage`` event; return the tree's totals when a nested one changed them."""
         totals = {key: getattr(event, key, 0) or 0 for key in USAGE_KEYS}
         if event.parent is None:
-            self.base = totals
-            self.children = {}
+            self.own[self.root] = totals
             return None
-        if str(event.parent).replace("-", "") != self.root or self.base is None:
-            return None
-        self.children[str(event.run_id)] = totals
+        run = str(event.run_id).replace("-", "")
+        self.own[run] = totals
+        self.parents[run] = str(event.parent).replace("-", "")
+        return self.total(self.root)
+
+    def total(self, run: str) -> dict[str, Any]:
+        """Return the totals of a run and everything below it."""
+        own = self.own.get(run, dict.fromkeys(USAGE_KEYS, 0))
+        children = [child for child, parent in self.parents.items() if parent == run]
+        if not children:
+            return own
+        below = [self.total(child) for child in children]
         return {
-            key: self.base[key] + sum(child[key] for child in self.children.values())
-            for key in USAGE_KEYS
+            key: max(own[key], sum(part[key] for part in below)) for key in USAGE_KEYS
         }
 
 
