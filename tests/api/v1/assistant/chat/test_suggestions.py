@@ -43,6 +43,7 @@ async def test_a_new_chat_gets_next_steps_from_the_whole_project(
     assert (problem, files) == ({}, [])
     assert state["case"]["state"] == "empty"
     assert state["case_changed_after_study"] is False
+    assert state["economics"] == {"state": "empty"}
 
 
 async def test_an_empty_chat_state_carries_next_steps(
@@ -128,3 +129,18 @@ async def test_the_state_says_when_the_case_changed_after_the_study(
     assert (state["case_version"], state["study_case_version"]) == (2, 1)
     assert state["case_changed_after_study"] is True
     assert set(state) >= {"case", "plant", "study", "results", "report"}
+
+
+async def test_the_state_says_whether_the_latest_case_has_economics(
+    session, make_user, make_project
+) -> None:
+    """QA-194: the chips ask for the economics while the latest case has none."""
+    owner = await make_user()
+    project = await make_project(owner)
+    cases = CaseVersionRepository(session)
+    await cases.save_version(project.id, CASE, "first", owner.id)
+    assert (await project_state(session, project.id))["economics"] == {"state": "empty"}
+
+    priced = {**CASE, "economics": {"discount_rate": {"value": 0.08}}}
+    await cases.save_version(project.id, priced, "second", owner.id)
+    assert (await project_state(session, project.id))["economics"] == {"state": "done"}
