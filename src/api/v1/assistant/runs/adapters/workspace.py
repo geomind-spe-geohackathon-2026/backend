@@ -8,6 +8,7 @@ import pydantic
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
+from src.api.v1.assistant.runs.adapters.designs import read_designs
 from src.api.v1.assistant.runs.adapters.memory import DatabaseMemory
 from src.api.v1.assistant.runs.adapters.rag import (
     read_knowledge_files,
@@ -105,6 +106,7 @@ class DatabaseWorkspace:
         self.memories: dict[str, DatabaseMemory] = {}
         self.knowledge: list[RagDocument] | None = None
         self.cases: dict[str, tuple[dict[str, Any], dict[str, bytes]] | None] = {}
+        self.designs: dict[str, tuple[dict[str, Any], dict[int, dict[str, Any]]]] = {}
         self.project: str | None = None
 
     async def warm(self, project_id: str) -> None:
@@ -117,6 +119,9 @@ class DatabaseWorkspace:
         self.warmed[project_id] = (plants, rows)
         self.knowledge = await asyncio.to_thread(self.bridge.call, read_knowledge_files)
         self.cases[project_id] = await asyncio.to_thread(self.read_case, project_id)
+        self.designs[project_id] = await asyncio.to_thread(
+            self.bridge.call, read_designs, UUID(project_id)
+        )
         choices = await asyncio.to_thread(
             self.bridge.call, read_choices, UUID(project_id)
         )
@@ -189,6 +194,30 @@ class DatabaseWorkspace:
         if self.bridge.in_loop() and project_id in self.warmed:
             return self.warmed[project_id][0]
         return self.bridge.call(read_plants, UUID(project_id))
+
+    def designs_of(
+        self, project_id: str
+    ) -> tuple[dict[str, Any], dict[int, dict[str, Any]]]:
+        if self.bridge.in_loop() and project_id in self.designs:
+            return self.designs[project_id]
+        found = self.bridge.call(read_designs, UUID(project_id))
+        self.designs[project_id] = found
+        return found
+
+    def project_designs(self, project_id: str) -> dict[str, Any]:
+        """Return every plant version and study of the project, read-only (QA-122).
+
+        ``{plants: [{version, name, note, by, created, latest}], studies: [{id, name,
+        kind, status, created, plant_version, case_version, settings, result}]}``;
+        plants oldest first, studies newest first; ``result`` is ``None`` or ``{id, name,
+        role, plant_version, case_version, kpis, checks}`` as the results page lists it.
+        Off the event loop it is read fresh; on the loop the copy read last.
+        """
+        return self.designs_of(project_id)[0]
+
+    def plant_version(self, project_id: str, version: int) -> dict[str, Any] | None:
+        """Return a saved plant version as gemini's ``to_dict`` wrote it, or ``None``."""
+        return self.designs_of(project_id)[1].get(version)
 
     def case(
         self,

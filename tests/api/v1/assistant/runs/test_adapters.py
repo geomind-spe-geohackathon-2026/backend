@@ -38,6 +38,8 @@ from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
+from src.core.clients.postgres.repositories.result import ResultRepository
+from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
 from src.core.secrets import seal
 from src.core.settings import Settings, settings
@@ -261,6 +263,86 @@ async def test_workspace_names_the_plant_after_its_document(
 
     assert plants == {example_plant()["name"]: example_plant()}
     assert found == (example_case(), {DEMAND_FILE: DEMAND_CSV})
+
+
+async def test_workspace_lists_every_plant_version_and_study(
+    session_factory, session, make_user, make_project, blobs
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    plants = PlantVersionRepository(session)
+    await plants.save_version(project.id, example_plant(), "first", owner.id)
+    other = {**example_plant(), "name": "Alternative"}
+    await plants.save_version(
+        project.id, other, "Plant saved by the assistant", owner.id
+    )
+    studies = StudyRepository(session)
+    done = await studies.create(
+        {
+            "project_id": project.id,
+            "kind": "size",
+            "name": "sized",
+            "settings": {"method": "minimize"},
+            "status": "done",
+            "started_by_kind": "user",
+            "started_by_name": "x",
+            "plant_version": 1,
+            "case_version": 1,
+        }
+    )
+    await studies.create(
+        {
+            "project_id": project.id,
+            "kind": "simulate",
+            "name": "queued",
+            "settings": {},
+            "status": "queued",
+            "started_by_kind": "user",
+            "started_by_name": "x",
+        }
+    )
+    checks = {"passed": 3, "failed": 1, "not_assessed": 0}
+    await ResultRepository(session).create(
+        {
+            "project_id": project.id,
+            "study_id": done.id,
+            "name": "sized",
+            "plant_version": 1,
+            "case_version": 1,
+            "summary": {"checks": checks},
+            "content": {"report": {"lcts": {"value": 40.0, "unit": "EUR/MWh"}}},
+        }
+    )
+    bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+    workspace = DatabaseWorkspace(bridge, blobs)
+    project_id = str(project.id)
+
+    found = await asyncio.to_thread(workspace.project_designs, project_id)
+    opened = await asyncio.to_thread(workspace.plant_version, project_id, 2)
+    absent = await asyncio.to_thread(workspace.plant_version, project_id, 9)
+    empty = await asyncio.to_thread(workspace.project_designs, str(uuid4()))
+
+    assert [
+        (item["version"], item["name"], item["by"], item["latest"])
+        for item in found["plants"]
+    ] == [
+        (1, example_plant()["name"], "user", False),
+        (2, "Alternative", "assistant", True),
+    ]
+    assert [item["name"] for item in found["studies"]] == ["queued", "sized"]
+    assert found["studies"][0]["result"] is None
+    result = found["studies"][1]["result"]
+    assert result["checks"] == checks
+    assert result["role"] == "design"
+    assert [(kpi["name"], kpi["value"]) for kpi in result["kpis"]] == [("lcts", 40.0)]
+    assert found["studies"][1]["settings"] == {"method": "minimize"}
+    assert opened == other
+    assert absent is None
+    assert empty == {"plants": [], "studies": []}
+    json.dumps(found)
+
+    await workspace.warm(project_id)
+    assert workspace.project_designs(project_id) == found
 
 
 def recorded_event() -> dict[str, Any]:

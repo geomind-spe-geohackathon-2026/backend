@@ -6,6 +6,15 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.90] - 2026-11-05
+
+- QA-122: the agents' Workspace gets two read-only methods. `project_designs(project)` lists every
+  plant version of the project (`version`, `name`, `note`, `by`, `created`, `latest`; oldest first)
+  and every study (`id`, `name`, `kind`, `status`, `created`, `plant_version`, `case_version`,
+  `settings`, `result` with `kpis` and `checks` as the results page lists them; newest first).
+  `plant_version(project, n)` returns that saved plant as gemini wrote it, or `None`. Both are
+  warmed before a run. Contract agreed with hotfix-python-IV; geomind reads them when present.
+
 ## [1.1.89] - 2026-11-05
 
 - geomind 0.4.87 and gemini 0.6.15 as local wheels. 0.4.87: QA-129 (free plant doublet range in the skill), QA-132 (flow range on reservoir.liquid_flow). gemini 0.6.15: a doublet runs at most at its

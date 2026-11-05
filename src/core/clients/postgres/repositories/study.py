@@ -33,6 +33,15 @@ class StudyRepository(BaseRepository):
         statement = paginate(statement, Study.created, Study.id, page)
         return list(await self.session.scalars(statement))
 
+    async def all_for_project(self, project_id: UUID) -> list[Study]:
+        """List a project's studies, newest first."""
+        statement = (
+            select(Study)
+            .where(Study.project_id == project_id)
+            .order_by(Study.created.desc(), Study.id.desc())
+        )
+        return list(await self.session.scalars(statement))
+
     async def has_active(self, project_id: UUID) -> bool:
         statement = select(Study.id).where(
             Study.project_id == project_id,
