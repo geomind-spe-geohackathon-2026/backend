@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.107] - 2026-11-05
+
+- geomind 0.4.108 from the local clone (with 0.4.107 of hotfix-python, QA-168, QA-186): the
+  project lead reads the project's plant versions and studies first, so a report request on a
+  project with results goes to analysis and explanation, not a redesign (QA-167). No contract
+  change.
+
 ## [1.1.106] - 2026-11-05
 
 - geomind 0.4.106 from the local clone (with 0.4.103-0.4.105 of hotfix-python): after a worker
