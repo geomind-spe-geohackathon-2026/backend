@@ -35,6 +35,7 @@ from src.core.errors import (
     ValidationFailedError,
 )
 from src.core.gemini import evaluate as gemini_evaluate
+from src.core.gemini import plant as plant_document
 from src.core.gemini import study as gemini_study
 from src.core.gemini.stored import stored_files
 from src.core.jobs import control
@@ -219,6 +220,40 @@ async def read_structures(
         )
     ranked = gemini_study.ranked_structures(found, limit)
     return schemas.StudyStructures(study=study.id, name=study.name, **ranked)
+
+
+async def structure_plant(
+    study_id: UUID, rank: int, user: User, stores: Stores
+) -> schemas.StructurePlant:
+    """Return the plant of the structure at ``rank`` (as ``read_structures`` ranks them)."""
+    study = await accessible_study(study_id, user, stores)
+    found = await stored_evolution(study, stores) if study.kind == "evolve" else None
+    if found is None:
+        raise errors.StructuresNotFoundError(
+            "This study is not an evolve study with a stored result"
+        )
+    rows = gemini_study.ranked_structures(found, 50)["structures"]
+    row = next((item for item in rows if item["rank"] == rank), None)
+    if row is None:
+        raise errors.StructuresNotFoundError(f"The study has no structure at rank {rank}")
+    plant = gemini_study.stored_plant(found, row)
+    if plant is None:
+        raise errors.StructurePlantNotStoredError(
+            "gemini kept a plant only for the best design and the Pareto front"
+        )
+    return schemas.StructurePlant(rank=rank, structure=row["structure"], plant=plant)
+
+
+async def save_structure_plant(
+    study_id: UUID, rank: int, user: User, stores: Stores
+) -> schemas.SavedStructurePlant:
+    """Save the plant of the structure at ``rank`` as the project's next plant version."""
+    found = await structure_plant(study_id, rank, user, stores)
+    study = await stores.studies.get_by_id(study_id)
+    content = plant_document.validate_content(found.plant)
+    note = f"Structure {rank} of study {study.name}"
+    version = await stores.plants.save_version(study.project_id, content, note, user.id)
+    return schemas.SavedStructurePlant(rank=rank, plant_version=version.number)
 
 
 def list_kinds() -> list[schemas.StudyKind]:

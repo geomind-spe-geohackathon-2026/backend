@@ -4277,6 +4277,24 @@
         "title": "RunCall",
         "type": "object"
       },
+      "SavedStructurePlant": {
+        "properties": {
+          "plant_version": {
+            "title": "Plant Version",
+            "type": "integer"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rank",
+          "plant_version"
+        ],
+        "title": "SavedStructurePlant",
+        "type": "object"
+      },
       "SearchRange": {
         "properties": {
           "max": {
@@ -4651,6 +4669,31 @@
           "run"
         ],
         "title": "StartedBy",
+        "type": "object"
+      },
+      "StructurePlant": {
+        "properties": {
+          "plant": {
+            "additionalProperties": true,
+            "title": "Plant",
+            "type": "object"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "structure": {
+            "additionalProperties": true,
+            "title": "Structure",
+            "type": "object"
+          }
+        },
+        "required": [
+          "rank",
+          "structure",
+          "plant"
+        ],
+        "title": "StructurePlant",
         "type": "object"
       },
       "Study": {
@@ -5560,7 +5603,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.66"
+    "version": "1.1.67"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7608,6 +7651,110 @@
           }
         },
         "summary": "Read Structures",
+        "tags": [
+          "Study"
+        ]
+      }
+    },
+    "/api/v1/design/study/{study_id}/structures/{rank}/plant": {
+      "get": {
+        "description": "The plant of the structure at ``rank``; 404 structure_plant_not_stored when gemini kept none.",
+        "operationId": "read_structure_plant_api_v1_design_study__study_id__structures__rank__plant_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rank",
+            "required": true,
+            "schema": {
+              "title": "Rank",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StructurePlant"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Structure Plant",
+        "tags": [
+          "Study"
+        ]
+      },
+      "post": {
+        "description": "Save the plant of the structure at ``rank`` as the project's next plant version.",
+        "operationId": "save_structure_plant_api_v1_design_study__study_id__structures__rank__plant_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rank",
+            "required": true,
+            "schema": {
+              "title": "Rank",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedStructurePlant"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Structure Plant",
         "tags": [
           "Study"
         ]

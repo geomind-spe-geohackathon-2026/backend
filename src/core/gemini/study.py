@@ -336,3 +336,16 @@ def ranked_structures(evolution: dict[str, Any], limit: int) -> dict[str, Any]:
         "total": len(rows),
         "structures": structures,
     }
+
+
+def stored_plant(evolution: dict[str, Any], row: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the stored plant of a ranked structure's design, or ``None`` when none is stored.
+
+    ``Evolution.to_dict()`` keeps a plant only for ``best`` and the ``front``; a structure's own
+    summary has none, and building it needs gemini's search space (not public).
+    """
+    designs = [evolution.get("best"), *(evolution.get("front") or [])]
+    for design in designs:
+        if isinstance(design, dict) and _same(design, row) and design.get("plant"):
+            return design["plant"]
+    return None

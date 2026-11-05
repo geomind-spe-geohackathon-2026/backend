@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.67] - 2026-11-05
+
+- `GET` and `POST /design/study/{id}/structures/{rank}/plant`: open the plant of a ranked evolve
+  structure, or save it as the project's next plant version. gemini keeps a plant only for the
+  best design and the Pareto front; another structure gives `404 structure_plant_not_stored`
+  (building it needs a public gemini function). Hotfix mode: no tests ran.
+
 ## [1.1.66] - 2026-11-05
 
 - `GET /design/study/{id}/structures?limit=10` (1-50): the best design of each structure of an

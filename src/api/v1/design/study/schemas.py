@@ -86,3 +86,14 @@ class StudyStructures(BaseModel):
     budget: dict[str, Any]
     total: int
     structures: list[StudyStructure]
+
+
+class StructurePlant(BaseModel):
+    rank: int
+    structure: dict[str, Any]
+    plant: dict[str, Any]
+
+
+class SavedStructurePlant(BaseModel):
+    rank: int
+    plant_version: int

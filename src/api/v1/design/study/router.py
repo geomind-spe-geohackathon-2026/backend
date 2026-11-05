@@ -59,6 +59,26 @@ async def read_structures(
     return await services.read_structures(study_id, user, stores, limit)
 
 
+@router.get("/{study_id}/structures/{rank}/plant", response_model=schemas.StructurePlant)
+async def read_structure_plant(
+    study_id: UUID, rank: int, user: CurrentUser, stores: StoresDependency
+) -> schemas.StructurePlant:
+    """The plant of the structure at ``rank``; 404 structure_plant_not_stored when gemini kept none."""
+    return await services.structure_plant(study_id, rank, user, stores)
+
+
+@router.post(
+    "/{study_id}/structures/{rank}/plant",
+    response_model=schemas.SavedStructurePlant,
+    status_code=status.HTTP_201_CREATED,
+)
+async def save_structure_plant(
+    study_id: UUID, rank: int, user: CurrentUser, stores: StoresDependency
+) -> schemas.SavedStructurePlant:
+    """Save the plant of the structure at ``rank`` as the project's next plant version."""
+    return await services.save_structure_plant(study_id, rank, user, stores)
+
+
 @router.get("/{study_id}", response_model=schemas.Study)
 async def get_study(
     study_id: UUID,
