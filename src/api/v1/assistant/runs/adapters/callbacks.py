@@ -266,8 +266,15 @@ async def set_values(
 ) -> None:
     async with factory() as session:
         run = await RunRepository(session).get_by_id(run_id)
-        if run is not None:
-            await RunRepository(session).update(run, values)
+        if run is None:
+            return
+        if run.status in TERMINAL_STATUSES and values.get("status") not in TERMINAL_STATUSES:
+            # An ended run never goes back to running or waiting (QA-077: a late request event
+            # set a failed run to waiting, and its chat refused every new message).
+            values = {k: v for k, v in values.items() if k not in ("status", "request")}
+            if not values:
+                return
+        await RunRepository(session).update(run, values)
 
 
 def usage_columns(event: Any) -> dict[str, Any]:

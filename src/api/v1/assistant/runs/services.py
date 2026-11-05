@@ -32,6 +32,7 @@ from src.core.assistant.errors import (
 )
 from src.core.assistant.queue import Enqueue
 from src.core.clients.postgres.models.project import Project
+from src.core.assistant.settle import settled_ended
 from src.core.clients.postgres.models.run import ACTIVE_RUN_STATUSES, Run
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_event import RunEventRepository
@@ -96,6 +97,8 @@ async def current_request(run: Run, session: Any) -> None:
     answering it failed the run. The row is corrected whenever a waiting run is read.
     """
     if run.status != "waiting":
+        return
+    if await settled_ended(run, session):
         return
     rows = await RunEventRepository(session).of_type(run.id, "request")
     event = rebuilt(rows[0].data) if rows else None

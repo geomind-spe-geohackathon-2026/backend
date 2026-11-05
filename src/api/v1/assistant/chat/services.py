@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from src.api.v1.assistant.chat import schemas
+from src.core.assistant.settle import settle_chat
 from src.core.assistant import schemas as shared
 from src.core.assistant.errors import QueueUnavailableError
 from src.core.assistant.queue import Enqueue
@@ -165,6 +166,7 @@ async def send_message(
     enqueue: Enqueue,
 ) -> schemas.MessageSent:
     """Add the user's message and queue a run for it; one run at a time per chat."""
+    await settle_chat(chat.id, runs.session)
     if await runs.has_active(chat.id):
         raise ConflictError("The chat has a run that is not finished")
     run = await runs.create(uuid4(), chat.id, chat.project_id, user.id)

@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.70] - 2026-11-05
+
+- QA-077: a run row never leaves `done`, `failed` or `cancelled` for `waiting` or `running`
+  (the recorder and the stale-answer path skip such a write); a `waiting` run whose log already
+  ended (a root `run.finished` newer than its last `request`) is ended with that status when it
+  is read (`GET /assistant/runs/{id}`, answer, cancel) or when its chat gets a new message, so a
+  stuck chat such as 81b51db5 frees itself. Hotfix mode: only test_boundaries ran.
+
 ## [1.1.69] - 2026-11-05
 
 - QA-071 and the evolve structures view: geomind 0.4.65 and gemini 0.6.6 as local wheels

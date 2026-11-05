@@ -5603,7 +5603,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.69"
+    "version": "1.1.70"
   },
   "openapi": "3.1.0",
   "paths": {

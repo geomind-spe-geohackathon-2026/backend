@@ -195,6 +195,8 @@ async def wait_again(resources: adapters.Resources, run: Run, expected: str) -> 
                 break
         runs = RunRepository(session)
         current = await runs.get_by_id(run.id)
+        if current is None or current.status in TERMINAL_STATUSES:
+            return
         if found is None:
             logger.warning("Run %s waits on %s, which has no stored request", run.id, expected)
             await runs.update(current, {"status": "waiting"})
