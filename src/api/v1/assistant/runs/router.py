@@ -74,6 +74,14 @@ async def get_log(run: AccessibleRun, events: RunEventRepositoryDependency) -> d
     return await services.read_log(run, events)
 
 
+@router.get("/{run_id}/calls/{call_id}", response_model=schemas.RunCall)
+async def get_call(
+    call_id: str, run: AccessibleRun, events: RunEventRepositoryDependency
+) -> schemas.RunCall:
+    """One tool call's full output as the tool returned it; 404 call_not_found if unknown."""
+    return await services.read_call(run, call_id, events)
+
+
 @router.get("/{run_id}/agents", response_model=schemas.RunAgents)
 async def get_agents(
     run: AccessibleRun, events: RunEventRepositoryDependency

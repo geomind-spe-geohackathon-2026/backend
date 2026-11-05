@@ -89,3 +89,15 @@ class RunAgents(BaseModel):
 
     run: AgentRunTotals
     agents: list[AgentSession]
+
+
+class RunCall(BaseModel):
+    """One tool call of a run with its full stored output (the stream keeps a summary)."""
+
+    call_id: str
+    tool: str | None
+    agent: str | None
+    status: Literal["ok", "error"]
+    source: str | None
+    input: Any
+    output: Any

@@ -11,6 +11,10 @@ class RunNotFoundError(NotFoundError):
     code = "run_not_found"
 
 
+class CallNotFoundError(NotFoundError):
+    code = "call_not_found"
+
+
 class RunNotWaitingError(ConflictError):
     code = "run_not_waiting"
 

@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.60] - 2026-11-05
+
+- `GET /assistant/runs/{id}/calls/{call_id}`: one tool call's full stored output
+  `{call_id, tool, agent, status, source, input, output}`, for the new tool views (calculate,
+  run_python, web_search); `404 call_not_found` for an unknown call. Hotfix mode: no tests ran.
+
 ## [1.1.59] - 2026-11-05
 
 - QA-058: a person's decision on a request is a public `answer` event, live and on replay (its id

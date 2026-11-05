@@ -4210,6 +4210,73 @@
         "title": "RunAnswer",
         "type": "object"
       },
+      "RunCall": {
+        "description": "One tool call of a run with its full stored output (the stream keeps a summary).",
+        "properties": {
+          "agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "output": {
+            "title": "Output"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tool": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool"
+          }
+        },
+        "required": [
+          "call_id",
+          "tool",
+          "agent",
+          "status",
+          "source",
+          "input",
+          "output"
+        ],
+        "title": "RunCall",
+        "type": "object"
+      },
       "SearchRange": {
         "properties": {
           "max": {
@@ -5368,7 +5435,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.59"
+    "version": "1.1.60"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -6097,6 +6164,59 @@
           }
         },
         "summary": "Answer Run",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/api/v1/assistant/runs/{run_id}/calls/{call_id}": {
+      "get": {
+        "description": "One tool call's full output as the tool returned it; 404 call_not_found if unknown.",
+        "operationId": "get_call_api_v1_assistant_runs__run_id__calls__call_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCall"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Call",
         "tags": [
           "Runs"
         ]

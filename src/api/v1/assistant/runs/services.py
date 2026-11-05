@@ -24,7 +24,11 @@ from src.api.v1.assistant.runs.adapters.replay import rebuilt, to_runlog
 from src.api.v1.assistant.runs.adapters.sessions import agent_sessions, run_totals
 from src.api.v1.assistant.runs.markdown import to_markdown
 from src.core.assistant import schemas as shared
-from src.core.assistant.errors import QueueUnavailableError, RunNotWaitingError
+from src.core.assistant.errors import (
+    CallNotFoundError,
+    QueueUnavailableError,
+    RunNotWaitingError,
+)
 from src.core.assistant.queue import Enqueue
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.run import ACTIVE_RUN_STATUSES, Run
@@ -106,6 +110,27 @@ async def read_run(run: Run, events: RunEventRepository) -> shared.Run:
     await current_request(run, events.session)
     spending = await root_spending(run, events)
     return shared.Run.model_validate(run).model_copy(update=dict(spending))
+
+
+async def read_call(
+    run: Run, call_id: str, events: RunEventRepository
+) -> schemas.RunCall:
+    """Return one tool call's full stored output, the newest result of that call id."""
+    for row in await events.of_type(run.id, TOOL_RECORDED):
+        if row.data.get("call_id") != call_id:
+            continue
+        event = rebuilt(row.data)
+        data = event.data() if event is not None else row.data
+        return schemas.RunCall(
+            call_id=call_id,
+            tool=data.get("tool"),
+            agent=data.get("agent"),
+            status="error" if data.get("is_error") else "ok",
+            source=data.get("source"),
+            input=data.get("input"),
+            output=data.get("output"),
+        )
+    raise CallNotFoundError(f"Run {run.id} has no tool call {call_id}")
 
 
 async def read_log(run: Run, events: RunEventRepository) -> dict[str, Any]:
