@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.108] - 2026-11-05
+
+- QA-217: `GET /assistant/runs/{id}/agents` keeps each run's events in memory (64 runs) and
+  reads only the events newer than the last read; the sessions are worked out again only when
+  new events came. Postgres pool 20 + 20 overflow (was 5 + 10) in every env file. No contract
+  change.
+
 ## [1.1.107] - 2026-11-05
 
 - geomind 0.4.108 from the local clone (with 0.4.107 of hotfix-python, QA-168, QA-186): the

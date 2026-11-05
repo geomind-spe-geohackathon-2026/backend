@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 from typing import Any, Literal
@@ -159,13 +160,43 @@ async def read_log(run: Run, events: RunEventRepository) -> dict[str, Any]:
         raise ConflictError(str(error)) from error
 
 
+AGENTS_CACHE_RUNS = 64
+"""The runs whose events ``read_agents`` keeps in memory, the most recently read (QA-217)."""
+_agents_cache: OrderedDict[UUID, dict[str, Any]] = OrderedDict()
+
+
+async def cached_events(run: Run, events: RunEventRepository) -> dict[str, Any]:
+    """Return a run's stored events, reading only the ones newer than the last read (QA-217).
+
+    The agents view is polled every few seconds by every open tab; reading thousands of events
+    on each poll held the database pool until it ran out. The rows of one sequence that came
+    after a read are taken by id, so none is lost or counted twice.
+    """
+    entry = _agents_cache.pop(run.id, None) or {"ids": set(), "data": [], "last": -1, "answer": None}
+    _agents_cache[run.id] = entry
+    while len(_agents_cache) > AGENTS_CACHE_RUNS:
+        _agents_cache.popitem(last=False)
+    rows = await events.after(run.id, entry["last"] - 1)
+    fresh = [row for row in rows if row.id not in entry["ids"]]
+    for row in fresh:
+        entry["ids"].add(row.id)
+        entry["data"].append(row.data)
+        entry["last"] = max(entry["last"], row.sequence)
+    if fresh:
+        entry["answer"] = None
+    return entry
+
+
 async def read_agents(run: Run, events: RunEventRepository) -> schemas.RunAgents:
     """Return the agent sessions of a run from the events stored so far.
 
-    A run with no events yet has no sessions; each session's context is its own.
+    A run with no events yet has no sessions; each session's context is its own. The sessions
+    are worked out again only when new events came (QA-217).
     """
-    rows = await events.after(run.id, -1)
-    sessions, total = await agent_sessions([row.data for row in rows])
+    entry = await cached_events(run, events)
+    if entry["answer"] is None:
+        entry["answer"] = await agent_sessions(entry["data"])
+    sessions, total = entry["answer"]
     totals = {"id": run.id, "status": run.status, **run_totals(sessions, total)}
     return schemas.RunAgents.model_validate({"run": totals, "agents": sessions})
 
