@@ -6,6 +6,16 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.66] - 2026-11-05
+
+- `GET /design/study/{id}/structures?limit=10` (1-50): the best design of each structure of an
+  evolve study, ranked as gemini ranks (smaller violation first, then the objectives in their
+  direction), from `Evolution.to_dict()` stored at the result's `run.found` (page studies) or in
+  the agent's `study/<name>` artifact: `{study, name, objectives, budget, total, structures: [{rank,
+  structure, evaluations, feasible_evaluations, feasible, reason, violation, metrics,
+  parameters, on_front}]}`; `404 structures_not_found` for another kind or no stored result.
+  Hotfix mode: no tests ran.
+
 ## [1.1.65] - 2026-11-05
 
 - QA-047, QA-070: geomind 0.4.64 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.64-py3-none-any.whl`):

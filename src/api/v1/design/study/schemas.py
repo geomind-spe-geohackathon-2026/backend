@@ -64,3 +64,25 @@ class Study(BaseModel):
     missing: list[Missing]
     created: datetime
     ended: datetime | None
+
+
+class StudyStructure(BaseModel):
+    rank: int
+    structure: dict[str, Any]
+    evaluations: int | None
+    feasible_evaluations: int | None
+    feasible: bool
+    reason: Any
+    violation: float | None
+    metrics: dict[str, Any]
+    parameters: dict[str, Any]
+    on_front: bool
+
+
+class StudyStructures(BaseModel):
+    study: UUID
+    name: str
+    objectives: list[Any]
+    budget: dict[str, Any]
+    total: int
+    structures: list[StudyStructure]

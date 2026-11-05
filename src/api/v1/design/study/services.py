@@ -23,6 +23,8 @@ from src.core.clients.postgres.repositories.plant_version import (
 )
 from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.result import ResultRepository
+from src.core.clients.postgres.repositories.run import RunRepository
+from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
 from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.clients.redis.models.job import JobProgress
 from src.core.clients.redis.repositories.job import JobRepository
@@ -187,6 +189,36 @@ async def accessible_study(study_id: UUID, user: User, stores: Stores) -> Study:
     except ProjectNotFoundError as error:
         raise errors.StudyNotFoundError("Study not found") from error
     return study
+
+
+async def stored_evolution(study: Study, stores: Stores) -> dict[str, Any] | None:
+    """Return the stored ``Evolution.to_dict()`` of an evolve study, from the page or an agent."""
+    result = await stores.results.get_for_study(study.id)
+    found = gemini_study.evolution_in(result.content) if result is not None else None
+    if found is not None or study.started_by_run_id is None:
+        return found
+    session = stores.studies.session
+    run = await RunRepository(session).get_by_id(study.started_by_run_id)
+    if run is None:
+        return None
+    artifact = await RunArtifactRepository(session).newest_for_chat(
+        run.chat_id, f"study/{study.name}"
+    )
+    return None if artifact is None else gemini_study.evolution_in(artifact.data)
+
+
+async def read_structures(
+    study_id: UUID, user: User, stores: Stores, limit: int
+) -> schemas.StudyStructures:
+    """Return the best unique structures of an evolve study, ranked as gemini ranks them."""
+    study = await accessible_study(study_id, user, stores)
+    found = await stored_evolution(study, stores) if study.kind == "evolve" else None
+    if found is None:
+        raise errors.StructuresNotFoundError(
+            "This study is not an evolve study with a stored result"
+        )
+    ranked = gemini_study.ranked_structures(found, limit)
+    return schemas.StudyStructures(study=study.id, name=study.name, **ranked)
 
 
 def list_kinds() -> list[schemas.StudyKind]:

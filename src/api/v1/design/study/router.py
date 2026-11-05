@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from src.api.v1.design.study import schemas, services, tasks
 from src.core.clients.minio.blobs import BlobStoreDependency
 from src.core.clients.postgres.client import get_db
@@ -46,6 +46,17 @@ async def create_study(
     blobs: BlobStoreDependency,
 ) -> schemas.Study:
     return await services.create_study(payload, user, stores, blobs, tasks.enqueue)
+
+
+@router.get("/{study_id}/structures", response_model=schemas.StudyStructures)
+async def read_structures(
+    study_id: UUID,
+    user: CurrentUser,
+    stores: StoresDependency,
+    limit: Annotated[int, Query(ge=1, le=50)] = 10,
+) -> schemas.StudyStructures:
+    """The best unique structures of an evolve study, ranked; 404 structures_not_found."""
+    return await services.read_structures(study_id, user, stores, limit)
 
 
 @router.get("/{study_id}", response_model=schemas.Study)

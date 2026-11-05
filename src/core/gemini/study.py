@@ -241,3 +241,98 @@ def run(
         raise StudyCancelledError(str(error)) from error
     except gm.errors.GeminiError as error:
         raise StudyRunError(str(error), details={"code": error.code}) from error
+
+
+def evolution_in(content: Any, depth: int = 0) -> dict[str, Any] | None:
+    """Return the ``Evolution.to_dict()`` held somewhere in a stored study result, or ``None``.
+
+    A study run from the page keeps it at ``run.found``; one an agent ran keeps it in its
+    ``study/<name>`` artifact's ``result``. Both are found by their ``structures`` and
+    ``objectives`` keys.
+    """
+    if not isinstance(content, dict) or depth > 5:
+        return None
+    if isinstance(content.get("structures"), list) and "objectives" in content:
+        return content
+    for value in content.values():
+        if isinstance(value, dict):
+            found = evolution_in(value, depth + 1)
+            if found is not None:
+                return found
+        elif isinstance(value, list):
+            for item in value[:20]:
+                found = evolution_in(item, depth + 1)
+                if found is not None:
+                    return found
+    return None
+
+
+def _objective_names(objectives: list[Any]) -> list[tuple[str, int]]:
+    """Return ``(metric, sign)`` of each objective; a leading ``-`` maximises, as gemini reads."""
+    found = []
+    for item in objectives:
+        text = str(item)
+        found.append((text[1:], -1) if text.startswith("-") else (text, 1))
+    return found
+
+
+def _value(metric: Any) -> float | None:
+    if isinstance(metric, dict):
+        metric = metric.get("value")
+    return metric if isinstance(metric, (int, float)) else None
+
+
+def _same(design: dict[str, Any], other: dict[str, Any]) -> bool:
+    return design.get("structure") == other.get("structure") and design.get(
+        "parameters"
+    ) == other.get("parameters")
+
+
+def ranked_structures(evolution: dict[str, Any], limit: int) -> dict[str, Any]:
+    """Return the best design of each structure, ranked as gemini ranks, up to ``limit``.
+
+    gemini's rule (``evolve._ordered``): the smaller total violation first (feasible is 0), then
+    the first objective in its direction. A structure no simulation reached has no design and is
+    left out. ``on_front`` says whether that design is on the Pareto front.
+    """
+    objectives = _objective_names(list(evolution.get("objectives") or []))
+    front = list(evolution.get("front") or [])
+    rows = []
+    for item in evolution.get("structures") or []:
+        best = item.get("best")
+        if not isinstance(best, dict):
+            continue
+        rows.append((item, best))
+
+    def key(row: tuple[dict[str, Any], dict[str, Any]]) -> tuple[float, ...]:
+        _, best = row
+        violation = best.get("violation") or 0.0
+        keys = [float(violation)]
+        for name, sign in objectives:
+            value = _value((best.get("metrics") or {}).get(name))
+            keys.append(sign * value if value is not None and best.get("feasible") else 0.0)
+        return tuple(keys)
+
+    rows.sort(key=key)
+    structures = []
+    for rank, (item, best) in enumerate(rows[:limit], start=1):
+        structures.append(
+            {
+                "rank": rank,
+                "structure": item.get("structure") or best.get("structure") or {},
+                "evaluations": item.get("evaluations"),
+                "feasible_evaluations": item.get("feasible"),
+                "feasible": bool(best.get("feasible")),
+                "reason": best.get("reason"),
+                "violation": best.get("violation"),
+                "metrics": best.get("metrics") or {},
+                "parameters": best.get("parameters") or {},
+                "on_front": any(_same(best, other) for other in front),
+            }
+        )
+    return {
+        "objectives": list(evolution.get("objectives") or []),
+        "budget": evolution.get("budget") or {},
+        "total": len(rows),
+        "structures": structures,
+    }
