@@ -310,3 +310,28 @@ async def test_plant_step_says_designs_exist_without_a_saved_plant(
         "state": "incomplete",
         "label": "Not saved: designs only in results",
     }
+
+
+async def test_projects_list_newest_first_across_pages(
+    client, make_user, make_project
+) -> None:
+    """QA-350: the newest project comes first, and pages neither skip nor repeat one."""
+    owner = await make_user()
+    made = [await make_project(owner, name=f"P{index}") for index in range(5)]
+    headers = bearer(owner)
+
+    seen, cursor = [], None
+    while True:
+        params = {"limit": 2, **({"cursor": cursor} if cursor else {})}
+        body = (await client.get(PROJECTS, params=params, headers=headers)).json()
+        seen += [item["id"] for item in body["items"]]
+        cursor = body["next"]
+        if cursor is None:
+            break
+    found = (await client.get(PROJECTS, params={"search": "P"}, headers=headers)).json()
+
+    newest = [str(project.id) for project in sorted(
+        made, key=lambda project: (project.created, project.id), reverse=True
+    )]
+    assert seen == newest
+    assert [item["id"] for item in found["items"]] == newest

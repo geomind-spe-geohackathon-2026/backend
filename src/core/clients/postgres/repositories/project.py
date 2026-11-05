@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import Select, delete, func, select
+from sqlalchemy import Select, and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import with_expression
 
@@ -15,7 +15,7 @@ from src.core.clients.postgres.models.plant_version import PlantVersion
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.repositories.base import BaseRepository
 from src.core.clients.postgres.repositories.version import content_digest
-from src.core.pagination.page import PageRequest, paginate
+from src.core.pagination.page import PageRequest
 
 DatabaseSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -75,7 +75,7 @@ class ProjectRepository(BaseRepository):
             statement = statement.where(Project.owner_id == owner_id)
         if search:
             statement = statement.where(Project.name.icontains(search, autoescape=True))
-        statement = paginate(statement, Project.created, Project.id, page)
+        statement = newest_first(statement, page)
         return list(await self.session.scalars(statement))
 
     async def create(self, name: str, owner_id: UUID) -> Project:
@@ -180,3 +180,22 @@ class ProjectRepository(BaseRepository):
 
 def get_project_repository(session: DatabaseSession) -> ProjectRepository:
     return ProjectRepository(session)
+
+
+def newest_first(statement: Any, page: PageRequest) -> Any:
+    """Order projects newest first, ties by id, and fetch one row more than the page (QA-350).
+
+    The cursor is the last row's ``(created, id)``; the next page takes the rows below it in
+    the same order, so no project is skipped or listed twice across pages.
+    """
+    statement = statement.order_by(Project.created.desc(), Project.id.desc())
+    statement = statement.limit(page.limit + 1)
+    if page.after is None:
+        return statement
+    after_created, after_id = page.after
+    return statement.where(
+        or_(
+            Project.created < after_created,
+            and_(Project.created == after_created, Project.id < after_id),
+        )
+    )
