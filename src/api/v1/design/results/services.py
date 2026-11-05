@@ -25,6 +25,16 @@ from src.core.security.access import require_project
 from src.core.security.errors import ProjectNotFoundError
 
 
+def is_feasible(checks: dict[str, int]) -> bool:
+    """Tell a result whose every check passed: a ranking of designs leaves the others out.
+
+    A check gemini could not assess, such as cold delivered by a plant with no cooling unit,
+    counts against it (QA-239): a heating-only plant must not rank cheapest on a case that
+    needs cooling.
+    """
+    return checks["failed"] == 0 and checks["not_assessed"] == 0
+
+
 def to_summary(result: Result) -> dict[str, Any]:
     return {
         "id": result.id,
@@ -34,6 +44,7 @@ def to_summary(result: Result) -> dict[str, Any]:
         "plant_version": result.plant_version,
         "kpis": gemini_evaluate.kpis_of(result.content["report"]),
         "checks": result.summary["checks"],
+        "feasible": is_feasible(result.summary["checks"]),
         "created": result.created,
         "role": gemini_evaluate.role_of(result.content.get("run", {})),
         **gemini_evaluate.design_facts(result.content.get("design") or {}),

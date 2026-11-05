@@ -27,6 +27,7 @@ class Result(BaseModel):
     plant_version: int | None
     kpis: list[Kpi]
     checks: Checks
+    feasible: bool
     created: datetime
     role: Literal["design", "sensitivity", "uncertainty"]
     doublets: float | None

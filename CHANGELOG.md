@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.110] - 2026-11-05
+
+- QA-237: an assistant run no longer saves the designs it builds, changes or simulates as plant
+  versions; the project plant changes only on an explicit save (Plant page) or adopt (Results).
+  Reverses 1.1.82 (QA-092).
+- QA-239 (additive): every result (list and detail) has `feasible`, true when no check failed or
+  was not assessed, so a ranking leaves out a heating-only plant on a case that needs cooling.
+
 ## [1.1.109] - 2026-11-05
 
 - QA-223: a `simulate` with `changes`, `start` or `end` (a what-if) never becomes the run's result

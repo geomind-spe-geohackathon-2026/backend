@@ -124,31 +124,6 @@ async def test_parallel_instances_save_every_case_in_event_order(
     ]
 
 
-async def test_a_built_plant_becomes_the_project_plant_once(
-    client, session_factory, session, blobs, make_user, make_project, make_chat
-) -> None:
-    owner, project, chat, recorder = await recorder_for(
-        session_factory, blobs, make_user, make_project, make_chat
-    )
-    design = gm.Plant.from_dict(example_plant()).to_dict(structure=True)
-    await save_artifact(session_factory, chat.id, "design/first", design)
-
-    await recorder.on_event(None, plant_built("first"))
-    await recorder.on_event(None, plant_built("first"))
-
-    response = await client.get(
-        "/api/v1/plant/flowsheet",
-        params={"project": str(project.id)},
-        headers=bearer(owner),
-    )
-    assert response.status_code == 200, response.text
-    assert response.json()["version"] == 1
-    rows = await PlantVersionRepository(session).list_versions(project.id)
-    assert [(row.number, row.note) for row in rows] == [
-        (1, "Plant first built by the assistant")
-    ]
-
-
 async def test_a_failed_build_or_another_tool_saves_no_plant(
     session_factory, session, blobs, make_user, make_project, make_chat
 ) -> None:
@@ -165,31 +140,23 @@ async def test_a_failed_build_or_another_tool_saves_no_plant(
     assert await PlantVersionRepository(session).latest_version(project.id) is None
 
 
-async def test_a_patched_or_simulated_design_becomes_the_project_plant(
+async def test_an_agent_design_never_becomes_the_project_plant(
     session_factory, session, blobs, make_user, make_project, make_chat
 ) -> None:
-    """QA-092: the design the agents patched and simulated is the project plant."""
+    """QA-237: built, patched or simulated designs change the project plant only on a save."""
     _, project, chat, recorder = await recorder_for(
         session_factory, blobs, make_user, make_project, make_chat
     )
     first = gm.Plant.from_dict(example_plant()).to_dict(structure=True)
-    renamed = {**example_plant(), "name": "gas_free"}
-    patched = gm.Plant.from_dict(renamed).to_dict(structure=True)
     await save_artifact(session_factory, chat.id, "design/first", first)
-    await save_artifact(session_factory, chat.id, "design/gas_free", patched)
 
-    await recorder.on_event(None, plant_built("gas_free", tool="patch_plant"))
+    await recorder.on_event(None, plant_built("first"))
+    await recorder.on_event(None, plant_built("first", tool="patch_plant"))
     await recorder.on_event(
         None, plant_built("", tool="simulate", given={"design": "design/first"})
     )
-    await recorder.on_event(None, plant_built("", tool="simulate", given={}))
-    await recorder.on_event(None, plant_built("first", tool="union_designs"))
 
-    rows = await PlantVersionRepository(session).list_versions(project.id)
-    assert [(row.number, row.note) for row in rows] == [
-        (1, "Plant gas_free changed by the assistant"),
-        (2, "Plant first simulated by the assistant"),
-    ]
+    assert await PlantVersionRepository(session).latest_version(project.id) is None
 
 
 def test_an_assistant_case_note_names_what_changed() -> None:

@@ -165,8 +165,9 @@ class VersionRecorder(gd.callbacks.Callback):
     """Save the case and the plant a run settles as the project's next versions.
 
     A case gemini accepted (``state.changed`` on ``/case``) becomes a case version with
-    the files it names; a design a plant tool stored or ``simulate`` ran becomes a
-    plant version. Content equal to the latest version saves nothing. It writes with
+    the files it names. A design the agents build, change or simulate never becomes a
+    plant version by itself: the project plant changes only on an explicit save, such
+    as adopting a result (QA-237; ``stored_design`` names the design, unused here). Content equal to the latest version saves nothing. It writes with
     its own async sessions on the event loop, as ``StudyRecorder`` does, and runs
     gemini off the loop.
 
@@ -192,16 +193,12 @@ class VersionRecorder(gd.callbacks.Callback):
         self.saving = asyncio.Lock()
 
     async def on_event(self, engine: Any, event: Any) -> None:
-        """Save a version when the event settles a case or a plant."""
+        """Save a case version when the event settles a case."""
         content = accepted_case(event)
         if content is not None:
             async with self.saving:
                 await self.guarded(self.save_case(content))
             return
-        stored = stored_design(event)
-        if stored is not None:
-            async with self.saving:
-                await self.guarded(self.save_plant(*stored))
 
     async def guarded(self, saving: Any) -> None:
         try:

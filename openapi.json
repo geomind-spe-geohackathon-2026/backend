@@ -3820,6 +3820,10 @@
             ],
             "title": "Doublets"
           },
+          "feasible": {
+            "title": "Feasible",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -3877,6 +3881,7 @@
           "plant_version",
           "kpis",
           "checks",
+          "feasible",
           "created",
           "role",
           "doublets",
@@ -3997,6 +4002,10 @@
             ],
             "title": "Doublets"
           },
+          "feasible": {
+            "title": "Feasible",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -4094,6 +4103,7 @@
           "plant_version",
           "kpis",
           "checks",
+          "feasible",
           "created",
           "role",
           "doublets",
@@ -5700,7 +5710,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.109"
+    "version": "1.1.110"
   },
   "openapi": "3.1.0",
   "paths": {
