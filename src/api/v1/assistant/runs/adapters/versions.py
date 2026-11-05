@@ -169,6 +169,11 @@ class VersionRecorder(gd.callbacks.Callback):
     plant version. Content equal to the latest version saves nothing. It writes with
     its own async sessions on the event loop, as ``StudyRecorder`` does, and runs
     gemini off the loop.
+
+    geomind tells the callbacks outside its save lock, so the nested runs of parallel
+    agent instances (IMP-025) call ``on_event`` at the same time; one save at a time,
+    in the order the events came, keeps an older case from landing after a newer one
+    and two saves from taking the same version number.
     """
 
     def __init__(
@@ -184,16 +189,19 @@ class VersionRecorder(gd.callbacks.Callback):
         self.chat_id = chat_id
         self.project_id = project_id
         self.author_id = author_id
+        self.saving = asyncio.Lock()
 
     async def on_event(self, engine: Any, event: Any) -> None:
         """Save a version when the event settles a case or a plant."""
         content = accepted_case(event)
         if content is not None:
-            await self.guarded(self.save_case(content))
+            async with self.saving:
+                await self.guarded(self.save_case(content))
             return
         stored = stored_design(event)
         if stored is not None:
-            await self.guarded(self.save_plant(*stored))
+            async with self.saving:
+                await self.guarded(self.save_plant(*stored))
 
     async def guarded(self, saving: Any) -> None:
         try:

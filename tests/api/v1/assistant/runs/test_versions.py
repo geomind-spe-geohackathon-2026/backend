@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 import gemini as gm
@@ -104,6 +105,23 @@ async def test_a_changed_case_adds_a_version_and_a_refused_one_none(
     latest = await CaseVersionRepository(session).latest_version(project.id)
     assert latest.number == 2
     assert latest.content["name"] == "changed"
+
+
+async def test_parallel_instances_save_every_case_in_event_order(
+    session_factory, session, blobs, make_user, make_project, make_chat
+) -> None:
+    _, project, chat, recorder = await recorder_for(
+        session_factory, blobs, make_user, make_project, make_chat
+    )
+    await save_artifact(session_factory, chat.id, f"case/{DEMAND_FILE}", DEMAND_CSV)
+    cases = [{**example_case(), "name": f"instance {n}"} for n in range(4)]
+
+    await asyncio.gather(*(recorder.on_event(None, case_set(item)) for item in cases))
+
+    rows = await CaseVersionRepository(session).all_versions(project.id)
+    assert [(row.number, row.content["name"]) for row in rows] == [
+        (n + 1, f"instance {n}") for n in range(4)
+    ]
 
 
 async def test_a_built_plant_becomes_the_project_plant_once(

@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.93] - 2026-11-05
+
+- IMP-025 (backend, part 1): the assistant's case and plant versions are saved one at a time, in
+  the order geomind's events came. geomind tells the callbacks outside its save lock, so parallel
+  agent instances saved at once: two saves could take the same number (the second was dropped) or
+  an older case could land after a newer one.
+
 ## [1.1.92] - 2026-11-05
 
 - geomind 0.4.89 as a local wheel (gemini 0.6.15 kept; 0.4.89 renames the handbook to handbook-design.md). 0.4.88: QA-131, `sensitivity` takes `values`
