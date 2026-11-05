@@ -8,8 +8,10 @@ tests pass.
 
 ## [1.1.86] - 2026-11-05
 
-- geomind 0.4.81 as a local wheel (with gemini 0.6.12): QA-104 (a requirement with no value names
-  the failed steps), QA-105 (per-energy map all given or all open), IMP-012/IMP-013
+- geomind 0.4.81 and gemini 0.6.13 as local wheels: gemini 0.6.13 judges `unmet_share` of a run
+  with failed steps undecided with the failed steps named (QA-104) and counts an electric
+  boiler's heat as backup in the daily coverage (QA-107a); geomind: QA-104 (a requirement with
+  no value names the failed steps), QA-105 (per-energy map all given or all open), IMP-012/IMP-013
   (evaluate_module and set_case fix slips of form, evaluate_module reads a design or a result),
   a tool's skill sent with its first result.
 
