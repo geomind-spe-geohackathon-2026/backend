@@ -67,6 +67,20 @@ class TotalUsage(BaseModel):
     tool_calls: int = 0
 
 
+class InstanceUsage(BaseModel):
+    """One agent session of a finished run, as the busy list shows it (QA-341)."""
+
+    agent: str
+    instance: str | None = None
+    run_id: str
+    steps: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost: float = 0.0
+    started: str | None = None
+    ended: str | None = None
+
+
 class RunSpending(BaseModel):
     """geomind's ``sessions``, ``agents`` and ``total`` of a root ``run.finished``."""
 
@@ -131,6 +145,7 @@ class Run(BaseModel):
     sessions: list[SessionUsage] | None = None
     agents: list[AgentUsage] | None = None
     total: TotalUsage | None = None
+    instances: list[InstanceUsage] | None = None
 
     @model_validator(mode="before")
     @classmethod

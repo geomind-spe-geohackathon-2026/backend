@@ -320,6 +320,50 @@ def run_totals(
     return {**summed, **known}
 
 
+def session_times(stored: Iterable[dict[str, Any]]) -> dict[str, tuple[Any, Any]]:
+    """Return each session's first event time and its ``run.finished`` time (QA-341)."""
+    times: dict[str, list[Any]] = {}
+    for event in stored:
+        key = session_of(event)
+        if not isinstance(key, str):
+            continue
+        stamp = event.get("time") or None
+        span = times.setdefault(key, [stamp, None])
+        if span[0] is None:
+            span[0] = stamp
+        if event.get("type") == RUN_FINISHED and stamp:
+            span[1] = stamp
+    return {key: (span[0], span[1]) for key, span in times.items()}
+
+
+def instance_rows(
+    sessions: list[dict[str, Any]], stored: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Return one row per agent session of a run: who, steps, tokens, cost and times (QA-341).
+
+    The finished run keeps the busy list's lines: ``{agent, instance, run_id, steps,
+    input_tokens, output_tokens, cost, started, ended}``, in start order.
+    """
+    times = session_times(mapping(item) for item in stored)
+    rows = []
+    for item in sessions:
+        started, ended = times.get(item["session"], (None, None))
+        rows.append(
+            {
+                "agent": item["agent"],
+                "instance": item.get("instance"),
+                "run_id": item["session"],
+                "steps": item["steps"],
+                "input_tokens": item["input_tokens"],
+                "output_tokens": item["output_tokens"],
+                "cost": item["cost"],
+                "started": started,
+                "ended": ended,
+            }
+        )
+    return rows
+
+
 def stored_totals(stored: list[dict[str, Any]]) -> dict[str, Any]:
     """Return a run's input and output tokens and cost from its stored events (QA-231).
 

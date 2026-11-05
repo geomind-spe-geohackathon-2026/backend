@@ -1643,6 +1643,78 @@
         "title": "HealthStatus",
         "type": "object"
       },
+      "InstanceUsage": {
+        "description": "One agent session of a finished run, as the busy list shows it (QA-341).",
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "cost": {
+            "default": 0.0,
+            "title": "Cost",
+            "type": "number"
+          },
+          "ended": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended"
+          },
+          "input_tokens": {
+            "default": 0,
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "instance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance"
+          },
+          "output_tokens": {
+            "default": 0,
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "started": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started"
+          },
+          "steps": {
+            "default": 0,
+            "title": "Steps",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent",
+          "run_id"
+        ],
+        "title": "InstanceUsage",
+        "type": "object"
+      },
       "Kpi": {
         "properties": {
           "name": {
@@ -4273,6 +4345,20 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "instances": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/InstanceUsage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instances"
           },
           "loop": {
             "anyOf": [

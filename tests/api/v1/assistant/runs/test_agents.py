@@ -468,3 +468,32 @@ def test_a_step_passes_geomind_window_through(monkeypatch) -> None:
     )
 
     assert ToolProblems().public(step_event)["context_window"] == 163840
+
+
+async def test_a_finished_run_keeps_one_line_per_agent_session(
+    client, make_user, make_project, make_chat, make_run, session, monkeypatch
+) -> None:
+    """QA-341: GET /runs/{id} of a finished run has its agent sessions' final figures."""
+    use_windows(monkeypatch, {"big/model": 1_000_000, "small/model": 8_000})
+    owner = await make_user()
+    chat = await make_chat(await make_project(owner), owner)
+    run = await make_run(chat, owner, "done")
+    running = await make_run(chat, owner, "running")
+    await store_events(session, run, nested_run(run.id.hex).events)
+    await store_events(session, running, nested_run(running.id.hex).events)
+
+    agents = (await client.get(run_url(run.id, "/agents"), headers=bearer(owner))).json()
+    body = (await client.get(run_url(run.id), headers=bearer(owner))).json()
+    live = (await client.get(run_url(running.id), headers=bearer(owner))).json()
+
+    rows = body["instances"]
+    assert [row["run_id"] for row in rows] == [item["session"] for item in agents["agents"]]
+    for row, item in zip(rows, agents["agents"]):
+        assert (row["agent"], row["steps"], row["input_tokens"], row["cost"]) == (
+            item["agent"], item["steps"], item["input_tokens"], item["cost"]
+        )
+    assert set(rows[0]) == {
+        "agent", "instance", "run_id", "steps", "input_tokens", "output_tokens", "cost",
+        "started", "ended",
+    }
+    assert live["instances"] is None

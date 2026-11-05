@@ -16,6 +16,7 @@ from src.api.v1.assistant.runs.adapters.callbacks import (
     ANSWER,
     PERMISSION,
     STEP_STARTED,
+    TERMINAL_STATUSES,
     TOOL_RECORDED,
     AnswerTrail,
     ToolProblems,
@@ -23,7 +24,11 @@ from src.api.v1.assistant.runs.adapters.callbacks import (
 )
 from src.api.v1.assistant.runs.adapters.errors import LogUnavailableError
 from src.api.v1.assistant.runs.adapters.replay import rebuilt, to_runlog
-from src.api.v1.assistant.runs.adapters.sessions import agent_sessions, run_totals
+from src.api.v1.assistant.runs.adapters.sessions import (
+    agent_sessions,
+    instance_rows,
+    run_totals,
+)
 from src.api.v1.assistant.runs.adapters.store import read_last_sequence
 from src.api.v1.assistant.runs.markdown import to_markdown
 from src.core.assistant import schemas as shared
@@ -178,7 +183,22 @@ async def read_run(run: Run, events: RunEventRepository) -> shared.Run:
     """Return a run with geomind's per-session and total figures when it has them."""
     await current_request(run, events.session)
     spending = await root_spending(run, events)
-    return shared.Run.model_validate(run).model_copy(update=dict(spending))
+    found = shared.Run.model_validate(run).model_copy(update=dict(spending))
+    if run.status in TERMINAL_STATUSES:
+        found = found.model_copy(update={"instances": await run_instances(run, events)})
+    return found
+
+
+async def run_instances(
+    run: Run, events: RunEventRepository
+) -> list[shared.InstanceUsage]:
+    """Return the agent sessions of a finished run from its stored events (QA-341)."""
+    entry = await cached_events(run, events)
+    if entry["answer"] is None:
+        entry["answer"] = await agent_sessions(entry["data"])
+    sessions, _ = entry["answer"]
+    rows = instance_rows(sessions, entry["data"])
+    return [shared.InstanceUsage.model_validate(row) for row in rows]
 
 
 async def read_call(
