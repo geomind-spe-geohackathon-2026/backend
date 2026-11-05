@@ -5,7 +5,7 @@ of the same name is deleted; the script waits until every document is searchable
 their names, states and ids. Credentials are read from the env file, never printed.
 
     .venv/bin/python -m scripts.replace_knowledge --api https://api.geomind.team/api/v1 \\
-        --env .env ../geomind/data/knowledge/cost-sources.csv ../geomind/data/knowledge/cost-sources.md
+        --env .env ../geomind/data/knowledge/data-economics.csv ../geomind/data/knowledge/data-economics.md
 """
 
 import argparse
