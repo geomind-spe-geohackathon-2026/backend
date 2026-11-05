@@ -24,6 +24,7 @@ from src.api.v1.assistant.runs.adapters.callbacks import (
 from src.api.v1.assistant.runs.adapters.errors import LogUnavailableError
 from src.api.v1.assistant.runs.adapters.replay import rebuilt, to_runlog
 from src.api.v1.assistant.runs.adapters.sessions import agent_sessions, run_totals
+from src.api.v1.assistant.runs.adapters.store import read_last_sequence
 from src.api.v1.assistant.runs.markdown import to_markdown
 from src.core.assistant import schemas as shared
 from src.core.assistant.errors import (
@@ -145,6 +146,32 @@ async def current_request(run: Run, session: Any) -> None:
     newest = event.data()
     if newest.get("request") != (run.request or {}).get("request"):
         await RunRepository(session).update(run, {"request": newest})
+    await ask_last(run, rows[0], session)
+
+
+async def ask_last(run: Run, row: Any, session: Any) -> None:
+    """Store a waiting run's pending request again after the run's last event (QA-336).
+
+    A run resumed after a restart stored its question under a sequence below events it had
+    already sent (request-797 at 797, the stream at 943): the stream and the chat put it in the
+    past and drew no card. The request, still unanswered, is stored once more as the run's
+    newest event, so every reader of ``/events`` sees it last. A request a person already
+    decided is never asked again.
+    """
+    events = RunEventRepository(session)
+    last = await read_last_sequence(session, run.id)
+    if row.sequence >= last:
+        return
+    request_id = request_id_of(row.data)
+    if any(
+        item.data.get("rule") == "user" and request_id_of(item.data) == request_id
+        for item in await events.of_type(run.id, PERMISSION)
+    ):
+        return
+    sequence = last + 1
+    await events.add(
+        run.id, sequence, row.type, row.public, {**row.data, "sequence": sequence}
+    )
 
 
 async def read_run(run: Run, events: RunEventRepository) -> shared.Run:

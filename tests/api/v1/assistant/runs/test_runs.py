@@ -367,3 +367,43 @@ async def test_a_step_says_the_context_window_its_calls_may_hold(
     assert steps and all(e.data["context_window"] == 128000 for e in steps)
     others = [e for e in stored if e.type != "step.started"]
     assert all("context_window" not in e.data for e in others)
+
+
+def stored_request(root: str, sequence: int, request_id: str) -> dict:
+    return {
+        "type": "request",
+        "run_id": root,
+        "sequence": sequence,
+        "time": "2026-11-05T19:40:00+00:00",
+        "agent": "case_lead",
+        "parent": root,
+        "request": {"kind": "question", "message": "Economics?", "id": request_id},
+        "point": "tool",
+    }
+
+
+async def test_a_pending_request_numbered_in_the_past_is_asked_last(
+    client, make_user, make_project, make_chat, make_run, session, session_factory
+) -> None:
+    import fakeredis
+
+    """QA-336: request-797 stored under 797 after event 943; the run's reader asks it last."""
+    owner = await make_user()
+    run = await make_run(await make_chat(await make_project(owner), owner), owner, "waiting")
+    root = run.id.hex
+    events = RunEventRepository(session)
+    await events.add(run.id, 943, "step.started", True, {
+        "type": "step.started", "run_id": root, "sequence": 943, "index": 6,
+        "agent": "case_lead", "parent": root,
+    })
+    await events.add(run.id, 797, "request", True, stored_request(root, 797, "request-797"))
+
+    first = await client.get(run_url(run.id), headers=bearer(owner))
+    again = await client.get(run_url(run.id), headers=bearer(owner))
+
+    assert first.json()["request"]["request"] == "request-797"
+    assert again.status_code == 200
+    asked = await events.of_type(run.id, "request")
+    assert [row.sequence for row in asked] == [944, 797]
+    replay = await stored_events(session_factory, RunDeltaRepository(fakeredis.aioredis.FakeRedis()), run.id, -1)
+    assert [(item.type, item.sequence) for item in replay][-1] == ("request", 944)
