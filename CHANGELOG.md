@@ -6,6 +6,16 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.117] - 2026-11-05
+
+- QA-231 (QA-144, QA-277): a run's usage only rises during the run and ends equal to the per-agent
+  total of `/agents`.
+- QA-274: chat sensitivity and uncertainty studies get a result each, so the Report offers them.
+- QA-215: agent study results carry the saved plant version of their design; a design result of
+  the same design and case version is not recorded twice.
+- QA-220: the run log has `waits` (user wait per answered card) and `wait` on the gated call.
+- geomind main HEAD (0.4.125+, QA-199, QA-265, QA-196, QA-168, QA-283).
+
 ## [1.1.116] - 2026-11-05
 
 - QA-264: a run a restart left `waiting` on a request that already has the user's decision (the
