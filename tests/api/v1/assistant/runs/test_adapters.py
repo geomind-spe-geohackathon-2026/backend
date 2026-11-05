@@ -955,3 +955,29 @@ async def test_an_event_numbered_below_the_stored_ones_is_stored_next(
     assert store.stored_sequence(late) == 10
     assert fresh.stored_sequence(after_restart) == 11
     assert store.stored_sequence(step(1)) == 1
+
+
+async def test_a_stored_event_of_an_unknown_type_still_counts_for_the_sequence(
+    session_factory, make_user, make_project, make_chat, make_run
+) -> None:
+    """QA-336: a row geomind cannot read is left out of the log but not numbered over."""
+    from src.core.clients.postgres.repositories.run_event import RunEventRepository
+
+    owner = await make_user()
+    run = await make_run(await make_chat(await make_project(owner), owner), owner)
+    async with session_factory() as session:
+        await RunEventRepository(session).add(
+            run.id, 7, "question.from_a_newer_geomind", False, {"type": "question.from_a_newer_geomind"}
+        )
+    bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+    store = DatabaseRunStore(bridge, run.id, run.chat_id)
+    root = run.id.hex
+    await store.warm(root)
+    event = gd.event_from_dict(
+        {"type": "step.started", "run_id": root, "sequence": 1, "index": 1}
+    )
+
+    await asyncio.to_thread(store.save_event, root, event)
+
+    assert store.warmed[root][-1].sequence == 8
+    assert store.stored_sequence(event) == 8

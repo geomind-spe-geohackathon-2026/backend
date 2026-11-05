@@ -151,8 +151,8 @@ class DatabaseRunStore:
         event of the run.
         """
         self.warmed[run_id] = list(await asyncio.to_thread(self.load_events, run_id))
-        self.last[run_id] = max(
-            (event.sequence for event in self.warmed[run_id]), default=0
+        self.last[run_id] = await asyncio.to_thread(
+            self.bridge.call, read_last_sequence, UUID(run_id)
         )
 
     async def warm_chat(self, chat_id: str) -> None:
@@ -198,7 +198,11 @@ class DatabaseRunStore:
             self.warmed[run_id].append(event)
 
     def next_sequence(self, run_id: str, event: Any) -> int:
-        """Return the sequence to store an event under: its own, unless that is not new."""
+        """Return the sequence to store an event under: its own, unless that is not new.
+
+        The highest stored sequence counts every stored row, also one of a type this geomind
+        does not know and leaves out of ``load_events``.
+        """
         last = self.last.get(run_id)
         if last is None:
             last = self.bridge.call(read_last_sequence, UUID(run_id))
@@ -215,7 +219,14 @@ class DatabaseRunStore:
         if run_id in self.warmed and self.bridge.in_loop():
             return list(self.warmed[run_id])
         rows = self.bridge.call(read_events, UUID(run_id))
-        return known_events(rows)
+        events = known_events(rows)
+        if len(events) != len(rows):
+            dropped = sorted({row.get("type") for row in rows} - {e.type for e in events})
+            logger.warning(
+                "Run %s: %d stored events of types this geomind lacks left out: %s",
+                run_id, len(rows) - len(events), dropped,
+            )
+        return events
 
     def load_history(self, chat_id: str) -> list[Any]:
         """Return the chat's user and assistant messages, oldest first."""
