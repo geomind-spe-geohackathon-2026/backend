@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.75] - 2026-11-05
+
+- QA-082, QA-083: gemini 0.6.10 and geomind 0.4.71 as local wheels (`.tmp/hotfix-wheels/`):
+  the check names a doublet's missing depth first; simulate changes set the plant's options
+  (control.dispatch, outages, backup); a bare inlet name is a coded error; an unexpected tool
+  exception reaches the agent with its class, message and place.
+
 ## [1.1.74] - 2026-11-05
 
 - QA-081: a run geomind refuses to build or go on with (for example a resume whose request is
