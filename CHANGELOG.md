@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.132] - 2026-11-05
+
+- QA-274, QA-215: chat studies without a simulate get a result on the latest case, with their plant version.
+- geomind 0.4.136+ (QA-351, 352, 353, 248, QA-354 part a), gemini 0.6.34.
+
 ## [1.1.131] - 2026-11-05
 
 - QA-350: the projects list and search are newest first; the cursor pages in that order.
