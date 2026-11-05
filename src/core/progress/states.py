@@ -1,5 +1,5 @@
 from src.core.clients.postgres.repositories.progress import ProjectFacts
-from src.core.progress.schemas import Progress, ProgressStep
+from src.core.progress.schemas import PlantStep, Progress, ProgressStep
 
 
 def case_step(version: int | None, missing: int) -> ProgressStep:
@@ -17,7 +17,7 @@ def version_step(version: int | None) -> ProgressStep:
     return ProgressStep(state="ready", label=f"Version {version}")
 
 
-def plant_step(facts: ProjectFacts) -> ProgressStep:
+def plant_step(facts: ProjectFacts) -> PlantStep:
     """The plant: its saved version, else whether designs exist only in studies or results.
 
     Since QA-237 an assistant run saves no plant version, so a project with agent studies and
@@ -25,10 +25,13 @@ def plant_step(facts: ProjectFacts) -> ProgressStep:
     exist, none is saved as the project plant.
     """
     if facts.plant_version is not None:
-        return version_step(facts.plant_version)
+        return PlantStep(**version_step(facts.plant_version).model_dump())
     if facts.results or sum(facts.studies.values()):
-        return ProgressStep(state="incomplete", label="Not saved: designs only in results")
-    return version_step(None)
+        newest = None if facts.newest_result is None else str(facts.newest_result)
+        return PlantStep(
+            state="incomplete", label="Not saved: designs only in results", result=newest
+        )
+    return PlantStep(**version_step(None).model_dump())
 
 
 def study_step(counts: dict[str, int]) -> ProgressStep:

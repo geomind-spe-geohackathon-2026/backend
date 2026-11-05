@@ -10,9 +10,15 @@ class ProgressStep(BaseModel):
     label: str
 
 
+class PlantStep(ProgressStep):
+    result: str | None = None
+    """While no plant version is saved: the newest result's id, whose design 'Use this design
+    as the plant' adopts (QA-355); else ``None``."""
+
+
 class Progress(BaseModel):
     case: ProgressStep
-    plant: ProgressStep
+    plant: PlantStep
     study: ProgressStep
     results: ProgressStep
     report: ProgressStep

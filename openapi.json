@@ -3082,6 +3082,42 @@
         "title": "PlantSearchRange",
         "type": "object"
       },
+      "PlantStep": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "state": {
+            "enum": [
+              "empty",
+              "incomplete",
+              "ready",
+              "running",
+              "done"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "label"
+        ],
+        "title": "PlantStep",
+        "type": "object"
+      },
       "PortKind": {
         "properties": {
           "kind": {
@@ -3239,7 +3275,7 @@
             ]
           },
           "plant": {
-            "$ref": "#/components/schemas/ProgressStep"
+            "$ref": "#/components/schemas/PlantStep"
           },
           "report": {
             "$ref": "#/components/schemas/ProgressStep"
@@ -6157,7 +6193,7 @@
         ]
       },
       "put": {
-        "description": "Turn auto-approve on or off for this chat; runs started or resumed later follow it.",
+        "description": "Turn auto-approve on or off for this chat; runs started or resumed later follow it.\n\nTurned on, a run of the chat that waits on a card goes on at once: geomind answers its\npending question itself (QA-354).",
         "operationId": "set_auto_approve_api_v1_assistant_chat__chat_id__auto_approve_put",
         "parameters": [
           {

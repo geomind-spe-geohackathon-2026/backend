@@ -293,7 +293,7 @@ async def test_plant_step_says_designs_exist_without_a_saved_plant(
 
     owner = await make_user()
     project = await make_project(owner)
-    await ResultRepository(session).create(
+    made = await ResultRepository(session).create(
         {
             "project_id": project.id,
             "name": "agent run",
@@ -309,6 +309,7 @@ async def test_plant_step_says_designs_exist_without_a_saved_plant(
     assert body["progress"]["plant"] == {
         "state": "incomplete",
         "label": "Not saved: designs only in results",
+        "result": str(made.id),
     }
 
 

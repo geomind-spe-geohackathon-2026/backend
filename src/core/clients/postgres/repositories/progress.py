@@ -23,6 +23,7 @@ class ProjectFacts:
     plant_version: int | None = None
     studies: dict[str, int] = field(default_factory=dict)
     results: int = 0
+    newest_result: UUID | None = None
     reported: bool = False
     chats: int = 0
     runs: int = 0
@@ -72,6 +73,25 @@ class ProgressRepository(BaseRepository):
         rows = await self.session.execute(statement)
         return {row[0]: (row[1], row[2]) for row in rows}
 
+    async def newest_results(self, project_ids: list[UUID]) -> dict[UUID, UUID]:
+        """Return each project's newest result id (QA-355: the Plant tab offers to adopt it)."""
+        newest = (
+            select(Result.project_id, func.max(Result.created).label("created"))
+            .where(Result.project_id.in_(project_ids))
+            .group_by(Result.project_id)
+            .subquery()
+        )
+        statement = (
+            select(Result.project_id, Result.id)
+            .join(
+                newest,
+                (Result.project_id == newest.c.project_id)
+                & (Result.created == newest.c.created),
+            )
+            .order_by(Result.id)
+        )
+        return {row[0]: row[1] for row in await self.session.execute(statement)}
+
     async def facts(self, project_ids: list[UUID]) -> dict[UUID, ProjectFacts]:
         """Return the facts of each project, empty ones included."""
         case = await self.latest_cases(project_ids)
@@ -85,6 +105,7 @@ class ProgressRepository(BaseRepository):
             .where(Result.project_id.in_(project_ids))
             .group_by(Result.project_id)
         )
+        newest = await self.newest_results(project_ids)
         reported = await self.grouped(
             select(Activity.project_id, func.count(Activity.id))
             .where(
@@ -111,6 +132,7 @@ class ProgressRepository(BaseRepository):
                 plant_version=plant.get(project_id),
                 studies=studies.get(project_id, {}),
                 results=results.get(project_id, 0),
+                newest_result=newest.get(project_id),
                 reported=project_id in reported,
                 chats=chats.get(project_id, 0),
                 runs=runs.get(project_id, 0),
