@@ -133,6 +133,7 @@ async def test_a_run_that_cannot_start_fails_with_geomind_message(
     monkeypatch.setattr(settings, "ASSISTANT_LLM", "openrouter")
     monkeypatch.setenv("GEOMIND_RETRY_COUNT", "3")
     monkeypatch.setenv("GEOMIND_RETRY_DELAY", "0.5")
+    monkeypatch.setattr(settings, "ASSISTANT_MODEL_PREFIX", "deepseek/")
     use_models(monkeypatch, "deepseek/model")
     monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "")
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
@@ -144,7 +145,7 @@ async def test_a_run_that_cannot_start_fails_with_geomind_message(
     failed = await reload(session, run.id)
     events = await RunEventRepository(session).after(run.id, -1, public_only=True)
     assert failed.status == "failed"
-    assert failed.error["code"] == "error"
+    assert failed.error["code"] == "geomind_refused"  # contract 1.1.74 (QA-081)
     assert "OPENROUTER_API_KEY" in failed.error["message"]
     assert [event.type for event in events] == ["run.finished"]
 

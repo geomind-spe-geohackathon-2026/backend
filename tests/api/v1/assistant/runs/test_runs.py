@@ -253,11 +253,17 @@ async def test_events_replay_and_end_at_the_root_run_finished(
         run_url(run.id, "/events"), headers={**headers, "Last-Event-ID": "20"}
     )
 
+    # A person's decision replays as `answer`, with the sequence of geomind's internal
+    # `permission` event behind it (contract 1.1.59, QA-058).
     public = [
-        event for event in events if event.is_public and event.type != "text.delta"
+        event
+        for event in events
+        if (event.is_public and event.type != "text.delta")
+        or (event.type == "permission" and event.rule == "user")
     ]
     assert full.headers["content-type"].startswith("text/event-stream")
     assert sse_ids(full.text) == [str(event.sequence) for event in public]
+    assert "event: answer" in full.text
     assert "event: run.finished" in full.text
     assert sse_ids(later.text) == [str(e.sequence) for e in public if e.sequence > 20]
 
