@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.99] - 2026-11-05
+
+- Speed measuring: `step.started` and `step.finished` carry `ts` (the event's own time) in the stream
+  and in `/events`; each step of the run log has `ts` (when it started), added after `gd.runlog`.
+
 ## [1.1.98] - 2026-11-05
 
 - QA-144: a running run's row (Runs and logs) showed 0 tokens and 0 USD. The live totals (`UsageTree`) now

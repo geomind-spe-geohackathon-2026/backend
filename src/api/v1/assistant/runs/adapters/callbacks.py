@@ -78,6 +78,10 @@ class ToolProblems:
         geomind's own when it sends one, else the window looked up for the model.
         """
         data = event.data()
+        if event.type in (STEP_STARTED, STEP_FINISHED):
+            stamp = getattr(event, "time", None)
+            if stamp is not None and "ts" not in data:
+                data = {**data, "ts": stamp.isoformat() if hasattr(stamp, "isoformat") else str(stamp)}
         if event.type == STEP_STARTED and data.get("context_window") is None:
             window = window_of(getattr(event, "model", None))
             return data if window is None else {**data, "context_window": window}
