@@ -6,6 +6,10 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.124] - 2026-11-05
+
+- No backend change: geomind main HEAD (QA-326 and more), gemini 0.6.31.
+
 ## [1.1.123] - 2026-11-05
 
 - QA-313: the design report has numbered sections, subsections, captions and text by every figure and table; PDF and Markdown exports follow.
