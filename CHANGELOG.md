@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.126] - 2026-11-05
+
+- QA-328: progress.plant is incomplete when designs exist only in results.
+- gemini 0.6.33 (QA-335: reverts the cooler sizing of 0.6.32), geomind main HEAD (QA-330, 331, 320, 333).
+
 ## [1.1.125] - 2026-11-05
 
 - QA-332: studies no longer fail on gemini 0.6.31 coverage days ('bool' has no to_dict).
