@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.101] - 2026-11-05
+
+- QA-122: geomind 0.4.97 (local wheel): the agents read the project's plant versions and studies
+  through `project_designs` and `plant_version` (served since 1.1.90). No contract change.
+
 ## [1.1.100] - 2026-11-05
 
 - QA-145: geomind 0.4.96 (local wheel): the design engineers propose changes from their brief,
