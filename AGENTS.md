@@ -77,7 +77,9 @@ FastAPI backend for the geothermal digital twin. Routes and payloads follow
 - **Deploy:** `compose.yml` here runs the API and the worker from `.env`
   (the tests read `.env.example`, never `.env`): `cp .env.example .env && docker compose up -d --build`. The data services and Traefik
   come from `../infrastructure`. geomind, like gemini, is its released wheel
-  pinned by URL and sha256 in `requirements.txt`.
+  pinned by URL and sha256 in `requirements.txt`. Hotfix deploys (`scripts/hotfix_deploy.sh`)
+  build gemini and geomind from the local clones' pushed `HEAD` into the image
+  (`Dockerfile.hotfix`); never wait for a GitHub release or build a wheel by hand.
 - **Tests:** `.venv/bin/python -m pytest -n auto`, including the import boundary test,
   `tests/test_no_comments.py` (docstrings only, no comments in code)
   and `tests/test_route_guard.py`, which every new route must pass. See

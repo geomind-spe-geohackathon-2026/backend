@@ -1,6 +1,12 @@
+# Hotfix layer: builds gemini and geomind from the local clones' committed code (the build
+# context holds `gemini/` and `geomind/`, made by scripts/hotfix_deploy.sh with git archive) and
+# installs them over the released versions in the base image. No GitHub release is needed.
 ARG BASE=geomind-backend:candidate
 FROM ${BASE}
 
-COPY *.whl /tmp/hotfix-wheels/
-RUN pip install --no-cache-dir --no-deps --force-reinstall /tmp/hotfix-wheels/*.whl \
-    && rm -rf /tmp/hotfix-wheels
+COPY gemini /tmp/src/gemini
+COPY geomind /tmp/src/geomind
+RUN pip wheel --no-cache-dir --no-deps -w /tmp/wheels /tmp/src/gemini /tmp/src/geomind \
+    && pip install --no-cache-dir --no-deps --force-reinstall /tmp/wheels/*.whl \
+    && pip install --no-cache-dir /tmp/wheels/*.whl \
+    && rm -rf /tmp/src /tmp/wheels

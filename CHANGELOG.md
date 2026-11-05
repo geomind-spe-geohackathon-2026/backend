@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.104] - 2026-11-05
+
+- Hotfix deploy builds from local code (Sahand): `scripts/hotfix_deploy.sh` checks that the
+  gemini (`dev`) and geomind (`main`) clones are committed and pushed, takes their `HEAD` with
+  `git archive`, and `Dockerfile.hotfix` builds and installs both packages in the image over the
+  released pins. No GitHub release and no separate wheel (`.tmp/hotfix-wheels` is no longer
+  read). No contract change.
+
 ## [1.1.103] - 2026-11-05
 
 - QA-148, QA-149: gemini 0.6.17 (local wheel): no TypeError on a non-port `inlets` entry, a
