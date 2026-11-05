@@ -34,6 +34,7 @@ UNIT_ALIASES = {"°C": "degC"}
 SERVICE_SIDES = {"heating_supply": "min", "cooling_supply": "max"}
 SERVICE_NAME = "service"
 SERVICE_TITLE = " (service supply rule)"
+FAILURE_CHARS = 200
 
 
 def title_of(name: str) -> str:
@@ -126,11 +127,30 @@ def measured(requirement: dict[str, Any]) -> tuple[str, str]:
     return texts
 
 
-def message_of(requirement: dict[str, Any]) -> str:
+def first_failure(report: dict[str, Any]) -> str:
+    """Write the largest failure group of a run: module, first date and gemini's words.
+
+    A figure of the whole period has no value when steps failed (QA-104); this names
+    what to fix first. A run without failed steps gives nothing.
+    """
+    if not report.get("failed_steps"):
+        return ""
+    failures = report.get("failures") or {}
+    groups = failures.get("groups") if isinstance(failures, dict) else failures
+    if not groups:
+        return ""
+    group = groups[0]
+    when = date_text(group["first"]) if group.get("first") else ""
+    words = " ".join(str(group.get("message") or group.get("code") or "").split())
+    where = ", ".join(filter(None, [group.get("path") or "", when]))
+    return f"first failure: {where}: {words[:FAILURE_CHARS]}"
+
+
+def message_of(requirement: dict[str, Any], failure: str = "") -> str:
     """Write what a requirement measured against its limit, and where it was worst."""
     value, limit = measured(requirement)
     if value.startswith("missing"):
-        text = f"{value}; limit {limit}"
+        text = "; ".join(filter(None, [value, failure, f"limit {limit}"]))
     else:
         text = f"{value} against the limit {limit}"
     worst = requirement.get("worst_step")
@@ -258,6 +278,7 @@ def constraints_of(
     row key); it is then named ``<module>.<name>.service`` and titled as such.
     """
     given = limits or {}
+    failure = first_failure(report)
     seen: set[tuple[str, str]] = set()
     found = []
     for item in report["requirements"]:
@@ -272,7 +293,7 @@ def constraints_of(
                 "title": title_of(item["name"]) + (SERVICE_TITLE if repeated else ""),
                 "module": subject_of(item) or None,
                 "status": status_of(item),
-                "message": message_of(item),
+                "message": message_of(item, failure),
                 "worst": (item.get("worst_step") or "")[:10] or None,
                 **checked(item, given, own),
             }

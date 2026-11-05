@@ -273,6 +273,40 @@ def test_a_service_check_without_a_case_rule_has_its_direction() -> None:
     assert one(item, {})["limit"] == "≥ 100 degC"
 
 
+FAILED = "122 steps of the run"
+
+
+def test_a_missing_figure_names_the_first_failure_of_the_run() -> None:
+    """QA-104: a whole-period figure is missing when steps failed; say which first."""
+    item = requirement(
+        name="heating_unmet_share",
+        value={"value": None, "unit": "-", "reason": f"no_value: {FAILED} failed"},
+        limit={"value": 0.01, "unit": "-"},
+        worst_step=None,
+    )
+    group = {
+        "path": "cooling_return_pipe",
+        "code": "invalid_state",
+        "kind": "failed",
+        "count": 61,
+        "first": "2027-05-18T00:00:00+00:00",
+        "last": "2027-09-19T00:00:00+00:00",
+        "message": "outlet pressure below zero",
+    }
+    report = {
+        "requirements": [item],
+        "failed_steps": 122,
+        "failures": {"total": 122, "groups": [group]},
+    }
+
+    found = evaluate.constraints_of(report)[0]
+
+    assert found["message"] == (
+        "missing: 122 steps of the run failed; first failure: cooling_return_pipe, "
+        "2027-05-18: outlet pressure below zero; limit 0.01"
+    )
+
+
 def test_a_tornado_lists_the_largest_effect_first() -> None:
     def row(name: str, effect: float) -> dict:
         figure = {"value": 1.0, "unit": "K"}
