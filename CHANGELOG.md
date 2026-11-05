@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.103] - 2026-11-05
+
+- QA-148, QA-149: gemini 0.6.17 (local wheel): no TypeError on a non-port `inlets` entry, a
+  closed loop without a first guess names what to set, inlet errors state the real problem.
+  No contract change.
+
 ## [1.1.102] - 2026-11-05
 
 - QA-147: geomind 0.4.98 (local wheel): read_stored and calculate read a dotted module key
