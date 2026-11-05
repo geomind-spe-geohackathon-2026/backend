@@ -74,3 +74,23 @@ def test_stored_totals_sum_every_session():
     assert totals["input_tokens"] == 160
     assert totals["output_tokens"] == 3
     assert round(totals["cost"], 2) == 0.15
+
+
+def test_agent_live_usage_has_steps_and_start():
+    """QA-291: a nested session's live line carries its own steps, tokens, cost and start."""
+    from src.api.v1.assistant.runs.adapters.callbacks import AgentLive
+
+    live = AgentLive()
+    root, lead = uuid4(), uuid4()
+    live.note(SimpleNamespace(type="run.started", run_id=lead, time="2026-11-05T19:00:00+01:00"))
+    for index in (0, 1, 1):
+        live.note(SimpleNamespace(type="step.started", run_id=lead, index=index))
+    event = SimpleNamespace(
+        run_id=lead, parent=str(root), agent="Geoscientist", instance="Geoscientist II",
+        input_tokens=1_000, output_tokens=50, cost=0.01,
+    )
+    data = live.usage(event)
+    assert data["steps"] == 2
+    assert data["started"] == "2026-11-05T19:00:00+01:00"
+    assert data["instance"] == "Geoscientist II"
+    assert (data["input_tokens"], data["output_tokens"], data["cost"]) == (1_000, 50, 0.01)

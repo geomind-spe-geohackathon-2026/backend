@@ -222,6 +222,50 @@ class UsageTree:
         }
 
 
+AGENT_USAGE = "agent.usage"
+
+
+class AgentLive:
+    """The live figures of each nested agent session, for the busy list (QA-291).
+
+    A nested ``usage`` holds one session's running totals; the busy list also needs the steps it
+    took and when it started, so the client sums nothing. Kept by run id from the session's own
+    ``run.started`` and ``step.started`` events.
+    """
+
+    def __init__(self) -> None:
+        self.steps: dict[str, set[Any]] = {}
+        self.started: dict[str, str | None] = {}
+
+    def note(self, event: Any) -> None:
+        """Count a step or keep a session's start time."""
+        run = str(getattr(event, "run_id", "") or "")
+        if event.type == "run.started" and run not in self.started:
+            self.started[run] = stamp_text(getattr(event, "time", None))
+        elif event.type == STEP_STARTED:
+            self.steps.setdefault(run, set()).add(getattr(event, "index", None))
+
+    def usage(self, event: Any) -> dict[str, Any]:
+        """Return the ``agent.usage`` data of a nested ``usage`` event."""
+        run = str(event.run_id)
+        return {
+            "agent": event.agent,
+            "instance": getattr(event, "instance", None),
+            "run_id": run,
+            "parent": None if event.parent is None else str(event.parent),
+            **{key: getattr(event, key, 0) or 0 for key in USAGE_KEYS},
+            "steps": len(self.steps.get(run, ())),
+            "started": self.started.get(run),
+        }
+
+
+def stamp_text(value: Any) -> str | None:
+    """Return a clock value as ISO text, ``None`` when there is none."""
+    if not value:
+        return None
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+
 class EventPublisher(gd.callbacks.Callback):
     """Send the public events of a run to the browser through Redis.
 
@@ -240,10 +284,12 @@ class EventPublisher(gd.callbacks.Callback):
         self.usage = UsageTree(run_id)
         self.root_agent = ""
         self.answers = AnswerTrail()
+        self.live = AgentLive()
 
     async def on_event(self, engine: Any, event: Any) -> None:
         """Publish one event if it is public."""
         self.problems.note(event)
+        self.live.note(event)
         answered = self.answers.note(event)
         if answered is not None:
             await publish_event_async(
@@ -257,6 +303,8 @@ class EventPublisher(gd.callbacks.Callback):
                 await publish_event_async(
                     self.redis, self.channel, StreamEvent(USAGE, tree, None)
                 )
+                agent = StreamEvent(AGENT_USAGE, self.live.usage(event), None)
+                await publish_event_async(self.redis, self.channel, agent)
         if event.parent is None and getattr(event, "agent", None):
             self.root_agent = event.agent
         if event.type == RETRY:
