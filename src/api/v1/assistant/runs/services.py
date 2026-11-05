@@ -18,6 +18,7 @@ from src.api.v1.assistant.runs.adapters.callbacks import (
     TOOL_RECORDED,
     AnswerTrail,
     ToolProblems,
+    refused_finish,
 )
 from src.api.v1.assistant.runs.adapters.errors import LogUnavailableError
 from src.api.v1.assistant.runs.adapters.replay import rebuilt, to_runlog
@@ -292,7 +293,10 @@ async def stored_events(
         if answered is not None:
             events.append(StreamEvent(ANSWER, answered, row.sequence))
         if row.public:
-            events.append(StreamEvent(row.type, problems.public(event), row.sequence))
+            data = problems.public(event)
+            if row.type == "run.finished":
+                data = refused_finish(data)
+            events.append(StreamEvent(row.type, data, row.sequence))
     for delta in await deltas.pending(str(run_id)):
         data = {
             "index": delta.index,

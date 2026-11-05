@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.62] - 2026-11-05
+
+- QA-068: a run the model provider refused (HTTP 401, 402, 403 or 429 in geomind's failure, such
+  as OpenRouter's 403 "Key limit exceeded") ends with `stop_reason: provider_refused` and a clear
+  message ("The model provider refused: key limit exceeded; an admin must raise it.") in the live
+  and replayed `run.finished` and in the run's `error`; the chat showed "internal error in
+  geomind". Hotfix mode: no tests ran.
+
 ## [1.1.61] - 2026-11-05
 
 - QA-065, QA-061: geomind 0.4.60 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.60-py3-none-any.whl`):

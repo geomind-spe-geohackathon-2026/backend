@@ -243,7 +243,10 @@ class EventPublisher(gd.callbacks.Callback):
         else:
             await self.forget(event)
             sequence = event.sequence
-        stream_event = StreamEvent(event.type, self.problems.public(event), sequence)
+        data = self.problems.public(event)
+        if event.type == "run.finished":
+            data = refused_finish(data)
+        stream_event = StreamEvent(event.type, data, sequence)
         await publish_event_async(self.redis, self.channel, stream_event)
 
     async def buffer(self, event: Any) -> None:
@@ -275,12 +278,56 @@ def usage_columns(event: Any) -> dict[str, Any]:
     }
 
 
+PROVIDER_REFUSED = "provider_refused"
+PROVIDER_STATUS = re.compile(r"status = (401|402|403|429)\b")
+
+
+def provider_refusal(message: str | None) -> str | None:
+    """Return a clear message for a model provider's quota or key refusal, else ``None``.
+
+    geomind ends such a run with ``stop_reason: error`` and the provider's text, which the chat
+    showed as "an internal error in geomind" (QA-068: OpenRouter 403 "Key limit exceeded").
+    """
+    found = PROVIDER_STATUS.search(message or "")
+    if found is None:
+        return None
+    status = found.group(1)
+    text = message or ""
+    if status == "403" and "limit" in text.lower():
+        return "The model provider refused: key limit exceeded; an admin must raise it."
+    if status == "402":
+        return "The model provider refused: no credits left (402); an admin must add credits."
+    if status == "401":
+        return "The model provider refused the API key (401); an admin must check it."
+    if status == "429":
+        return (
+            "The model provider kept refusing with too many requests (429); try again in a few "
+            "minutes."
+        )
+    return f"The model provider refused the request (403): {text[:300]}"
+
+
+def refused_finish(data: dict[str, Any]) -> dict[str, Any]:
+    """Return ``run.finished`` data with a provider refusal named as such (QA-068)."""
+    if data.get("status") != "failed":
+        return data
+    clear = provider_refusal(data.get("message"))
+    if clear is None:
+        return data
+    return {**data, "stop_reason": PROVIDER_REFUSED, "message": clear}
+
+
 def finish_columns(event: Any) -> dict[str, Any]:
     values: dict[str, Any] = {"status": event.status, "request": None}
     if event.status in TERMINAL_STATUSES:
         values["ended"] = utc_now()
     if event.status == "failed":
-        values["error"] = {"code": event.stop_reason, "message": event.message or ""}
+        clear = provider_refusal(event.message)
+        values["error"] = (
+            {"code": PROVIDER_REFUSED, "message": clear}
+            if clear
+            else {"code": event.stop_reason, "message": event.message or ""}
+        )
     return values
 
 

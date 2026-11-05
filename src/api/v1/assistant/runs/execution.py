@@ -8,7 +8,12 @@ from redis import Redis as SyncRedis
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from src.api.v1.assistant.runs.adapters import session as adapters
-from src.api.v1.assistant.runs.adapters.callbacks import TERMINAL_STATUSES
+from src.api.v1.assistant.runs.adapters.callbacks import (
+    PROVIDER_REFUSED,
+    TERMINAL_STATUSES,
+    provider_refusal,
+    refused_finish,
+)
 from src.api.v1.assistant.runs.adapters.errors import (
     AdapterFailedError,
     StaleRequestError,
@@ -256,7 +261,10 @@ async def fail(
             "ended": utc_now(),
             "error": {"code": code, "message": message},
         }
+        clear = provider_refusal(message)
+        if clear:
+            values["error"] = {"code": PROVIDER_REFUSED, "message": clear}
         failed = await runs.update(await runs.get_by_id(run.id), values)
         await add_activity(session, failed, "failed")
-    event = StreamEvent(record.type, record.data, record.sequence)
+    event = StreamEvent(record.type, refused_finish(record.data), record.sequence)
     await publish_event_async(resources.redis, run_channel(run.id), event)
