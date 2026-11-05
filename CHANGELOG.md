@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.128] - 2026-11-05
+
+- QA-338: report section 7 describes optimisation results; unmet energy below 0.01 % reads 'All demand is met.'
+- geomind main HEAD (QA-339 auto-answers, QA-343), gemini 0.6.34 (QA-343, QA-260, QA-335 revert).
+
 ## [1.1.127] - 2026-11-05
 
 - QA-336: events of a resumed run whose sequence collides are renumbered after the stored maximum; the question card shows.
