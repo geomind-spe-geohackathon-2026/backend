@@ -191,6 +191,21 @@ def design_spreads(
     return spreads
 
 
+def pareto_ids(found: list[Result], x: str, y: str) -> list[UUID]:
+    """Return the results on the trade-off front of ``x`` and ``y``, feasible ones only.
+
+    An infeasible result (a failed or unassessed check, see ``is_feasible``) never ranks: a
+    heating-only plant on a case that needs cooling must not be the cheapest (QA-239).
+    """
+    feasible = [item for item in found if is_feasible(item.summary["checks"])]
+    if not feasible:
+        return []
+    flags = gemini_evaluate.pareto_flags(
+        [item.content["report"] for item in feasible], x, y
+    )
+    return [item.id for item, flag in zip(feasible, flags, strict=True) if flag]
+
+
 async def compare_results(
     project_id: UUID,
     ids: str,
@@ -208,11 +223,8 @@ async def compare_results(
     found = [rows[result_id] for result_id in wanted]
     check_kpi(x, "x", found)
     check_kpi(y, "y", found)
-    flags = gemini_evaluate.pareto_flags(
-        [item.content["report"] for item in found], x, y
-    )
     return schemas.ResultComparison(
         items=[to_summary(item) for item in found],
-        pareto=[item.id for item, flag in zip(found, flags, strict=True) if flag],
+        pareto=pareto_ids(found, x, y),
         spreads=design_spreads(found, await results.all_for_project(project.id)),
     )

@@ -24,6 +24,14 @@ def outcome_with(lcts: float, co2: float, feasible: bool = True) -> dict[str, An
     return outcome
 
 
+def assessed(outcome: dict[str, Any]) -> dict[str, Any]:
+    """Return ``outcome`` with every check passed: a feasible design (QA-239)."""
+    for item in outcome["report"]["requirements"]:
+        if item["passed"] is None:
+            item["passed"] = True
+    return outcome
+
+
 @pytest.fixture
 def make_result(
     session_factory: async_sessionmaker[AsyncSession],
@@ -108,9 +116,9 @@ async def test_compare_maps_pareto_flags_to_ids(
 ) -> None:
     user = await make_user()
     project = await make_project(user)
-    cheap = await make_result(project, "cheap", outcome_with(40, 20))
-    clean = await make_result(project, "clean", outcome_with(60, 5))
-    worse = await make_result(project, "worse", outcome_with(70, 25))
+    cheap = await make_result(project, "cheap", assessed(outcome_with(40, 20)))
+    clean = await make_result(project, "clean", assessed(outcome_with(60, 5)))
+    worse = await make_result(project, "worse", assessed(outcome_with(70, 25)))
     ids = ",".join(str(item.id) for item in (cheap, clean, worse))
 
     response = await client.get(
@@ -128,7 +136,7 @@ async def test_compare_leaves_out_infeasible_designs(
 ) -> None:
     user = await make_user()
     project = await make_project(user)
-    best = await make_result(project, "best", outcome_with(40, 20))
+    best = await make_result(project, "best", assessed(outcome_with(40, 20)))
     broken = await make_result(project, "broken", outcome_with(10, 1, False))
     ids = f"{best.id},{broken.id}"
 
@@ -138,6 +146,25 @@ async def test_compare_leaves_out_infeasible_designs(
     )
 
     assert response.json()["pareto"] == [str(best.id)]
+
+
+async def test_compare_never_ranks_a_design_with_unassessed_checks(
+    client, make_user, make_project, make_result
+) -> None:
+    user = await make_user()
+    project = await make_project(user)
+    best = await make_result(project, "best", assessed(outcome_with(40, 20)))
+    heating_only = await make_result(project, "heating only", outcome_with(10, 1))
+    ids = f"{best.id},{heating_only.id}"
+
+    response = await client.get(
+        f"{URL}/compare?project={project.id}&ids={ids}&x=lcts&y=co2",
+        headers=bearer(user),
+    )
+
+    body = response.json()
+    assert body["pareto"] == [str(best.id)]
+    assert [item["feasible"] for item in body["items"]] == [True, False]
 
 
 async def test_compare_refuses_an_unknown_figure(
