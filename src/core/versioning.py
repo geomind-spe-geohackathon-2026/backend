@@ -16,11 +16,21 @@ class Author(BaseModel):
     name: str
 
 
+ASSISTANT_NOTE = "by the assistant"
+"""What every note of a version the assistant saved holds (QA-110)."""
+
+
 class Version(BaseModel):
     number: int
     note: str
     author: Author
     created: datetime
+    by: str
+
+
+def saved_by(note: str) -> str:
+    """Return ``assistant`` for a version the assistant saved, else ``user``."""
+    return "assistant" if ASSISTANT_NOTE in note else "user"
 
 
 def check_base(latest: Any | None, base: int | None) -> None:
@@ -61,6 +71,7 @@ async def describe_versions(
             note=row.note,
             author=Author(id=row.author_id, name=names[row.author_id]),
             created=row.created,
+            by=saved_by(row.note),
         )
         for row in rows
     ]

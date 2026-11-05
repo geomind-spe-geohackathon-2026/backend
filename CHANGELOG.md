@@ -6,6 +6,24 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.87] - 2026-11-05
+
+- QA-110 (backend part; the Case History UI is hotfix-front-III's): `GET
+  /design/case/versions/{number}` opens a case version with its files and gemini's missing values;
+  `POST /design/case/versions/{number}/restore` (`project`, `base`) saves it, content and files, as
+  the next version, note "Restored version N". A case the assistant saves gets a note naming up
+  to six changed paths and files ("Case set by the assistant: requirements.flow.max changed;
+  ..."), not always "Case set by the assistant". Case and plant `Version` objects have `by`
+  (`assistant` when the note says "by the assistant", else `user`), so Saved by can say Assistant.
+- QA-102 (backend part): new activity rows of a saved case or plant version link to the version
+  number (`link.id` "N"); older rows keep no id.
+- QA-104 (backend part): a constraint with no value in a run with failed steps adds the largest
+  failure group, module, first date and gemini's words, beside gemini's reason (page studies and
+  every result read).
+- Hotfix mode: ran test_case, test_versions, test_evaluate, tests/api/v1/plant, test_openapi,
+  tests/scripts; `test_case_aware::test_validate_with_a_project_takes_the_values_from_its_case`
+  fails before and after this change (gemini 0.6.13), not touched here.
+
 ## [1.1.86] - 2026-11-05
 
 - geomind 0.4.81 and gemini 0.6.13 as local wheels: gemini 0.6.13 judges `unmet_share` of a run

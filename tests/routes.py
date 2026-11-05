@@ -1,12 +1,16 @@
-"""The routes of the frontend, project-relative, for checking activity links."""
+"""The routes of the frontend, project-relative, for checking activity links.
+
+A case or plant version row links to its number and a study row to its id (QA-102); the
+frontend opens History on that version, and the study.
+"""
 
 FRONTEND_ROUTES = {
     "overview": False,
     "assistant/chat": True,
     "assistant/runs": True,
-    "design/case": False,
-    "design/plant": False,
-    "design/study": False,
+    "design/case": True,
+    "design/plant": True,
+    "design/study": True,
     "design/results": True,
     "design/report": False,
     "documents": False,

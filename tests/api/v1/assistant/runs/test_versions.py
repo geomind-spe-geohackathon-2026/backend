@@ -172,3 +172,24 @@ async def test_a_patched_or_simulated_design_becomes_the_project_plant(
         (1, "Plant gas_free changed by the assistant"),
         (2, "Plant first simulated by the assistant"),
     ]
+
+
+def test_an_assistant_case_note_names_what_changed() -> None:
+    """QA-110: the note said "Case set by the assistant" for every version."""
+    from src.api.v1.assistant.runs.adapters.versions import case_note
+
+    rule = {"name": "flow", "max": 300}
+    old = {"name": "a", "requirements": [rule], "economics": "e.json"}
+    new = {
+        "name": "a",
+        "requirements": [{"name": "flow", "max": 250}, {"name": "heating_unmet_share"}],
+        "economics": "e.json",
+    }
+
+    note = case_note(old, new, {"e.json"}, {"e.json", "data/demand.csv"})
+
+    assert note == (
+        "Case set by the assistant: requirements.flow.max changed; "
+        "requirements.heating_unmet_share added; files.data/demand.csv added"
+    )
+    assert case_note(None, new, set(), set()) == "Case set by the assistant"

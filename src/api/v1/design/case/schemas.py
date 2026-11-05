@@ -20,6 +20,11 @@ class Case(BaseModel):
     problems: list[Problem]
 
 
+class CaseRestore(BaseModel):
+    project: UUID
+    base: int | None
+
+
 class CaseCreate(BaseModel):
     project: UUID
     base: int | None

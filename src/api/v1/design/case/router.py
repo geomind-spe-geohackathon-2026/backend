@@ -182,3 +182,35 @@ async def list_versions(
     users: UserRepositoryDependency,
 ) -> Page[Version]:
     return await services.list_versions(project, repository, users)
+
+
+@router.get("/versions/{number}", response_model=schemas.Case)
+async def get_version(
+    number: int,
+    project: QueriedProject,
+    repository: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    blobs: BlobStoreDependency,
+) -> schemas.Case:
+    return await services.get_version(project, number, repository, files, blobs)
+
+
+@router.post(
+    "/versions/{number}/restore",
+    response_model=schemas.Case,
+    status_code=status.HTTP_201_CREATED,
+)
+async def restore_version(
+    number: int,
+    payload: schemas.CaseRestore,
+    user: CurrentUser,
+    projects: ProjectRepositoryDependency,
+    repository: CaseVersionRepositoryDependency,
+    files: CaseFileRepositoryDependency,
+    activity: ActivityRepositoryDependency,
+    blobs: BlobStoreDependency,
+) -> schemas.Case:
+    project = await require_project(payload.project, user, projects)
+    return await services.restore_version(
+        project, number, payload.base, user, repository, files, activity, blobs
+    )

@@ -167,6 +167,7 @@ async def record(
         user.name,
         f"Saved case version {version.number}",
         CASE_ROUTE,
+        str(version.number),
     )
 
 
@@ -186,6 +187,46 @@ async def save_case(
     files = await stored_files(rows, blobs)
     version = await save_version(
         project, user, payload.content, payload.note, files, repository
+    )
+    await keep_files(version, rows, files_repository)
+    await record(project, user, version, activity)
+    return await build_case(version, files_repository, blobs)
+
+
+async def get_version(
+    project: Project,
+    number: int,
+    repository: CaseVersionRepository,
+    files_repository: CaseFileRepository,
+    blobs: BlobStore,
+) -> schemas.Case:
+    """Return one case version with its files and what gemini finds missing (QA-110)."""
+    version = await repository.version_by_number(project.id, number)
+    if version is None:
+        raise CaseNotFoundError("Case version not found")
+    return await build_case(version, files_repository, blobs)
+
+
+async def restore_version(
+    project: Project,
+    number: int,
+    base: int | None,
+    user: User,
+    repository: CaseVersionRepository,
+    files_repository: CaseFileRepository,
+    activity: ActivityRepository,
+    blobs: BlobStore,
+) -> schemas.Case:
+    """Save an older case version, content and files, as the next version (QA-110)."""
+    latest = await repository.latest_version(project.id)
+    check_base(latest, base)
+    older = await repository.version_by_number(project.id, number)
+    if older is None:
+        raise CaseNotFoundError("Case version not found")
+    rows = await files_repository.list_for_version(older.id)
+    files = await stored_files(rows, blobs)
+    version = await save_version(
+        project, user, older.content, f"Restored version {number}", files, repository
     )
     await keep_files(version, rows, files_repository)
     await record(project, user, version, activity)

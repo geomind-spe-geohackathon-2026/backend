@@ -134,6 +134,7 @@ async def save_flowsheet(
         user.name,
         f"Saved plant version {version.number}",
         PLANT_ROUTE,
+        str(version.number),
     )
     return await build_flowsheet(version, blobs)
 

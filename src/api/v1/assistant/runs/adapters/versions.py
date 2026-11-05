@@ -48,7 +48,73 @@ ACTOR_NAME = "assistant"
 CASE_NOTE = "Case set by the assistant"
 PLANT_NOTE = "Plant {name} {how} by the assistant"
 
+NOTE_PATHS = 6
+FILES_PATH = "files"
+
 logger = logging.getLogger(__name__)
+
+
+def keyed(items: list[Any]) -> dict[str, Any] | None:
+    """Return a list of named dicts by name, or ``None`` when it is not one."""
+    named = {}
+    for item in items:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            return None
+        named[item["name"]] = item
+    return named if len(named) == len(items) else None
+
+
+def changed_paths(old: Any, new: Any, path: str = "") -> list[tuple[str, str]]:
+    """Return ``(path, how)`` of what differs, ``how`` one of added, removed, changed.
+
+    Dicts are compared key by key and lists of named items (``requirements``) by name,
+    so a note can say which rule or value changed.
+    """
+    if old == new:
+        return []
+    if isinstance(old, list) and isinstance(new, list):
+        old_named, new_named = keyed(old), keyed(new)
+        if old_named is not None and new_named is not None:
+            old, new = old_named, new_named
+    if not isinstance(old, dict) or not isinstance(new, dict):
+        return [(path, "changed")]
+    found = []
+    for key in list(old) + [key for key in new if key not in old]:
+        inner = f"{path}.{key}" if path else str(key)
+        if key not in new:
+            found.append((inner, "removed"))
+        elif key not in old:
+            found.append((inner, "added"))
+        else:
+            found.extend(changed_paths(old[key], new[key], inner))
+    return found
+
+
+def case_note(
+    old: dict[str, Any] | None,
+    new: dict[str, Any],
+    old_files: set[str],
+    new_files: set[str],
+) -> str:
+    """Write the note of a case the assistant saved, naming what changed (QA-110).
+
+    The note was always "Case set by the assistant", so History could not tell versions
+    apart; now it names up to ``NOTE_PATHS`` changed paths and files, and how many more.
+    """
+    if old is None:
+        return CASE_NOTE
+    changes = changed_paths(old, new)
+    changes += [
+        (f"{FILES_PATH}.{name}", "added") for name in sorted(new_files - old_files)
+    ]
+    changes += [
+        (f"{FILES_PATH}.{name}", "removed") for name in sorted(old_files - new_files)
+    ]
+    if not changes:
+        return f"{CASE_NOTE}: files changed"
+    shown = "; ".join(f"{path} {how}" for path, how in changes[:NOTE_PATHS])
+    more = len(changes) - NOTE_PATHS
+    return f"{CASE_NOTE}: {shown}" + (f"; {more} more" if more > 0 else "")
 
 
 def accepted_case(event: Any) -> dict[str, Any] | None:
@@ -158,17 +224,24 @@ class VersionRecorder(gd.callbacks.Callback):
             if problems:
                 logger.warning("assistant case not saved: gemini found problems")
                 return
+            rows = CaseFileRepository(session)
+            before = [] if latest is None else await rows.list_for_version(latest.id)
+            note = case_note(
+                None if latest is None else latest.content,
+                content,
+                {row.name for row in before},
+                set(files),
+            )
             for data in files.values():
                 await self.blobs.put(object_key(self.project_id, data), data)
             version = await versions.save_version(
                 self.project_id,
                 content,
-                CASE_NOTE,
+                note,
                 self.author_id,
                 digest,
                 {"missing": len(missing)},
             )
-            rows = CaseFileRepository(session)
             for name, data in files.items():
                 key = object_key(self.project_id, data)
                 await rows.add(self.project_id, version.id, name, len(data), key)
@@ -178,6 +251,7 @@ class VersionRecorder(gd.callbacks.Callback):
                 ACTOR_NAME,
                 f"Saved case version {version.number}",
                 CASE_ROUTE,
+                str(version.number),
             )
 
     async def save_plant(self, design: str, how: str) -> None:
@@ -205,4 +279,5 @@ class VersionRecorder(gd.callbacks.Callback):
                 ACTOR_NAME,
                 f"Saved plant version {version.number}",
                 PLANT_ROUTE,
+                str(version.number),
             )

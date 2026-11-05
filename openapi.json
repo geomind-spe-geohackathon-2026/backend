@@ -881,6 +881,32 @@
         "title": "CaseProblems",
         "type": "object"
       },
+      "CaseRestore": {
+        "properties": {
+          "base": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base"
+          },
+          "project": {
+            "format": "uuid",
+            "title": "Project",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "base"
+        ],
+        "title": "CaseRestore",
+        "type": "object"
+      },
       "ChangePassword": {
         "properties": {
           "new_password": {
@@ -5630,6 +5656,10 @@
           "author": {
             "$ref": "#/components/schemas/Author"
           },
+          "by": {
+            "title": "By",
+            "type": "string"
+          },
           "created": {
             "format": "date-time",
             "title": "Created",
@@ -5648,7 +5678,8 @@
           "number",
           "note",
           "author",
-          "created"
+          "created",
+          "by"
         ],
         "title": "Version",
         "type": "object"
@@ -5657,7 +5688,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.86"
+    "version": "1.1.87"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7158,6 +7189,110 @@
           }
         },
         "summary": "List Versions",
+        "tags": [
+          "Case"
+        ]
+      }
+    },
+    "/api/v1/design/case/versions/{number}": {
+      "get": {
+        "operationId": "get_version_api_v1_design_case_versions__number__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Version",
+        "tags": [
+          "Case"
+        ]
+      }
+    },
+    "/api/v1/design/case/versions/{number}/restore": {
+      "post": {
+        "operationId": "restore_version_api_v1_design_case_versions__number__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseRestore"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restore Version",
         "tags": [
           "Case"
         ]

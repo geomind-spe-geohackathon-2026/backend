@@ -335,6 +335,8 @@ async def test_versions_are_newest_first(
     }
     assert all(route_exists(row.link_route, row.link_id) for row in rows)
     assert {row.link_route for row in rows} == {"design/case"}
+    assert {row.link_id for row in rows} == {"1", "2"}
+    assert {item["by"] for item in items} == {"user"}
 
 
 async def test_other_member_cannot_read_or_save(
@@ -429,3 +431,43 @@ async def test_an_unused_file_can_be_removed(
     assert response.status_code == 200
     names = [file["name"] for file in response.json()["files"]]
     assert "data/extra.csv" not in names
+
+
+async def test_a_version_opens_and_restores_with_its_files(
+    client, make_user, make_project, blobs
+) -> None:
+    """QA-110: History opens a version and restores it as the next one."""
+    owner = await make_user()
+    project = await make_project(owner)
+    await save_case(client, bearer(owner), project)
+    await upload(client, bearer(owner), project, 1)
+    renamed = example_case()
+    renamed["name"] = "renamed"
+    await save_case(client, bearer(owner), project, 2, renamed)
+    query = {"project": str(project.id)}
+
+    headers = bearer(owner)
+    second = await client.get(f"{CASE}/versions/2", params=query, headers=headers)
+    unknown = await client.get(f"{CASE}/versions/9", params=query, headers=headers)
+    stale = await client.post(
+        f"{CASE}/versions/2/restore",
+        json={"project": str(project.id), "base": 1},
+        headers=bearer(owner),
+    )
+    restored = await client.post(
+        f"{CASE}/versions/2/restore",
+        json={"project": str(project.id), "base": 3},
+        headers=bearer(owner),
+    )
+
+    assert second.status_code == 200
+    assert second.json()["version"] == 2
+    assert [item["name"] for item in second.json()["files"]] == [DEMAND_FILE]
+    assert unknown.status_code == 404
+    assert stale.status_code == 409
+    assert restored.status_code == 201, restored.text
+    assert restored.json()["version"] == 4
+    assert restored.json()["content"]["name"] != "renamed"
+    assert [item["name"] for item in restored.json()["files"]] == [DEMAND_FILE]
+    versions = await client.get(f"{CASE}/versions", params=query, headers=bearer(owner))
+    assert versions.json()["items"][0]["note"] == "Restored version 2"
