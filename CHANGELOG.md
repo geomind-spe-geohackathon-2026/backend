@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.65] - 2026-11-05
+
+- QA-047, QA-070: geomind 0.4.64 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.64-py3-none-any.whl`):
+  teammates' answers kept as findings in the problem state (new `findings` list); a nested agent
+  left open by a worker restart runs again on resume instead of failing at 0 s.
+
 ## [1.1.64] - 2026-11-05
 
 - QA-069: geomind 0.4.62 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.62-py3-none-any.whl`):
