@@ -333,6 +333,13 @@ async def resume(
         )
         return to_outcome(await run.aresume(request_id, answer))
     except gd.errors.RequestError as error:
+        answered = getattr(gd.errors, "AlreadyAnsweredError", None)
+        if answered is not None and isinstance(error, answered):
+            # geomind 0.4.73: the request was settled; the run goes on, or waits on another.
+            waiting = WAITS_ON.search(str(error))
+            if waiting:
+                raise StaleRequestError(waiting.group(1)) from error
+            raise AnsweredRequestError(str(error)) from error
         found = EXPECTED_REQUEST.search(str(error))
         if found:
             raise StaleRequestError(found.group(1)) from error
@@ -344,6 +351,7 @@ async def resume(
 
 
 EXPECTED_REQUEST = re.compile(r"expected '([^']+)'")
+WAITS_ON = re.compile(r"waits on '([^']+)'")
 """geomind's refusal of an answer to a request that is not the pending one (QA-056)."""
 
 

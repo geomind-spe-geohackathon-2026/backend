@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.79] - 2026-11-05
+
+- QA-081: geomind 0.4.73's `AlreadyAnsweredError` on a resume is caught by its class: "the run
+  goes on" skips the resume, "the run waits on 'request-X'" puts the run back to wait on X; the
+  older text match stays for earlier geomind. Hotfix mode: no tests ran.
+
 ## [1.1.78] - 2026-11-05
 
 - QA-081, QA-087: geomind 0.4.73 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.73-py3-none-any.whl`):
