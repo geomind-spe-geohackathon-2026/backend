@@ -265,13 +265,16 @@ async def set_values(
     run_id: UUID,
     values: dict[str, Any],
 ) -> None:
+    """Write the values to the run row.
+
+    An ended run never goes back to running or waiting: its status and request stay (QA-077, a
+    late request event set a failed run to waiting, and its chat refused every new message).
+    """
     async with factory() as session:
         run = await RunRepository(session).get_by_id(run_id)
         if run is None:
             return
         if run.status in TERMINAL_STATUSES and values.get("status") not in TERMINAL_STATUSES:
-            # An ended run never goes back to running or waiting (QA-077: a late request event
-            # set a failed run to waiting, and its chat refused every new message).
             values = {k: v for k, v in values.items() if k not in ("status", "request")}
             if not values:
                 return
@@ -464,6 +467,11 @@ class StudyRecorder(gd.callbacks.Callback):
             )
 
     def values(self, event: Any, artifact: Any, case: Any) -> dict[str, Any]:
+        """Give the study row of a recorded study.
+
+        A recorded study ended before it was listed, so its progress is 1 of 1, not the default
+        0 of 1 the list showed as "-" (QA-088).
+        """
         now = utc_now()
         return {
             "project_id": self.project_id,
@@ -471,8 +479,6 @@ class StudyRecorder(gd.callbacks.Callback):
             "name": event.study.removeprefix(STUDY_PREFIX),
             "settings": {} if artifact is None else artifact.data["study"],
             "status": "done",
-            # A recorded study ended before it was listed: 1 of 1, not the default 0 of 1
-            # the list showed as "-" (QA-088).
             "progress_done": 1,
             "progress_total": 1,
             "started_by_kind": "agent",

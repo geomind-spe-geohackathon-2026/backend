@@ -161,7 +161,13 @@ async def carry_out(
     run: Run,
     action: Action,
 ) -> None:
-    """Run the action and record how the run ended."""
+    """Run the action and record how the run ended.
+
+    A request answered or settled already (a nested run's request geomind settled itself, or a
+    second answer) makes this resume do nothing: the run goes on in its own process (QA-081, run
+    753645c0). geomind refusing to build or go on with the run fails it as `geomind_refused` and
+    logs geomind's words (QA-081: it showed as an internal error, with nothing in the worker log).
+    """
     budget = await read_budget(resources, run)
     environment = adapters.build_environment(
         resources, run, run_channel(run.id), budget
@@ -172,14 +178,9 @@ async def carry_out(
         await wait_again(resources, run, error.expected)
         return
     except AnsweredRequestError as error:
-        # The request was answered or settled already (a nested run's request geomind settled
-        # itself, or a second answer); the run goes on in its own process, so this resume does
-        # nothing instead of failing the run (QA-081, run 753645c0).
         logger.warning("Run %s: resume skipped: %s", run.id, error)
         return
     except AdapterFailedError as error:
-        # geomind refused to build or go on with the run (QA-081: shown as an internal error,
-        # with nothing in the worker log); name it and log geomind's words.
         logger.warning("Run %s: geomind refused: %s", run.id, error)
         await fail(resources, run, GEOMIND_REFUSED, str(error))
         return

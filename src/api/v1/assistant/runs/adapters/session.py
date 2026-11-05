@@ -320,7 +320,11 @@ async def resume(
     request_id: str | None,
     answer: dict[str, Any] | None,
 ) -> Outcome:
-    """Answer a pending request, or with none continue a run that was cancelled."""
+    """Answer a pending request, or with none continue a run that was cancelled.
+
+    geomind's AlreadyAnsweredError (0.4.73) means the request was settled: the run goes on, or
+    waits on another request.
+    """
     try:
         await environment.store.warm(run_id.hex)
         await environment.store.warm_chat(str(environment.store.chat_id))
@@ -335,7 +339,6 @@ async def resume(
     except gd.errors.RequestError as error:
         answered = getattr(gd.errors, "AlreadyAnsweredError", None)
         if answered is not None and isinstance(error, answered):
-            # geomind 0.4.73: the request was settled; the run goes on, or waits on another.
             waiting = WAITS_ON.search(str(error))
             if waiting:
                 raise StaleRequestError(waiting.group(1)) from error

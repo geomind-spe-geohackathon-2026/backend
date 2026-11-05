@@ -140,9 +140,13 @@ def to_study(
     progress: JobProgress | None,
     result_id: UUID | None,
 ) -> schemas.Study:
+    """Give the study as the API shows it.
+
+    An agent study is recorded when it has ended, so a done one shows whole, not the stored 0 of
+    1 (QA-088).
+    """
     shown = progress or JobProgress(study.progress_done, study.progress_total)
     if study.status == "done" and study.started_by_kind == "agent":
-        # An agent study is recorded when it has ended: whole, not the stored 0 of 1 (QA-088).
         shown = JobProgress(max(shown.total, 1), max(shown.total, 1))
     return schemas.Study(
         id=study.id,
