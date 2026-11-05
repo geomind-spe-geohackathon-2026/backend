@@ -2,10 +2,12 @@
 
 The QA sessions each test one stage of the pipeline; this script prepares a project per stage
 through the public API, as the admin, with the same calls the web app makes (no database
-writes). Inputs are only the competition files and gemini's sample built from them
+writes). Inputs are only the competition files, the team's assumptions file
+(``documents/project/quality-assurance/inputs/assumptions.md``, values the competition files do
+not give, each with its source) and gemini's sample built from them
 (``gemini/examples/hackathon_2026``).
 
-    QA3 case        the PDF and the two daily CSVs uploaded, nothing else
+    QA3 case        the PDF, the two daily CSVs and assumptions.md uploaded, nothing else
     QA3 plant       + the case of the sample (case.json with its demand and economics files)
     QA3 simulation  + the plants HackathonPlant and HeatingAbsorptionCoolingPlant (versions 1, 2)
     QA3 study       + a whole-year `run` study of each plant, done (one result each)
@@ -16,7 +18,8 @@ A page study runs one plant version, so "one study over both plants" is two stud
 Run from the backend folder (credentials are read from the env file, never printed):
 
     .venv/bin/python -m scripts.seed_qa_projects --api https://api.geomind.team/api/v1 \\
-        --env .env --sample ../gemini/examples/hackathon_2026
+        --env .env --sample ../gemini/examples/hackathon_2026 \\
+        --assumptions ../documents/project/quality-assurance/inputs/assumptions.md
 """
 
 import argparse
@@ -66,10 +69,12 @@ class Api:
         return response.json() if response.content else None
 
 
-def upload_documents(api: Api, project: str, sample: Path) -> None:
-    for name in DOCUMENTS:
-        with open(sample / name, "rb") as handle:
-            api.call("POST", "/workspace/rag", data={"project": project}, files={"file": (name, handle)})
+def upload_documents(api: Api, project: str, sample: Path, assumptions: Path) -> None:
+    """Upload the three competition files and the assumptions file to the project."""
+    paths = [sample / name for name in DOCUMENTS] + [assumptions]
+    for path in paths:
+        with open(path, "rb") as handle:
+            api.call("POST", "/workspace/rag", data={"project": project}, files={"file": (path.name, handle)})
 
 
 def set_case(api: Api, project: str, sample: Path) -> int:
@@ -117,12 +122,12 @@ def run_study(api: Api, project: str, name: str, settings: dict[str, Any], versi
     return study
 
 
-def seed(api: Api, sample: Path, prefix: str) -> dict[str, dict[str, Any]]:
+def seed(api: Api, sample: Path, assumptions: Path, prefix: str) -> dict[str, dict[str, Any]]:
     made = {}
     for depth, stage in enumerate(STAGES):
         project = api.call("POST", "/workspace/projects", json={"name": f"{prefix} {stage}"})["id"]
-        holds: dict[str, Any] = {"documents": list(DOCUMENTS)}
-        upload_documents(api, project, sample)
+        holds: dict[str, Any] = {"documents": [*DOCUMENTS, assumptions.name]}
+        upload_documents(api, project, sample, assumptions)
         if depth >= 1:
             holds["case_version"] = set_case(api, project, sample)
         if depth >= 2:
@@ -148,10 +153,13 @@ def main() -> None:
     parser.add_argument("--api", required=True, help="the API base, e.g. https://api.geomind.team/api/v1")
     parser.add_argument("--env", required=True, type=Path, help="the env file with FIRST_ADMIN_*")
     parser.add_argument("--sample", required=True, type=Path, help="gemini/examples/hackathon_2026")
+    parser.add_argument("--assumptions", required=True, type=Path, help="the assumptions.md to upload with the competition files")
     parser.add_argument("--prefix", default="QA3", help="the project name prefix")
     arguments = parser.parse_args()
     email, password = credentials(arguments.env)
-    seed(Api(arguments.api, email, password), arguments.sample, arguments.prefix)
+    if not arguments.assumptions.is_file():
+        raise SystemExit(f"{arguments.assumptions}: no such file")
+    seed(Api(arguments.api, email, password), arguments.sample, arguments.assumptions, arguments.prefix)
 
 
 if __name__ == "__main__":
