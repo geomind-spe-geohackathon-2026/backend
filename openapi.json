@@ -1213,11 +1213,36 @@
           "demand": {
             "$ref": "#/components/schemas/Figure"
           },
+          "electricity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Figure"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "failed_steps": {
             "$ref": "#/components/schemas/Figure"
           },
           "geothermal": {
             "$ref": "#/components/schemas/Figure"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoverageLabels"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "no_demand": {
+            "default": false,
+            "title": "No Demand",
+            "type": "boolean"
           },
           "short": {
             "$ref": "#/components/schemas/Figure"
@@ -1242,6 +1267,31 @@
           "failed_steps"
         ],
         "title": "CoverageDay",
+        "type": "object"
+      },
+      "CoverageLabels": {
+        "description": "What ``geothermal`` and ``backup`` are in this plant (gemini 0.6.31, QA-322).",
+        "properties": {
+          "main": {
+            "title": "Main",
+            "type": "string"
+          },
+          "other": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other"
+          }
+        },
+        "required": [
+          "main"
+        ],
+        "title": "CoverageLabels",
         "type": "object"
       },
       "Credentials": {
@@ -3043,6 +3093,39 @@
           "suggestions"
         ],
         "title": "PortSuggestions",
+        "type": "object"
+      },
+      "Preferences": {
+        "description": "A user's assistant preferences (QA-292).\n\n``auto_approve`` is what new chats start with; ``auto_approve_set`` is false until the user\nhas answered once, so the chat asks only then.",
+        "properties": {
+          "auto_approve": {
+            "title": "Auto Approve",
+            "type": "boolean"
+          },
+          "auto_approve_set": {
+            "title": "Auto Approve Set",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "auto_approve",
+          "auto_approve_set"
+        ],
+        "title": "Preferences",
+        "type": "object"
+      },
+      "PreferencesUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "auto_approve": {
+            "title": "Auto Approve",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "auto_approve"
+        ],
+        "title": "PreferencesUpdate",
         "type": "object"
       },
       "Problem": {
@@ -6247,6 +6330,68 @@
         "summary": "Read State",
         "tags": [
           "Chat"
+        ]
+      }
+    },
+    "/api/v1/assistant/preferences": {
+      "get": {
+        "description": "The user's assistant preferences; new chats take ``auto_approve`` (QA-292).",
+        "operationId": "read_preferences_api_v1_assistant_preferences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preferences"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Read Preferences",
+        "tags": [
+          "Preferences"
+        ]
+      },
+      "put": {
+        "description": "Save the user's answer; chats created afterwards start with it.",
+        "operationId": "set_preferences_api_v1_assistant_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preferences"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Preferences",
+        "tags": [
+          "Preferences"
         ]
       }
     },

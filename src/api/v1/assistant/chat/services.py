@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
+from src.core.clients.redis.repositories.chat_auto_approve import ChatAutoApproveRepository
 from src.api.v1.assistant.chat import schemas
 from src.core.assistant.settle import settle_chat
 from src.core.assistant import schemas as shared
@@ -58,8 +59,12 @@ async def create_chat(
     project: Project,
     user: User,
     chats: ChatRepository,
+    auto_approve: ChatAutoApproveRepository,
 ) -> shared.Chat:
+    """Create a chat; it starts with the user's auto-approve preference (QA-292)."""
     chat = await chats.create(project.id, payload.title or DEFAULT_TITLE, user.id)
+    if user.auto_approve:
+        await auto_approve.turn(str(chat.id), True)
     return shared.to_chat(chat, None)
 
 

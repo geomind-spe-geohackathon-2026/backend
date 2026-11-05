@@ -66,9 +66,12 @@ async def create_chat(
     user: CurrentUser,
     projects: ProjectRepositoryDependency,
     chats: ChatRepositoryDependency,
+    redis: RedisClient,
 ) -> Chat:
     project = await require_project(payload.project, user, projects)
-    return await services.create_chat(payload, project, user, chats)
+    return await services.create_chat(
+        payload, project, user, chats, ChatAutoApproveRepository(redis)
+    )
 
 
 @router.get("/{chat_id}/messages", response_model=Page[schemas.Message])

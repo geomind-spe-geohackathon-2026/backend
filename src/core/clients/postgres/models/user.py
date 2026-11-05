@@ -21,3 +21,5 @@ class User(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     tokens_valid_after: Mapped[datetime | None] = mapped_column(UtcDateTime)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utc_now)
+    auto_approve: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=None)
+    """The user's answer for new chats' auto-approve; ``None`` until asked once (QA-292)."""
