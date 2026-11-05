@@ -240,6 +240,25 @@ async def economics_of(
     return {} if data is None else {**json.loads(data), "file": found}
 
 
+async def related_studies(
+    result: Result, repositories: Repositories
+) -> list[tuple[Study, Result | None]]:
+    """Return the project's sensitivity and uncertainty studies of the result's plant version.
+
+    The Studies section names them beside an optimisation, with their main finding (QA-338).
+    """
+    if result.plant_version is None:
+        return []
+    found = []
+    for study in await repositories.studies.all_for_project(result.project_id):
+        if study.id == result.study_id or study.kind not in document.RELATED_KINDS:
+            continue
+        if study.plant_version != result.plant_version:
+            continue
+        found.append((study, await repositories.results.get_for_study(study.id)))
+    return found
+
+
 async def preview_report(
     request: schemas.ReportRequest,
     user: User,
@@ -255,7 +274,8 @@ async def preview_report(
         )
     limits = gemini_evaluate.case_limits(None if case is None else case.content)
     economics = await economics_of(case, repositories, blobs)
-    inputs = document.Inputs(result, study, run, case, limits, economics)
+    related = await related_studies(result, repositories)
+    inputs = document.Inputs(result, study, run, case, limits, economics, related)
     sections = [
         schemas.ReportSection(
             key=key, title=title, markdown=section_markdown(key, inputs)

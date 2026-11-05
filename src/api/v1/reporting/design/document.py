@@ -51,6 +51,10 @@ CO2_SOURCES = {
     "electricity": "Grid electricity bought",
 }
 OPEX_WORDS = {"co2": "CO2 price"}
+UNMET_SHARE = 1e-4
+"""The share of a service's demand below which its unmet energy is residue: 0.01 %."""
+RELATED_KINDS = ("sensitivity", "sample")
+"""Study kinds whose results the Studies section names beside an optimisation (QA-338)."""
 RATIO_TITLES = {"cop": "Heat per bought electricity", "heat_pump_cop": "Heat pump COP"}
 """Titles of the plant ratio and the heat pumps' COP when gemini names neither (QA-322)."""
 ENERGY_UNIT = "MWh"
@@ -83,6 +87,7 @@ class Inputs:
     case: CaseVersion | None
     limits: dict[str, dict[str, Any]]
     economics: dict[str, Any]
+    related: list[tuple[Study, Result | None]] = field(default_factory=list)
     report: dict[str, Any] = field(init=False)
     coverage: dict[str, Any] | None = field(init=False)
 
@@ -744,10 +749,18 @@ def supply_reading(
         second = f"{other} is never needed."
     else:
         second = f"{main} gives the whole supply."
-    third = None
-    if stats["short"]["value"] > 0:
-        third = f"{text(stats['short'])} of demand is not met."
+    third = (
+        f"{text(stats['short'])} of demand is not met."
+        if is_unmet(stats)
+        else "All demand is met."
+    )
     return sentences(first, second, third)
+
+
+def is_unmet(stats: dict[str, Any]) -> bool:
+    """Tell an unmet demand from floating-point residue: below ``UNMET_SHARE`` is met (QA-338)."""
+    demand = stats["demand"]["value"]
+    return stats["short"]["value"] > UNMET_SHARE * demand if demand else False
 
 
 def economics(inputs: Inputs, numbers: Numbers) -> str:
@@ -1004,9 +1017,156 @@ def studies(inputs: Inputs, numbers: Numbers) -> str:
             numbers.table(f"Uncertainty: spread over {spread[0]['draws']} draws"),
             spread_reading(spread),
         ]
+    search = run.get("found") or {}
+    if isinstance(search, dict) and isinstance(search.get("history"), list):
+        parts += optimisation(search, inputs, numbers)
+    elif isinstance(search, dict) and isinstance(search.get("front"), list):
+        parts.append(evolution_reading(search))
     if not tornado and not spread:
-        parts.append("This result is not a sensitivity or uncertainty study.")
+        parts.append(related_reading(inputs))
     return block(*parts)
+
+
+def parameter_value(item: Any) -> str:
+    if isinstance(item, dict) and "value" in item:
+        return value_text(item)
+    if isinstance(item, (int, float)) and not isinstance(item, bool):
+        return narrative.number_text(item)
+    return str(item)
+
+
+def parameter_number(item: Any) -> float | None:
+    found = item.get("value") if isinstance(item, dict) else item
+    if isinstance(found, (int, float)) and not isinstance(found, bool):
+        return float(found)
+    return None
+
+
+def is_feasible_trial(trial: dict[str, Any]) -> bool:
+    return trial.get("value") is not None and not trial.get("violation")
+
+
+def optimisation(search: dict[str, Any], inputs: Inputs, numbers: Numbers) -> list[str]:
+    """Return the table and reading of a ``minimize`` search: variables, start, best (QA-338).
+
+    gemini's ``found`` holds ``best`` and the ``history`` of every trial with its parameters;
+    the start is the first trial, the explored range the lowest and highest value tried.
+    """
+    history = [item for item in search["history"] if isinstance(item, dict)]
+    best = search.get("best") or {}
+    if not history:
+        return []
+    start = history[0]
+    chosen = best.get("parameters") or {}
+    rows = []
+    for name, value in chosen.items():
+        tried = [
+            number
+            for trial in history
+            for number in [parameter_number((trial.get("parameters") or {}).get(name))]
+            if number is not None
+        ]
+        unit = value.get("unit") if isinstance(value, dict) else None
+        explored = "-"
+        if tried:
+            low, high = min(tried), max(tried)
+            explored = f"{narrative.number_text(low)} to " + (
+                text({"value": high, "unit": unit})
+                if unit
+                else narrative.number_text(high)
+            )
+        rows.append(
+            [
+                name.removeprefix("params."),
+                parameter_value((start.get("parameters") or {}).get(name, "-")),
+                parameter_value(value),
+                explored,
+            ]
+        )
+    parts = []
+    if rows:
+        parts += [
+            table(["Variable", "First trial", "Best", "Explored"], rows),
+            numbers.table("Optimisation: the variables searched, first trial and best"),
+        ]
+    parts.append(search_reading(search, history, inputs))
+    return parts
+
+
+def search_reading(
+    search: dict[str, Any], history: list[dict[str, Any]], inputs: Inputs
+) -> str:
+    feasible = sum(1 for trial in history if is_feasible_trial(trial))
+    count = search.get("evaluations") or len(history)
+    first = f"The search ran {count} trials; {feasible} of them met every rule."
+    objective = (inputs.study.settings or {}).get("objective") if inputs.study else None
+    title = (
+        gemini_evaluate.title_of(objective).lower() if objective else "the objective"
+    )
+    best = search.get("best") or {}
+    start = next((trial for trial in history if is_feasible_trial(trial)), None)
+    second = None
+    if shown(best) and start is not None:
+        second = (
+            f"The first feasible trial gave {title} {text(start)}; the best gives "
+            f"{text(best)}."
+        )
+    elif shown(best):
+        second = f"The best trial gives {title} {text(best)}."
+    third = (
+        "The search found no feasible design."
+        if search.get("feasible") is False
+        else None
+    )
+    return sentences(first, second, third)
+
+
+def evolution_reading(search: dict[str, Any]) -> str:
+    budget = search.get("budget") or {}
+    objectives = [
+        gemini_evaluate.title_of(name.lstrip("-")).lower()
+        for name in search.get("objectives") or []
+    ]
+    first = (
+        f"The search ran {budget.get('evaluations', search.get('evaluations'))} "
+        f"simulations over {budget.get('generations', '-')} generations."
+    )
+    second = (
+        f"{len(search['front'])} designs are on the trade-off front of "
+        f"{joined(objectives)}."
+        if objectives
+        else f"{len(search['front'])} designs are on the trade-off front."
+    )
+    return sentences(first, second)
+
+
+def related_reading(inputs: Inputs) -> str:
+    """Name the project's sensitivity and uncertainty studies of the same plant (QA-338)."""
+    if not inputs.related:
+        return "No sensitivity or uncertainty study of this plant version is in the project."
+    lines = []
+    for study, result in inputs.related:
+        run = (result.content.get("run") or {}) if result is not None else {}
+        tornado = gemini_evaluate.tornado_of(run)
+        spread = gemini_evaluate.spread_of(run)
+        if tornado:
+            top = tornado[0]
+            lines.append(
+                f"The sensitivity study {study.name} finds {top['parameter']} the largest "
+                f"driver of {top['metric'].lower()} "
+                f"({text({'value': top['effect'], 'unit': top['unit']})})."
+            )
+        elif spread:
+            item = spread[0]
+            lines.append(
+                f"The uncertainty study {study.name} puts {item['metric'].lower()} between "
+                f"{text({'value': item['p5'], 'unit': item['unit']})} and "
+                f"{text({'value': item['p95'], 'unit': item['unit']})} (P5 to P95)."
+            )
+        else:
+            lines.append(f"The project also has the study {study.name} ({study.kind}).")
+    lines.append("Choose that study's result to show its full table.")
+    return " ".join(lines)
 
 
 def study_origin(study: Study | None) -> str | None:
@@ -1015,8 +1175,11 @@ def study_origin(study: Study | None) -> str | None:
     titles = {item["kind"]: item["title"] for item in gemini_study.kinds()}
     kind = titles.get(study.kind, study.kind)
     objective = (study.settings or {}).get("objective")
-    goal = f" on {gemini_evaluate.title_of(objective).lower()}" if objective else ""
-    return f"The result comes from the {kind.lower()} study {study.name}{goal}."
+    goal = f", with the objective {gemini_evaluate.title_of(objective).lower()}"
+    return (
+        f"The result comes from the study {study.name} (kind: {kind})"
+        f"{goal if objective else ''}."
+    )
 
 
 def tornado_reading(rows: list[dict[str, Any]]) -> str:

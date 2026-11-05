@@ -82,3 +82,56 @@ def test_the_fuel_burned_shows_the_produced_gas() -> None:
     assert rows["Produced gas burned (fuel burned less gas bought)"] == "14.94 GWh"
     assert "Heat pump COP" in rows or any("COP" in key for key in rows)
     assert len(rows) == 4
+
+
+def test_an_optimisation_result_shows_its_search_and_the_related_studies() -> None:
+    from types import SimpleNamespace
+
+    from src.api.v1.reporting.design import document
+
+    def trial(value: float | None, depth: float, violation: float = 0.0) -> dict:
+        return {
+            "value": value,
+            "unit": "EUR/MWh",
+            "violation": violation,
+            "parameters": {"params.d0.depth": {"value": depth, "unit": "m"}},
+        }
+
+    found = {
+        "best": trial(31.49, 2400.0),
+        "feasible": True,
+        "evaluations": 3,
+        "history": [
+            trial(None, 2000.0, 1.0),
+            trial(40.0, 2500.0),
+            trial(31.49, 2400.0),
+        ],
+    }
+    result = SimpleNamespace(content={"report": {}, "run": {"found": found}})
+    study = SimpleNamespace(
+        kind="minimize", name="best", settings={"objective": "lcts"}
+    )
+    other = SimpleNamespace(kind="sensitivity", name="sens")
+    inputs = document.Inputs(result, study, None, None, {}, {}, [(other, None)])
+
+    text = document.studies(inputs, document.Numbers(7))
+
+    assert "| d0.depth | 2,000 m | 2,400 m | 2,000 to 2,500 m |" in text
+    assert "*Table 7.1 - Optimisation" in text
+    assert "The search ran 3 trials; 2 of them met every rule." in text
+    assert "40 EUR/MWh; the best gives 31.49 EUR/MWh" in text
+    assert "the study sens (sensitivity)" in text
+    assert "not a sensitivity or uncertainty study" not in text
+
+
+def test_floating_point_residue_is_no_unmet_demand() -> None:
+    from src.api.v1.reporting.design import document
+
+    days = [day(100.0, 0.0), day(100.0, 0.0)]
+    days[0]["short"] = {"value": 2.01e-12, "unit": "MWh"}
+    days[0]["demand"]["value"] += 2.01e-12
+
+    text = document.supply_reading("heating", days, {"heating": days})
+
+    assert "All demand is met." in text
+    assert "not met" not in text
