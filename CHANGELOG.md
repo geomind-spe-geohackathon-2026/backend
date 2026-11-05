@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.84] - 2026-11-05
+
+- geomind 0.4.79 as a local wheel (`.tmp/hotfix-wheels/`, with gemini 0.6.12): QA-091 (supply
+  temperatures judged while running; heat/cold delivered over the year), QA-090 (the design lead
+  stops chasing one failing requirement after three changes and reports it), QA-094 (network
+  return temperatures are a design choice), QA-095 (knowledge row `co2-grid-organisers-2026`,
+  300 g/kWh, recommended first for the hackathon cases).
+
 ## [1.1.83] - 2026-11-05
 
 - Held batch: geomind 0.4.78 and gemini 0.6.12 as local wheels (`.tmp/hotfix-wheels/`):
