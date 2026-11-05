@@ -6,6 +6,15 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.96] - 2026-11-05
+
+- QA-135 (backend, option C by the user): when an assistant run finishes, its LAST successful plain
+  `simulate` becomes one result: no study, named `simulation <design>`, with the case and plant
+  versions it ran on when a saved version matches (else `null`), gemini's report and daily
+  coverage computed from the run files geomind keeps. A run that simulates many times adds one row;
+  the same run is never added twice. Study and Results no longer read "Out of date" right after
+  a fresh chat simulation.
+
 ## [1.1.95] - 2026-11-05
 
 - geomind 0.4.91 as a local wheel (gemini 0.6.15 kept). 0.4.90/0.4.91: IMP-025 parallel

@@ -1,5 +1,6 @@
 """The wrapper around gemini's study: its kinds, the inputs it misses, and its run."""
 
+import copy
 import json
 from collections.abc import Callable
 from typing import Any
@@ -213,6 +214,35 @@ def stored_coverage(
     }
 
 
+def stored_run(
+    plant_content: dict[str, Any],
+    case_content: dict[str, Any],
+    case_files: dict[str, bytes],
+    data: bytes,
+) -> dict[str, Any] | None:
+    """Evaluate a run geomind stored: its report, daily coverage and design.
+
+    ``data`` is ``gm.Results.to_bytes()``; the case is the case dict the run read, with
+    its files. A run gemini cannot read back gives ``None`` (QA-135).
+    """
+    try:
+        built = gm.Plant.from_dict(plant_content)
+        ran = gm.Case.from_dict(copy.deepcopy(case_content), files=case_files)
+        results = gm.Results.from_bytes(data)
+        report = gm.evaluate.report(built, ran, results).to_dict()
+        coverage = gm.evaluate.daily_coverage(built, ran, results)
+    except gm.errors.GeminiError:
+        return None
+    return {
+        "report": report,
+        "coverage": {
+            service: [plain_day(day) for day in days]
+            for service, days in coverage.items()
+        },
+        "design": plant_document.to_dict(built),
+    }
+
+
 def run(
     kind: str,
     name: str,
@@ -310,7 +340,9 @@ def ranked_structures(evolution: dict[str, Any], limit: int) -> dict[str, Any]:
         keys = [float(violation)]
         for name, sign in objectives:
             value = _value((best.get("metrics") or {}).get(name))
-            keys.append(sign * value if value is not None and best.get("feasible") else 0.0)
+            keys.append(
+                sign * value if value is not None and best.get("feasible") else 0.0
+            )
         return tuple(keys)
 
     rows.sort(key=key)
@@ -338,7 +370,9 @@ def ranked_structures(evolution: dict[str, Any], limit: int) -> dict[str, Any]:
     }
 
 
-def stored_plant(evolution: dict[str, Any], row: dict[str, Any]) -> dict[str, Any] | None:
+def stored_plant(
+    evolution: dict[str, Any], row: dict[str, Any]
+) -> dict[str, Any] | None:
     """Return the stored plant of a ranked structure's design, or ``None`` when none is stored.
 
     ``Evolution.to_dict()`` keeps a plant only for ``best`` and the ``front``; a structure's own
@@ -351,7 +385,9 @@ def stored_plant(evolution: dict[str, Any], row: dict[str, Any]) -> dict[str, An
     return None
 
 
-def built_plant(plant_content: dict[str, Any], row: dict[str, Any]) -> dict[str, Any] | None:
+def built_plant(
+    plant_content: dict[str, Any], row: dict[str, Any]
+) -> dict[str, Any] | None:
     """Return the plant of a ranked structure built by gemini, or ``None`` when it cannot.
 
     ``gm.study.structure_plant`` (gemini 0.6.6) takes the study's input superstructure and a

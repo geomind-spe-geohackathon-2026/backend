@@ -26,6 +26,7 @@ from src.api.v1.assistant.runs.adapters.errors import (
     StaleRequestError,
 )
 from src.api.v1.assistant.runs.adapters.fake import scripted_llm
+from src.api.v1.assistant.runs.adapters.simulated import SimulationRecorder
 from src.api.v1.assistant.runs.adapters.store import (
     DatabaseRunStore,
     DatabaseUsageLedger,
@@ -108,6 +109,9 @@ def build_environment(
         resources.factory, blobs, run.chat_id, run.project_id, run.author_id
     )
     studies = StudyRecorder(resources.factory, run.id, run.chat_id, run.project_id)
+    simulations = SimulationRecorder(
+        resources.factory, run.id, run.chat_id, run.project_id
+    )
     publisher = EventPublisher(
         resources.redis,
         channel,
@@ -117,7 +121,7 @@ def build_environment(
     return Environment(
         store=DatabaseRunStore(bridge, run.id, run.chat_id),
         workspace=DatabaseWorkspace(bridge, blobs, run.id.hex),
-        callbacks=[recorder, versions, studies, publisher],
+        callbacks=[recorder, versions, studies, simulations, publisher],
         is_cancelled=lambda: resources.jobs.is_cancel_requested(str(run.id)),
         ledger=DatabaseUsageLedger(bridge, run.id),
         project=str(run.project_id),
