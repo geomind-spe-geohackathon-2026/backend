@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.109] - 2026-11-05
+
+- QA-223: a `simulate` with `changes`, `start` or `end` (a what-if) never becomes the run's result
+  row; the newest plain simulate does.
+- QA-213: a result capacity with no peak carries gemini's `reason` (was always `null`).
+
 ## [1.1.108] - 2026-11-05
 
 - QA-217: `GET /assistant/runs/{id}/agents` keeps each run's events in memory (64 runs) and

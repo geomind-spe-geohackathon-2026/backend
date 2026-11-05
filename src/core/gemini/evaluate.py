@@ -327,7 +327,11 @@ def kind_text(kind: str) -> str:
 
 
 def rating_of(path: str, item: dict[str, Any]) -> dict[str, Any]:
-    """Return one rated module with its peak use and the share of its rating used."""
+    """Return one rated module with its peak use and the share of its rating used.
+
+    ``reason`` is gemini's reason when it has no peak, such as a rating it does not measure
+    (QA-213), so a page never reads a missing peak as an unused module.
+    """
     capacity = readable(item["capacity"])
     peak = readable(item["peak"])
     return {
@@ -339,7 +343,7 @@ def rating_of(path: str, item: dict[str, Any]) -> dict[str, Any]:
         "peak": peak["value"],
         "peak_unit": peak["unit"],
         "share": item["share"]["value"],
-        "reason": None,
+        "reason": peak.get("reason") or item["share"].get("reason"),
     }
 
 

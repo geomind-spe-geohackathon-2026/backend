@@ -49,13 +49,30 @@ PROJECT_PLANT = "project plant"
 logger = logging.getLogger(__name__)
 
 
+WHAT_IF_INPUTS = ("changes", "start", "end")
+"""``simulate`` inputs that make a what-if: a changed or shortened run of a design, no result."""
+
+
+def is_what_if(data: dict[str, Any]) -> bool:
+    """Tell a ``simulate`` with changes or its own period, which never becomes a result (QA-223)."""
+    given = data.get("input")
+    if not isinstance(given, dict):
+        return False
+    return any(given.get(name) for name in WHAT_IF_INPUTS)
+
+
 def last_simulation(rows: list[RunEvent]) -> dict[str, Any] | None:
-    """Return the newest successful ``simulate`` tool result of ``rows`` (newest first)."""
+    """Return the newest successful plain ``simulate`` tool result of ``rows`` (newest first).
+
+    A what-if (``changes``, ``start`` or ``end`` given) is skipped: it saves no design, and the
+    result row must hold the chosen design, not a trial (QA-223).
+    """
     for row in rows:
         data = row.data
         output = data.get("output")
         if (
             data.get("tool") == SIMULATE_TOOL
+            and not is_what_if(data)
             and not data.get("is_error")
             and data.get("source") == FROM_TOOL
             and isinstance(output, dict)
