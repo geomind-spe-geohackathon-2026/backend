@@ -89,6 +89,18 @@ async def root_spending(run: Run, events: RunEventRepository) -> shared.RunSpend
     return shared.RunSpending()
 
 
+async def already_answered(run: Run, request_id: str, session: Any) -> bool:
+    """Tell whether a person's decision on ``request_id`` is stored already (QA-081)."""
+    for row in await RunEventRepository(session).of_type(run.id, PERMISSION):
+        if row.data.get("rule") != "user":
+            continue
+        request = row.data.get("request")
+        found = request.get("id") if isinstance(request, dict) else request
+        if found == request_id:
+            return True
+    return False
+
+
 async def current_request(run: Run, session: Any) -> None:
     """Make a waiting run's ``request`` its newest stored ``request`` event (QA-056).
 
@@ -225,6 +237,8 @@ async def answer_run(
         raise RunNotWaitingError("Run is not waiting for an answer")
     await current_request(run, runs.session)
     check_answer(run.request, body)
+    if await already_answered(run, body.request, runs.session):
+        raise ConflictError(f"Request {body.request} was answered already")
     await hand_over(runs, run, enqueue, (body.request, body.to_dict()))
     await runs.session.refresh(run)
     return run

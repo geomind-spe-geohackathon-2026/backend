@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.77] - 2026-11-05
+
+- QA-081 (reopened, run 753645c0): an answer to a request that already has a person's decision is
+  refused with `409 conflict`; a resume geomind refuses as "unknown or already answered" is
+  logged and skipped instead of failing the run (the run goes on in its own process). Hotfix
+  mode: only test_boundaries ran.
+
 ## [1.1.76] - 2026-11-05
 
 - QA-082: geomind 0.4.72 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.72-py3-none-any.whl`):

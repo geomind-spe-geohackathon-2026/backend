@@ -12,3 +12,7 @@ class StaleRequestError(Exception):
     def __init__(self, expected: str) -> None:
         super().__init__(f"the run waits on {expected}")
         self.expected = expected
+
+
+class AnsweredRequestError(Exception):
+    """geomind has no pending request of that id: it was answered or settled already (QA-081)."""

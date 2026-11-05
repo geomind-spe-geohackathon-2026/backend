@@ -16,6 +16,7 @@ from src.api.v1.assistant.runs.adapters.callbacks import (
 )
 from src.api.v1.assistant.runs.adapters.errors import (
     AdapterFailedError,
+    AnsweredRequestError,
     StaleRequestError,
 )
 from src.api.v1.assistant.runs.services import run_channel
@@ -169,6 +170,12 @@ async def carry_out(
         outcome = await action(environment)
     except StaleRequestError as error:
         await wait_again(resources, run, error.expected)
+        return
+    except AnsweredRequestError as error:
+        # The request was answered or settled already (a nested run's request geomind settled
+        # itself, or a second answer); the run goes on in its own process, so this resume does
+        # nothing instead of failing the run (QA-081, run 753645c0).
+        logger.warning("Run %s: resume skipped: %s", run.id, error)
         return
     except AdapterFailedError as error:
         # geomind refused to build or go on with the run (QA-081: shown as an internal error,

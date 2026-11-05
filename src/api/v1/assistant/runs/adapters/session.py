@@ -22,6 +22,7 @@ from src.api.v1.assistant.runs.adapters.callbacks import (
 )
 from src.api.v1.assistant.runs.adapters.errors import (
     AdapterFailedError,
+    AnsweredRequestError,
     StaleRequestError,
 )
 from src.api.v1.assistant.runs.adapters.fake import scripted_llm
@@ -335,6 +336,8 @@ async def resume(
         found = EXPECTED_REQUEST.search(str(error))
         if found:
             raise StaleRequestError(found.group(1)) from error
+        if "unknown or already answered" in str(error):
+            raise AnsweredRequestError(str(error)) from error
         raise AdapterFailedError(str(error)) from error
     except gd.errors.GeomindError as error:
         raise AdapterFailedError(str(error)) from error
