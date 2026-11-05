@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.88] - 2026-11-05
+
+- geomind 0.4.82 as a local wheel (with gemini 0.6.13): every tool documented in exactly one
+  skill, descriptions one line plus the skill; IMP-014 (an engineer's own parts in refusals and
+  issues), IMP-015 (a repeated error says to change the call), IMP-018 (plant writes checked
+  before the approval), QA-116 (a denied tool is not asked again in the request).
+
 ## [1.1.87] - 2026-11-05
 
 - QA-110 (backend part; the Case History UI is hotfix-front-III's): `GET
