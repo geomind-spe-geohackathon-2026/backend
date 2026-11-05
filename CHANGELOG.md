@@ -8,7 +8,9 @@ tests pass.
 
 ## [1.1.88] - 2026-11-05
 
-- geomind 0.4.82 as a local wheel (with gemini 0.6.13): every tool documented in exactly one
+- geomind 0.4.83 as a local wheel (with gemini 0.6.13). 0.4.83: IMP-016 (a requirement failing
+  three rounds stops the loop), IMP-017 (a passed design is optimised once), QA-097, QA-099
+  (five significant digits), QA-114 (no version numbers to the user). 0.4.82: every tool documented in exactly one
   skill, descriptions one line plus the skill; IMP-014 (an engineer's own parts in refusals and
   issues), IMP-015 (a repeated error says to change the call), IMP-018 (plant writes checked
   before the approval), QA-116 (a denied tool is not asked again in the request).
