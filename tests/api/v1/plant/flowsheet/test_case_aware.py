@@ -16,6 +16,7 @@ async def test_validate_with_a_project_takes_the_values_from_its_case(
     make_project,
     blobs,
 ) -> None:
+    """The case's site fills the reservoir; ``drainage_radius`` has no case link."""
     owner = await make_user()
     project = await make_project(owner)
     headers = bearer(owner)
@@ -34,8 +35,9 @@ async def test_validate_with_a_project_takes_the_values_from_its_case(
 
     before = {problem["path"] for problem in alone.json()["problems"]}
     after = {problem["path"] for problem in with_case.json()["problems"]}
-    assert "params.drainage_radius" in before
-    assert "params.drainage_radius" not in after
+    assert "params.reservoir.permeability" in before
+    assert "params.reservoir.permeability" not in after
+    assert "params.drainage_radius" in after
     assert len(after) < len(before)
 
 
