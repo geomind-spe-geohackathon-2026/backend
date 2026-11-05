@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.130] - 2026-11-05
+
+- QA-292: per-user auto-approve preference (GET/PUT /assistant/preferences; migration 0015, users.auto_approve).
+- QA-341: an ended run keeps one line per agent session (`instances`).
+- QA-336: a waiting run's pending request is asked again as the last event when read.
+- geomind main HEAD.
+
 ## [1.1.129] - 2026-11-05
 
 - geomind main HEAD (QA-349, QA-346), gemini dev HEAD.
