@@ -217,6 +217,62 @@ def test_a_share_of_one_reads_as_a_percentage_without_noise() -> None:
     assert found["limit"] == "= 70 %"
 
 
+def test_a_service_supply_check_is_named_apart_with_its_own_bound() -> None:
+    """QA-106: gemini's service check repeats a case rule's name; each shows once."""
+    limits = {
+        "heating_supply_temperature": {"min": 100, "max": 100, "unit": "°C"},
+        "cooling_supply_temperature": {"min": 20, "max": 20, "unit": "°C"},
+    }
+
+    def temperature(role: str, value: float, bound: float) -> dict:
+        return requirement(
+            name=f"{role}_temperature",
+            role=role,
+            unit_path=role.replace("supply", "consumer"),
+            quantity="temperature",
+            passed=False,
+            value={"value": value, "unit": "degC"},
+            limit={"value": bound, "unit": "degC"},
+        )
+
+    report = {
+        "requirements": [
+            temperature("cooling_supply", 10.0, 20.0),
+            temperature("heating_supply", 93.0, 100.0),
+            temperature("heating_supply", 93.0, 100.0),
+            temperature("cooling_supply", 24.1, 20.0),
+        ]
+    }
+
+    rows = evaluate.constraints_of(report, limits)
+
+    assert [row["name"] for row in rows] == [
+        "cooling_consumer.cooling_supply_temperature",
+        "heating_consumer.heating_supply_temperature",
+        "heating_consumer.heating_supply_temperature.service",
+        "cooling_consumer.cooling_supply_temperature.service",
+    ]
+    assert [row["limit"] for row in rows] == [
+        "= 20 degC",
+        "= 100 degC",
+        "≥ 100 degC",
+        "≤ 20 degC",
+    ]
+    assert rows[3]["title"] == "Cooling supply temperature (service supply rule)"
+
+
+def test_a_service_check_without_a_case_rule_has_its_direction() -> None:
+    item = requirement(
+        name="heating_supply_temperature",
+        role="heating_supply",
+        unit_path="heating_consumer",
+        value={"value": 93.0, "unit": "degC"},
+        limit={"value": 100.0, "unit": "degC"},
+    )
+
+    assert one(item, {})["limit"] == "≥ 100 degC"
+
+
 def test_a_tornado_lists_the_largest_effect_first() -> None:
     def row(name: str, effect: float) -> dict:
         figure = {"value": 1.0, "unit": "K"}

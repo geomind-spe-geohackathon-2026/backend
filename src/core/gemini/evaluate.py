@@ -30,6 +30,10 @@ COUNT_QUANTITY = "count"
 NEAR_SHARE = 0.05
 CONDUCTANCE_UNIT = "W/K"
 CONDUCTANCE_SCALES = ((1e6, "MW/K"), (1e3, "kW/K"))
+UNIT_ALIASES = {"°C": "degC"}
+SERVICE_SIDES = {"heating_supply": "min", "cooling_supply": "max"}
+SERVICE_NAME = "service"
+SERVICE_TITLE = " (service supply rule)"
 
 
 def title_of(name: str) -> str:
@@ -153,12 +157,37 @@ def is_fraction(item: dict[str, Any], unit: str, sides: list[float]) -> bool:
 def sides_of(
     item: dict[str, Any], limits: dict[str, dict[str, Any]]
 ) -> tuple[float | None, float | None]:
-    """Return a requirement's bounds from the case, in the report's unit."""
+    """Return a requirement's bounds from the case, in the report's unit.
+
+    ``°C`` in a case is gemini's ``degC``, so a temperature rule keeps its direction.
+    """
     given = limits.get(item["name"], {})
     unit = (item.get("value") or {}).get("unit")
-    if given.get("unit") not in (None, unit):
+    stated = given.get("unit")
+    if UNIT_ALIASES.get(stated, stated) not in (None, unit):
         return None, None
     return given.get("min"), given.get("max")
+
+
+def service_sides(item: dict[str, Any]) -> tuple[float | None, float | None]:
+    """Return the bound of gemini's own supply temperature check of a service.
+
+    gemini checks that each heating grid gets at least, and each cooling grid at most,
+    the demand's supply temperature, under the name ``<role>_temperature``.
+    """
+    bound = (item.get("limit") or {}).get("value")
+    side = SERVICE_SIDES.get(item.get("role") or "")
+    if side == "min":
+        return bound, None
+    if side == "max":
+        return None, bound
+    return None, None
+
+
+def is_service_check(item: dict[str, Any]) -> bool:
+    """Tell gemini's service check: ``<role>_temperature`` of a supply role."""
+    role = item.get("role") or ""
+    return role in SERVICE_SIDES and item["name"] == f"{role}_temperature"
 
 
 def limit_text(low: float | None, high: float | None, unit: str, fallback: Any) -> str:
@@ -192,11 +221,13 @@ def margin_of(
     return clean(margin), margin < NEAR_SHARE * width
 
 
-def checked(item: dict[str, Any], limits: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def checked(
+    item: dict[str, Any], limits: dict[str, dict[str, Any]], own: bool = False
+) -> dict[str, Any]:
     """Return the figures of one requirement, a share of one as a percentage."""
     figure = item.get("value") or {}
     value, unit = figure.get("value"), figure.get("unit", "")
-    low, high = sides_of(item, limits)
+    low, high = service_sides(item) if own else sides_of(item, limits)
     sides = [side for side in (value, low, high) if side is not None]
     scale = PERCENT if is_fraction(item, unit, sides) else 1
     shown = PERCENT_UNIT if scale == PERCENT else unit
@@ -218,19 +249,35 @@ def constraints_of(
     report: dict[str, Any],
     limits: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    """Return the requirements of the report as constraints."""
-    return [
-        {
-            "name": ".".join(filter(None, [subject_of(item), item["name"]])),
-            "title": title_of(item["name"]),
-            "module": subject_of(item) or None,
-            "status": status_of(item),
-            "message": message_of(item),
-            "worst": (item.get("worst_step") or "")[:10] or None,
-            **checked(item, limits or {}),
-        }
-        for item in report["requirements"]
-    ]
+    """Return the requirements of the report as constraints, each name once.
+
+    gemini's own supply temperature check of a service keeps its own bound (at least
+    the heating, at most the cooling supply temperature). When the case states a rule of
+    the same name, the case's comes first in the report and the service check repeats
+    the name on the same module (QA-106: shown twice, with the case's limit, under one
+    row key); it is then named ``<module>.<name>.service`` and titled as such.
+    """
+    given = limits or {}
+    seen: set[tuple[str, str]] = set()
+    found = []
+    for item in report["requirements"]:
+        key = (item["name"], subject_of(item))
+        repeated = is_service_check(item) and key in seen
+        seen.add(key)
+        own = is_service_check(item) and (repeated or item["name"] not in given)
+        parts = [subject_of(item), item["name"], SERVICE_NAME if repeated else ""]
+        found.append(
+            {
+                "name": ".".join(filter(None, parts)),
+                "title": title_of(item["name"]) + (SERVICE_TITLE if repeated else ""),
+                "module": subject_of(item) or None,
+                "status": status_of(item),
+                "message": message_of(item),
+                "worst": (item.get("worst_step") or "")[:10] or None,
+                **checked(item, given, own),
+            }
+        )
+    return found
 
 
 def case_limits(content: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
