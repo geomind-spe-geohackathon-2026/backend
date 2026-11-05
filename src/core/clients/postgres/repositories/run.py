@@ -89,6 +89,11 @@ class RunRepository(BaseRepository):
         """Return every run that has ``status``."""
         return list(await self.session.scalars(select(Run).where(Run.status == status)))
 
+    async def waiting_in_chat(self, chat_id: UUID) -> list[Run]:
+        """Return the chat's runs that wait on an answer."""
+        statement = select(Run).where(Run.chat_id == chat_id, Run.status == "waiting")
+        return list(await self.session.scalars(statement))
+
     async def has_active(self, chat_id: UUID) -> bool:
         statement = select(Run.id).where(
             Run.chat_id == chat_id,

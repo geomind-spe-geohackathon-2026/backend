@@ -29,6 +29,7 @@ from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.redis.client import create_redis_client
+from src.core.clients.redis.repositories.chat_auto_approve import auto_approve_on
 from src.core.clients.redis.repositories.job import SyncJobRepository
 from src.core.logging.logger import get_logger
 from src.core.routes import RUNS_ROUTE
@@ -104,6 +105,27 @@ async def interrupted_runs() -> list[UUID]:
             logger.warning("Run %s was running when the worker started; ending it", run.id)
             await fail(resources, run, "interrupted", INTERRUPTED)
     return resume
+
+
+async def waiting_auto_runs() -> list[UUID]:
+    """Claim the waiting runs of auto-approve chats to go on; return their ids (QA-354).
+
+    geomind answers an auto-mode question only in the process that asked it, so a restart left
+    such a run waiting on a card nobody would answer. ``resume`` with no answer lets geomind
+    answer its pending question itself; the run is claimed ``running`` first, as an answer does.
+    """
+    claimed = []
+    async with open_resources() as resources:
+        async with resources.factory() as session:
+            runs = RunRepository(session)
+            for run in await runs.with_status("waiting"):
+                if not auto_approve_on(resources.jobs.redis, str(run.chat_id)):
+                    continue
+                running = {"status": "running", "request": None}
+                if await runs.claim(run.id, "waiting", running):
+                    logger.warning("Run %s waits in an auto-approve chat; resuming it", run.id)
+                    claimed.append(run.id)
+    return claimed
 
 
 async def get_run(resources: adapters.Resources, run_id: UUID) -> Run | None:

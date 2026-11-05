@@ -141,10 +141,20 @@ async def read_auto_approve(chat: AccessibleChat, redis: RedisClient) -> schemas
 
 @router.put("/{chat_id}/auto-approve", response_model=schemas.AutoApprove)
 async def set_auto_approve(
-    payload: schemas.AutoApprove, chat: AccessibleChat, redis: RedisClient
+    payload: schemas.AutoApprove,
+    chat: AccessibleChat,
+    redis: RedisClient,
+    runs: RunRepositoryDependency,
+    enqueue: EnqueueDependency,
 ) -> schemas.AutoApprove:
-    """Turn auto-approve on or off for this chat; runs started or resumed later follow it."""
+    """Turn auto-approve on or off for this chat; runs started or resumed later follow it.
+
+    Turned on, a run of the chat that waits on a card goes on at once: geomind answers its
+    pending question itself (QA-354).
+    """
     await ChatAutoApproveRepository(redis).turn(str(chat.id), payload.auto_approve)
+    if payload.auto_approve:
+        await services.resume_waiting(chat.id, runs, enqueue)
     return payload
 
 

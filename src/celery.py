@@ -41,6 +41,18 @@ def resume_interrupted_runs(**_details: object) -> None:
         logging.getLogger(__name__).exception("Resuming interrupted runs failed")
 
 
+@worker_ready.connect
+def resume_waiting_auto_runs(**_details: object) -> None:
+    """Let geomind answer the questions of waiting auto-approve runs after a restart (QA-354)."""
+    from src.api.v1.assistant.runs.execution import waiting_auto_runs
+
+    try:
+        for run_id in asyncio.run(waiting_auto_runs()):
+            app.send_task("assistant.runs.resume", args=[str(run_id), None, None])
+    except Exception:
+        logging.getLogger(__name__).exception("Resuming waiting auto-approve runs failed")
+
+
 def run() -> None:
     check_models()
     app.worker_main(["worker", "--loglevel=INFO"])

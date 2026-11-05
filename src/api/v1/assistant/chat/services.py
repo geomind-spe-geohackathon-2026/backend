@@ -184,3 +184,19 @@ async def send_message(
         message=schemas.Message.model_validate(message),
         run=shared.Run.model_validate(run),
     )
+
+
+async def resume_waiting(chat_id: UUID, runs: RunRepository, enqueue: Enqueue) -> None:
+    """Hand every waiting run of the chat to geomind with no answer (QA-354).
+
+    In auto mode geomind answers the pending question itself; a run another request claimed
+    first is left alone.
+    """
+    from src.api.v1.assistant.runs.services import hand_over
+    from src.core.assistant.errors import RunNotWaitingError
+
+    for run in await runs.waiting_in_chat(chat_id):
+        try:
+            await hand_over(runs, run, enqueue, (None, None))
+        except RunNotWaitingError:
+            continue
