@@ -357,11 +357,29 @@ def refused_finish(data: dict[str, Any]) -> dict[str, Any]:
     return {**data, "stop_reason": PROVIDER_REFUSED, "message": clear}
 
 
+STEP_LIMIT = "step_limit"
+DONE = "done"
+
+
+def finished_status(event: Any) -> str:
+    """Return the run's status: a run stopped at its step limit that answered is done.
+
+    The user answered "stop" to the step-limit question and the run answered from what it had,
+    but geomind ends it as failed, so the run and the chat showed failed with no next steps
+    (QA-242).
+    """
+    answered = bool(getattr(event, "answer", None))
+    if event.status == "failed" and event.stop_reason == STEP_LIMIT and answered:
+        return DONE
+    return event.status
+
+
 def finish_columns(event: Any) -> dict[str, Any]:
-    values: dict[str, Any] = {"status": event.status, "request": None}
-    if event.status in TERMINAL_STATUSES:
+    status = finished_status(event)
+    values: dict[str, Any] = {"status": status, "request": None}
+    if status in TERMINAL_STATUSES:
         values["ended"] = utc_now()
-    if event.status == "failed":
+    if status == "failed":
         clear = provider_refusal(event.message)
         values["error"] = (
             {"code": PROVIDER_REFUSED, "message": clear}

@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.114] - 2026-11-05
+
+- QA-242: a run that the user stopped at its step limit and that answered from what it had is
+  `done` with no error (geomind ends it as failed with `step_limit`).
+
 ## [1.1.113] - 2026-11-05
 
 - QA-255: `POST /workspace/projects` without `mcp` gives the project every enabled MCP server,
