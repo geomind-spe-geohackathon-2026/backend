@@ -8,7 +8,9 @@ tests pass.
 
 ## [1.1.84] - 2026-11-05
 
-- geomind 0.4.79 as a local wheel (`.tmp/hotfix-wheels/`, with gemini 0.6.12): QA-091 (supply
+- geomind 0.4.80 as a local wheel (`.tmp/hotfix-wheels/`, with gemini 0.6.12). 0.4.80: the
+  case lead takes economics from an assumptions document in Knowledge first (per-energy keys open
+  when it gives none). 0.4.79: QA-091 (supply
   temperatures judged while running; heat/cold delivered over the year), QA-090 (the design lead
   stops chasing one failing requirement after three changes and reports it), QA-094 (network
   return temperatures are a design choice), QA-095 (knowledge row `co2-grid-organisers-2026`,
