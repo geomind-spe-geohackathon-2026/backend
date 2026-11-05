@@ -11,6 +11,7 @@ from src.core.clients.postgres.repositories.activity import ActivityRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
+from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.run_artifact import (
     RunArtifactRepository,
@@ -410,6 +411,7 @@ class StudyRecorder(gd.callbacks.Callback):
             study = await StudyRepository(session).create(
                 self.values(event, artifact, case)
             )
+            await self.add_results(session, study, artifact, case)
             await ActivityRepository(session).add(
                 self.project_id,
                 "agent",
@@ -417,6 +419,48 @@ class StudyRecorder(gd.callbacks.Callback):
                 f"Study {study.name} recorded",
                 STUDY_ROUTE,
                 str(study.id),
+            )
+
+    async def add_results(self, session: Any, study: Any, artifact: Any, case: Any) -> None:
+        """Add a result row per simulated run of an agent study, as a page study has (QA-088).
+
+        geomind 0.4.77 stores ``runs`` in the ``study/<name>`` artifact: each with the full
+        gemini ``report``, its ``run`` and a ``design`` reference; coverage is computed on the
+        first read, as for a page study. An entry with an ``error`` or no report is skipped.
+        """
+        from src.core.gemini import evaluate as gemini_evaluate
+
+        runs = (artifact.data.get("runs") if artifact is not None else None) or []
+        simulated = [item for item in runs if isinstance(item, dict) and item.get("report")]
+        artifacts = RunArtifactRepository(session)
+        results = ResultRepository(session)
+        for item in simulated:
+            reference = item.get("design")
+            design = (
+                await artifacts.newest_for_chat(self.chat_id, reference) if reference else None
+            )
+            parts = gemini_evaluate.summarise(item["report"])
+            name = study.name
+            if len(simulated) > 1 and item.get("plant_name"):
+                name = f"{study.name} {item['plant_name']}"
+            await results.create(
+                {
+                    "project_id": self.project_id,
+                    "study_id": study.id,
+                    "name": name,
+                    "case_version": None if case is None else case.number,
+                    "plant_version": None,
+                    "summary": parts["summary"],
+                    "content": {
+                        "capacities": parts["capacities"],
+                        "constraints": parts["constraints"],
+                        "series": [],
+                        "report": item["report"],
+                        "run": item.get("run") or {},
+                        "design": None if design is None else design.data,
+                        "coverage": None,
+                    },
+                }
             )
 
     def values(self, event: Any, artifact: Any, case: Any) -> dict[str, Any]:

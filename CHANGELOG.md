@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.81] - 2026-11-05
+
+- QA-088: when an agent study is recorded, each simulated run in its artifact's `runs` (geomind
+  0.4.77: full gemini report, run, design reference) becomes a result row like a page study's,
+  so agent studies appear in the Results tab with KPIs, capacities and constraints; coverage is
+  computed on first read. Studies recorded before 0.4.77 have no `runs` and stay without results.
+  Hotfix mode: only test_boundaries ran.
+
 ## [1.1.80] - 2026-11-05
 
 - QA-088: `GET /design/study/{id}/agent-record` returns what an agent stored for a study it ran

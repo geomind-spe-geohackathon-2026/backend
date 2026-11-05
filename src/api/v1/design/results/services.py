@@ -136,7 +136,7 @@ async def get_result(
     case = await cases.version_by_number(result.project_id, result.case_version)
     if case is None:
         return to_detail(result)
-    if result.content.get("coverage") is None:
+    if result.content.get("coverage") is None and result.content.get("design"):
         await add_coverage(result, case, files, blobs, results)
     return to_detail(result, gemini_evaluate.case_limits(case.content))
 
