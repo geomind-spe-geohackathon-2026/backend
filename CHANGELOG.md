@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.73] - 2026-11-05
+
+- QA-080: gemini 0.6.8 and geomind 0.4.69 as local wheels (`.tmp/hotfix-wheels/`): a doublet's
+  flow range is read over all its flow requirements (two one-sided rules make one range); the
+  case lead writes a two-ended range as one rule.
+
 ## [1.1.72] - 2026-11-05
 
 - QA-076, QA-078: geomind 0.4.68 and gemini 0.6.7 as local wheels (`.tmp/hotfix-wheels/`):
