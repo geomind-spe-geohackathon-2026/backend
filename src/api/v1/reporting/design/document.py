@@ -17,6 +17,7 @@ from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.result import Result
 from src.core.clients.postgres.models.run import Run
 from src.core.clients.postgres.models.study import Study
+from src.core.gemini import case as gemini_case
 from src.core.gemini import evaluate as gemini_evaluate
 from src.core.gemini import plant as gemini_plant
 from src.core.gemini import study as gemini_study
@@ -50,6 +51,9 @@ CO2_SOURCES = {
     "electricity": "Grid electricity bought",
 }
 OPEX_WORDS = {"co2": "CO2 price"}
+RATIO_TITLES = {"cop": "Heat per bought electricity", "heat_pump_cop": "Heat pump COP"}
+"""Titles of the plant ratio and the heat pumps' COP when gemini names neither (QA-322)."""
+ENERGY_UNIT = "MWh"
 
 
 @dataclass
@@ -536,6 +540,7 @@ def group_reading(group: str, members: list[dict[str, Any]], total: float) -> st
 def performance(inputs: Inputs, numbers: Numbers) -> str:
     report, coverage = inputs.report, inputs.coverage
     energy = narrative.grouped_figures(report).get(narrative.ENERGY_GROUP) or []
+    energy += fuel_rows(report) + ratio_rows(report)
     parts = []
     if energy:
         parts += [
@@ -554,30 +559,91 @@ def performance(inputs: Inputs, numbers: Numbers) -> str:
     ]
     for service, days in services:
         title = f"{service.capitalize()}: demand and supply"
-        labels = (figures.source_word(service, "geothermal"), "Backup")
-        chart = figures.supply_chart(title, days, labels)
+        main, other = figures.labels_of(service, days)
+        chart = figures.supply_chart(title, days, (main, other or "Other units"))
         parts += [
             figures.image_line(chart, title),
             numbers.figure(f"{service.capitalize()}: daily mean demand and supply"),
             supply_reading(service, days, coverage),
         ]
-    rows = [
-        [service.capitalize(), *(str(count) for count in day_counts(days).values())]
-        for service, days in services
-    ]
+    rows = performance_rows(services)
+    headers = ["Service", "Main supply", "Days", "Other supply", "Days", "Short"]
     parts += [
-        table(["Service", "Geothermal or plant", "Backup", "Short"], rows),
-        numbers.table("Days of each service by the source that covered them"),
-        "On cooling days the whole supply is the plant: gemini has no cooling backup.",
+        table([*headers, "No demand"], rows),
+        numbers.table("Days of each service by the units that covered them"),
     ]
     return block(*parts)
 
 
+def performance_rows(
+    services: list[tuple[str, list[dict[str, Any]]]],
+) -> list[list[str]]:
+    """Return per service the days its main and other units covered, short and idle."""
+    rows = []
+    for service, days in services:
+        main, other = figures.labels_of(service, days)
+        count = day_counts(days)
+        rows.append(
+            [
+                service.capitalize(),
+                main,
+                str(count["geothermal"]),
+                other or "-",
+                str(count["backup"]) if other else "-",
+                str(count["short"]),
+                str(count["none"]),
+            ]
+        )
+    return rows
+
+
 def day_counts(days: list[dict[str, Any]]) -> dict[str, int]:
-    count = {name: 0 for name in ("geothermal", "backup", "short")}
+    """Count the days by source; a day with no demand counts as none (QA-322)."""
+    count = {name: 0 for name in ("geothermal", "backup", "short", "none")}
     for day in days:
-        count[day["source"]] += 1
+        count["none" if day.get("no_demand") else day["source"]] += 1
     return count
+
+
+def fuel_rows(report: dict[str, Any]) -> list[list[str]]:
+    """Return the fuel burned on site and its part not bought, the produced gas (QA-323).
+
+    The gas bought alone made a boiler look above 100 % efficient: the plant also burns the gas
+    its degasser takes out of the brine. gemini gives the fuel burned as ``co2.fuel_energy``.
+    """
+    fuel = (report.get("co2") or {}).get("fuel_energy")
+    if not shown(fuel) or not fuel["value"]:
+        return []
+    rows = [["Fuel burned on site", text(fuel)]]
+    produced = produced_gas(report)
+    if produced is not None:
+        rows.append(
+            ["Produced gas burned (fuel burned less gas bought)", text(produced)]
+        )
+    return rows
+
+
+def produced_gas(report: dict[str, Any]) -> dict[str, Any] | None:
+    fuel = (report.get("co2") or {}).get("fuel_energy")
+    bought = report.get("gas_bought")
+    if not shown(fuel) or fuel["unit"] != ENERGY_UNIT:
+        return None
+    if not shown(bought) or bought["unit"] != ENERGY_UNIT:
+        return None
+    return {"value": max(fuel["value"] - bought["value"], 0.0), "unit": ENERGY_UNIT}
+
+
+def ratio_title(name: str) -> str:
+    return gemini_evaluate.METRIC_TITLES.get(name) or RATIO_TITLES[name]
+
+
+def ratio_rows(report: dict[str, Any]) -> list[list[str]]:
+    """Return the plant's heat per bought electricity beside the heat pumps' COP (QA-322)."""
+    return [
+        [ratio_title(name), text(report[name])]
+        for name in RATIO_TITLES
+        if shown(report.get(name))
+    ]
 
 
 def energy_reading(report: dict[str, Any], coverage: dict[str, Any] | None) -> str:
@@ -598,6 +664,15 @@ def energy_reading(report: dict[str, Any], coverage: dict[str, Any] | None) -> s
             f"The boilers give {text(boiler)}, {percent(boiler['value'] / heat['value'])} "
             "of the heat delivered."
         )
+    fuel = (report.get("co2") or {}).get("fuel_energy")
+    produced = produced_gas(report)
+    fuel_line = None
+    if shown(fuel) and fuel["value"] and produced is not None:
+        fuel_line = (
+            f"The plant burns {text(fuel)} of fuel on site: "
+            f"{text(report['gas_bought'])} of gas bought and {text(produced)} of gas "
+            "produced with the brine."
+        )
     bought = [
         f"{text(report[name])} of {word}"
         for name, word in (("electricity_bought", "electricity"), ("gas_bought", "gas"))
@@ -605,18 +680,43 @@ def energy_reading(report: dict[str, Any], coverage: dict[str, Any] | None) -> s
     ]
     third = f"It buys {joined(bought)}." if bought else None
     fourth = narrative.share_text(coverage)
-    return sentences(first, second, third, fourth) or "The run gives no energy figures."
+    return (
+        sentences(first, second, fuel_line, third, fourth, ratio_reading(report))
+        or "The run gives no energy figures."
+    )
+
+
+def ratio_reading(report: dict[str, Any]) -> str | None:
+    cop, pump = report.get("cop"), report.get("heat_pump_cop")
+    first = (
+        f"Per unit of electricity bought the plant delivers {text(cop)} units of heat, "
+        "a ratio of the whole plant, not the COP of a machine."
+        if shown(cop)
+        else None
+    )
+    second = (
+        f"The heat pumps give {text(pump)} units of heat per unit of the electricity "
+        "they take, their COP."
+        if shown(pump)
+        else None
+    )
+    return sentences(first, second) or None
 
 
 def days_reading(services: list[tuple[str, list[dict[str, Any]]]]) -> str:
+    """Say per service how many days each kind of unit covered, named from gemini's labels."""
     lines = []
     for service, days in services:
         count = day_counts(days)
-        lines.append(
-            f"Of the {len(days)} {service} days, {count['geothermal']} were covered by "
-            f"{'the plant' if service == 'cooling' else 'geothermal heat'} alone, "
-            f"{count['backup']} needed the backup and {count['short']} fell short."
-        )
+        main, other = figures.labels_of(service, days)
+        asked = len(days) - count["none"]
+        first = f"Of the {len(days)} {service} days, {asked} had a demand"
+        first += f" and {count['none']} had none." if count["none"] else "."
+        parts = [f"{count['geothermal']} were covered by {main} alone"]
+        if other:
+            parts.append(f"{count['backup']} also needed {other}")
+        parts.append(f"{count['short']} fell short")
+        lines.append(f"{first} Of the days with a demand, {joined(parts)}.")
     return " ".join(lines) or "The run has no days with a demand."
 
 
@@ -630,17 +730,20 @@ def supply_reading(
         f"{service.capitalize()} demand peaks at {text(stats['peak'])} (daily mean) on "
         f"{stats['peak_date']} and averages {text(stats['mean'])}."
     )
+    main, other = figures.labels_of(service, days)
     backup = [day for day in days if day["backup"]["value"] > 0]
     second = None
-    if backup:
+    if backup and other:
         top = max(backup, key=lambda day: day["backup"]["value"])
         second = (
-            f"The backup runs on {len(backup)} days, at most "
+            f"{other} runs on {len(backup)} days, at most "
             f"{text({'value': top['backup']['value'] / HOURS, 'unit': 'MW'})} on "
             f"{top['date']}."
         )
-    elif service == "heating":
-        second = "The backup is never needed."
+    elif other:
+        second = f"{other} is never needed."
+    else:
+        second = f"{main} gives the whole supply."
     third = None
     if stats["short"]["value"] > 0:
         third = f"{text(stats['short'])} of demand is not met."
@@ -976,7 +1079,53 @@ def checks(inputs: Inputs, numbers: Numbers, rows: list[list[str]]) -> str:
         table(["Check", "Status", "Value", "Limit", "Margin", "Worst day"], rows),
         numbers.table("Constraint checks of the design"),
         checks_reading(inputs),
+        scope_reading(inputs),
     )
+
+
+def checkable() -> list[str]:
+    """Return the quantities a case rule can bound, from gemini's case schema."""
+    items = (
+        gemini_case.schema()
+        .get("properties", {})
+        .get("requirements", {})
+        .get("items", {})
+    )
+    return list(items.get("properties", {}).get("quantity", {}).get("enum") or [])
+
+
+def scope_reading(inputs: Inputs) -> str:
+    """Say what the checks cover and what they do not, from gemini's rules (QA-325).
+
+    "All checks pass" read as a full validation. The checks are only the case's rules, each on
+    the simulated period; a quantity gemini can bound that the case names no rule for is not
+    checked, nor anything over a longer time than the run.
+    """
+    rules = inputs.report.get("requirements") or []
+    checked = sorted({item["quantity"] for item in rules if item.get("quantity")})
+    roles = sorted({item["role"] for item in rules if item.get("role")})
+    words = [name.replace("_", " ") for name in checked]
+    first = (
+        f"The checks are the {len(rules)} rules of the case. They bound "
+        f"{joined(words)} on the {joined([role.replace('_', ' ') for role in roles])}."
+        if checked
+        else "The case states no rule, so nothing is checked."
+    )
+    known = checkable()
+    left = [name.replace("_", " ") for name in known if name not in checked]
+    second = (
+        f"The engine can also bound {joined(left)}; the case sets no rule on "
+        f"{'it' if len(left) == 1 else 'them'}, so they are not checked."
+        if left
+        else None
+    )
+    window = (inputs.report.get("co2") or {}).get("window")
+    span = text(window) if shown(window) else "the simulated period"
+    third = (
+        f"Every check judges the run of {span} only: nothing that develops over a "
+        "longer life of the plant is checked."
+    )
+    return sentences(first, second, third)
 
 
 def checks_reading(inputs: Inputs) -> str:

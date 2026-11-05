@@ -150,6 +150,9 @@ async def test_checks_read_cleanly(
     checks = response.json()["sections"][0]["markdown"]
     assert "| Pump efficiency (d0) | pass | 70\u2009% | 70 % |" in checks
     assert "*Table 8.1 - Constraint checks of the design*" in checks
+    assert "The checks are the 15 rules of the case." in checks
+    assert "the case sets no rule on them, so they are not checked" in checks
+    assert "Every check judges the run of" in checks
     assert "Doublet count |" in checks
     assert "T00:00" not in checks
 

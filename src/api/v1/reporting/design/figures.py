@@ -11,7 +11,10 @@ GRID = "#d3dae1"
 ELECTRICITY_COLOR = "#3b6ea8"
 ELECTRICITY_WORD = "Heat-pump electricity"
 """The heat pumps' compressor work, apart from the brine heat since gemini 0.6.22 (QA-270)."""
-KEY_STEP = 130
+KEY_GAP = 24
+KEY_CHAR = 5.6
+KEY_AFTER_TITLE = 200
+"""Where the legend of a chart may start at the earliest, right of its title [px]."""
 SOURCE_COLORS = {"geothermal": "#2f7d4a", "backup": "#a46700", "short": "#b3362c"}
 MONTHS = (
     "Jan",
@@ -71,6 +74,20 @@ def source_word(service: str, source: str) -> str:
     return source.capitalize()
 
 
+NO_DEMAND_COLOR = "#d5d9de"
+"""A day whose consumers asked for nothing: neither the plant nor its other units (QA-322)."""
+FALLBACK_LABELS = {"heating": ("Geothermal", "Backup"), "cooling": ("Plant", None)}
+"""What a coverage stored before gemini 0.6.31 calls its main and other supply."""
+
+
+def labels_of(service: str, days: list[dict[str, Any]]) -> tuple[str, str | None]:
+    """Return ``(main, other)``: gemini's names of what covered a service's days (QA-322)."""
+    found = next((day.get("labels") for day in days if day.get("labels")), None)
+    if isinstance(found, dict) and found.get("main"):
+        return found["main"], found.get("other")
+    return FALLBACK_LABELS.get(service, ("Plant", None))
+
+
 def day_strips(coverage: dict[str, list[dict[str, Any]]]) -> str:
     """Draw one cell per day and service, coloured by the source that covered it."""
     left, row, parts = 70, 24, []
@@ -84,13 +101,16 @@ def day_strips(coverage: dict[str, list[dict[str, Any]]]) -> str:
         )
         parts += [
             f"<rect x='{left + at * cell:.2f}' y='{y}' width='{cell + 0.3:.2f}' "
-            f"height='{row}' fill='{SOURCE_COLORS[day['source']]}'/>"
+            f"height='{row}' fill='{day_color(day)}'/>"
             for at, day in enumerate(days)
         ]
     bottom = len(services) * (row + 8) + 18
     x = left
-    words = {"geothermal": "Geothermal (heating), plant (cooling)"}
-    for source, color in SOURCE_COLORS.items():
+    words = {"geothermal": "Main supply", "backup": "Other supply"}
+    keys = list(SOURCE_COLORS.items())
+    if any(day.get("no_demand") for _, days in services for day in days):
+        keys.append(("no demand", NO_DEMAND_COLOR))
+    for source, color in keys:
         word = words.get(source, source.capitalize())
         parts.append(
             f"<rect x='{x}' y='{bottom - 11}' width='10' height='10' fill='{color}'/>"
@@ -99,6 +119,10 @@ def day_strips(coverage: dict[str, list[dict[str, Any]]]) -> str:
         )
         x += 20 + len(word) * 6
     return frame(bottom + 4, "".join(parts))
+
+
+def day_color(day: dict[str, Any]) -> str:
+    return NO_DEMAND_COLOR if day.get("no_demand") else SOURCE_COLORS[day["source"]]
 
 
 def supply_chart(
@@ -153,12 +177,17 @@ def supply_chart(
     if split and any(day["electricity"]["value"] for day in days):
         key.append((ELECTRICITY_WORD, ELECTRICITY_COLOR))
     key += [(labels[1], SOURCE_COLORS["backup"]), ("Demand", "#17212b")]
-    start = WIDTH - 12 - len(key) * KEY_STEP
+    widths = [KEY_GAP + len(name) * KEY_CHAR for name, _ in key]
+    x = max(left + KEY_AFTER_TITLE, WIDTH - 12 - sum(widths))
+    places = []
+    for width in widths:
+        places.append(x)
+        x += width
     legend = "".join(
-        f"<rect x='{start + at * KEY_STEP}' y='5' width='10' height='10' "
-        f"fill='{color}'/><text x='{start + 14 + at * KEY_STEP}' y='14' "
-        f"font-size='11' {MUTED}>{name}</text>"
-        for at, (name, color) in enumerate(key)
+        f"<rect x='{at:.0f}' y='5' width='10' height='10' "
+        f"fill='{color}'/><text x='{at + 14:.0f}' y='14' "
+        f"font-size='11' {MUTED}>{escape(name)}</text>"
+        for at, (name, color) in zip(places, key, strict=True)
     )
     body = (
         f"<text x='{left}' y='14' font-size='13' {FONT}>{escape(title)}</text>"
