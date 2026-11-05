@@ -17,6 +17,20 @@ def version_step(version: int | None) -> ProgressStep:
     return ProgressStep(state="ready", label=f"Version {version}")
 
 
+def plant_step(facts: ProjectFacts) -> ProgressStep:
+    """The plant: its saved version, else whether designs exist only in studies or results.
+
+    Since QA-237 an assistant run saves no plant version, so a project with agent studies and
+    results showed the plant "Not started" (QA-328). Such a plant is ``incomplete``: designs
+    exist, none is saved as the project plant.
+    """
+    if facts.plant_version is not None:
+        return version_step(facts.plant_version)
+    if facts.results or sum(facts.studies.values()):
+        return ProgressStep(state="incomplete", label="Not saved: designs only in results")
+    return version_step(None)
+
+
 def study_step(counts: dict[str, int]) -> ProgressStep:
     """Running beats done, done beats blocked; any other study leaves it empty."""
     active = counts.get("queued", 0) + counts.get("running", 0)
@@ -57,7 +71,7 @@ def build_progress(facts: ProjectFacts, economics: bool | None = None) -> Progre
     """
     return Progress(
         case=case_step(facts.case_version, facts.case_missing),
-        plant=version_step(facts.plant_version),
+        plant=plant_step(facts),
         study=study_step(facts.studies),
         results=results_step(facts.results),
         report=report_step(facts),

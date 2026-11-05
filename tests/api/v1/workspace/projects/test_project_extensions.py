@@ -283,3 +283,30 @@ async def test_import_refuses_a_case_gemini_calls_invalid(client, make_user) -> 
     error = response.json()["error"]
     assert error["code"] == "case_invalid"
     assert error["details"]["problems"][0]["file"] == "case/1.json"
+
+
+async def test_plant_step_says_designs_exist_without_a_saved_plant(
+    client, make_user, make_project, session
+) -> None:
+    """QA-328: agent studies and results with no saved plant version are not 'Not started'."""
+    from src.core.clients.postgres.repositories.result import ResultRepository
+
+    owner = await make_user()
+    project = await make_project(owner)
+    await ResultRepository(session).create(
+        {
+            "project_id": project.id,
+            "name": "agent run",
+            "case_version": None,
+            "plant_version": None,
+            "summary": {},
+            "content": {},
+        }
+    )
+
+    body = (await client.get(f"{PROJECTS}/{project.id}", headers=bearer(owner))).json()
+
+    assert body["progress"]["plant"] == {
+        "state": "incomplete",
+        "label": "Not saved: designs only in results",
+    }
