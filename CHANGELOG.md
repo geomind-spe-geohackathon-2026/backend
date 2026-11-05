@@ -8,7 +8,7 @@ tests pass.
 
 ## [1.1.88] - 2026-11-05
 
-- geomind 0.4.83 as a local wheel (with gemini 0.6.13). 0.4.83: IMP-016 (a requirement failing
+- geomind 0.4.84 as a local wheel (with gemini 0.6.13). 0.4.84: read_rag by section (outline, section), knowledge hits name their section. 0.4.83: IMP-016 (a requirement failing
   three rounds stops the loop), IMP-017 (a passed design is optimised once), QA-097, QA-099
   (five significant digits), QA-114 (no version numbers to the user). 0.4.82: every tool documented in exactly one
   skill, descriptions one line plus the skill; IMP-014 (an engineer's own parts in refusals and
