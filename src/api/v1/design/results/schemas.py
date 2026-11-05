@@ -66,6 +66,13 @@ class Figure(BaseModel):
     unit: str
 
 
+class CoverageLabels(BaseModel):
+    """What ``geothermal`` and ``backup`` are in this plant (gemini 0.6.31, QA-322)."""
+
+    main: str
+    other: str | None = None
+
+
 class CoverageDay(BaseModel):
     date: str
     source: Literal["geothermal", "backup", "short"]
@@ -74,6 +81,9 @@ class CoverageDay(BaseModel):
     backup: Figure
     short: Figure
     failed_steps: Figure
+    electricity: Figure | None = None
+    no_demand: bool = False
+    labels: CoverageLabels | None = None
 
 
 class Coverage(BaseModel):

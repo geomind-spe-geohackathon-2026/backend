@@ -180,11 +180,10 @@ def progress_of(
 
 
 def plain_day(day: dict[str, Any]) -> dict[str, Any]:
-    """Return one day of gemini's coverage with its quantities as plain figures."""
-    return {
-        key: value if isinstance(value, str) else value.to_dict()
-        for key, value in day.items()
-    }
+    """Return one day of gemini's coverage as plain JSON (see ``evaluate.plain_day``)."""
+    from src.core.gemini import evaluate
+
+    return evaluate.plain_day(day)
 
 
 def coverage_of(outcome: Any, case_content: dict[str, Any], files: Any) -> dict:

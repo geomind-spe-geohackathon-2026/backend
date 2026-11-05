@@ -210,3 +210,55 @@ async def test_a_design_becomes_the_next_plant_version(
     response = await client.post(f"{URL}/{result.id}/adopt", headers=bearer(user))
 
     assert response.json() == {"plant_version": 1}
+
+
+async def test_detail_keeps_coverage_no_demand_and_labels(
+    client, make_user, make_project, make_result, session, blobs
+) -> None:
+    """QA-322: gemini 0.6.31's per-day ``no_demand`` and ``labels`` reach the client."""
+    user = await make_user()
+    project = await make_project(user)
+    mwh = {"value": 0.0, "unit": "MWh"}
+    day = {
+        "date": "2027-01-01",
+        "source": "geothermal",
+        "demand": mwh,
+        "geothermal": mwh,
+        "electricity": mwh,
+        "backup": mwh,
+        "short": mwh,
+        "failed_steps": {"value": 0, "unit": "-"},
+        "no_demand": True,
+        "labels": {"main": "Absorption chiller (geothermal)", "other": None},
+    }
+    outcome = outcome_with(40, 10)
+    outcome["coverage"] = {"heating": [], "cooling": [day]}
+    result = await make_result(project, "A", outcome)
+
+    response = await client.get(f"{URL}/{result.id}", headers=bearer(user))
+    body = response.json()
+    assert response.status_code == 200, body
+
+    cooling = body["coverage"]["cooling"][0]
+    assert cooling["no_demand"] is True
+    assert cooling["labels"] == {"main": "Absorption chiller (geothermal)", "other": None}
+    assert cooling["electricity"] == mwh
+
+
+def test_plain_day_keeps_flags_and_labels() -> None:
+    class Quantity:
+        def to_dict(self):
+            return {"value": 1.0, "unit": "MWh"}
+
+    day = {
+        "date": "2027-01-01",
+        "demand": Quantity(),
+        "no_demand": False,
+        "labels": {"main": "Geothermal", "other": "Peak boiler"},
+    }
+    assert evaluate.plain_day(day) == {
+        "date": "2027-01-01",
+        "demand": {"value": 1.0, "unit": "MWh"},
+        "no_demand": False,
+        "labels": {"main": "Geothermal", "other": "Peak boiler"},
+    }

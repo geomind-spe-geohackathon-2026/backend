@@ -412,6 +412,24 @@ def spread_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
     ]
 
 
+def plain_value(value: Any) -> Any:
+    """Return one field of a coverage day as JSON: a quantity as ``{value, unit}``."""
+    if hasattr(value, "to_dict"):
+        return value.to_dict()
+    if isinstance(value, dict):
+        return {key: plain_value(item) for key, item in value.items()}
+    return value
+
+
+def plain_day(day: dict[str, Any]) -> dict[str, Any]:
+    """Return one day of gemini's coverage as plain JSON (QA-322).
+
+    gemini 0.6.31 adds ``no_demand`` (a bool) and ``labels`` (``{main, other}``, ``other``
+    may be ``None``) beside the quantities; each is kept as it is.
+    """
+    return {key: plain_value(value) for key, value in day.items()}
+
+
 def design_outcome(
     design: dict[str, Any],
     case_content: dict[str, Any],
@@ -422,8 +440,6 @@ def design_outcome(
     A design or case gemini refuses gives ``None``.
     """
     import copy
-
-    from src.core.gemini.study import plain_day
 
     try:
         built = gm.Plant.from_dict(design)
