@@ -6,6 +6,10 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.134] - 2026-11-05
+
+- geomind 0.4.138, gemini 0.6.35 (QA-356, QA-357, QA-359).
+
 ## [1.1.133] - 2026-11-05
 
 - QA-354: waiting runs of auto-approve chats go on after a restart or when auto-approve is turned on.
