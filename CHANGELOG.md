@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.97] - 2026-11-05
+
+- geomind 0.4.95 and gemini 0.6.16 as local wheels. gemini 0.6.16: QA-128 (carbon price only on
+  the plant's own CO2e, not again on grid electricity). geomind 0.4.92: QA-140 (the case lead
+  always splits into 2-4 geoscientists), search_knowledge/read_knowledge for sub-agents; 0.4.93:
+  QA-143 (evaluate_module with design, identical failed call not run again); 0.4.94: QA-121
+  (approval cards start with one sentence); 0.4.95: IMP-019 (one-value plant choices filled).
+
 ## [1.1.96] - 2026-11-05
 
 - QA-135 (backend, option C by the user): when an assistant run finishes, its LAST successful plain
