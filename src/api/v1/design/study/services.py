@@ -141,6 +141,9 @@ def to_study(
     result_id: UUID | None,
 ) -> schemas.Study:
     shown = progress or JobProgress(study.progress_done, study.progress_total)
+    if study.status == "done" and study.started_by_kind == "agent":
+        # An agent study is recorded when it has ended: whole, not the stored 0 of 1 (QA-088).
+        shown = JobProgress(max(shown.total, 1), max(shown.total, 1))
     return schemas.Study(
         id=study.id,
         project=study.project_id,
@@ -206,6 +209,38 @@ async def stored_evolution(study: Study, stores: Stores) -> dict[str, Any] | Non
         run.chat_id, f"study/{study.name}"
     )
     return None if artifact is None else gemini_study.evolution_in(artifact.data)
+
+
+async def agent_record(study: Study, stores: Stores) -> Any | None:
+    """Return the ``study/<name>`` artifact of a study an agent ran, or ``None``."""
+    if study.started_by_run_id is None:
+        return None
+    session = stores.studies.session
+    run = await RunRepository(session).get_by_id(study.started_by_run_id)
+    if run is None:
+        return None
+    return await RunArtifactRepository(session).newest_for_chat(
+        run.chat_id, f"study/{study.name}"
+    )
+
+
+async def read_agent_record(
+    study_id: UUID, user: User, stores: Stores
+) -> schemas.AgentStudyRecord:
+    """Return what the agent stored for a study it ran: tool, method, designs and result."""
+    study = await accessible_study(study_id, user, stores)
+    record = await agent_record(study, stores)
+    if record is None:
+        raise errors.AgentRecordNotFoundError("This study has no agent record")
+    data = record.data or {}
+    return schemas.AgentStudyRecord(
+        study=study.id,
+        name=study.name,
+        tool=data.get("tool"),
+        method=(data.get("study") or {}).get("method") or study.kind,
+        designs=data.get("designs") or {},
+        result=data.get("result"),
+    )
 
 
 async def read_structures(

@@ -97,3 +97,14 @@ class StructurePlant(BaseModel):
 class SavedStructurePlant(BaseModel):
     rank: int
     plant_version: int
+
+
+class AgentStudyRecord(BaseModel):
+    """What an agent stored for a study it ran, as stored in its ``study/<name>`` artifact."""
+
+    study: UUID
+    name: str
+    tool: str | None
+    method: str | None
+    designs: dict[str, Any]
+    result: Any

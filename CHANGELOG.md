@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.80] - 2026-11-05
+
+- QA-088: `GET /design/study/{id}/agent-record` returns what an agent stored for a study it ran
+  (tool, method, designs, result as the tool stored it); agent studies had only an "Open run"
+  link. A done agent study shows its progress whole instead of "-". Note: `filters_sized` is a
+  `size_plant` record: sizing only, no simulation, so it has no results. Hotfix mode: no tests ran.
+
 ## [1.1.79] - 2026-11-05
 
 - QA-081: geomind 0.4.73's `AlreadyAnsweredError` on a resume is caught by its class: "the run

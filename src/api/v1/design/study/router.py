@@ -48,6 +48,14 @@ async def create_study(
     return await services.create_study(payload, user, stores, blobs, tasks.enqueue)
 
 
+@router.get("/{study_id}/agent-record", response_model=schemas.AgentStudyRecord)
+async def read_agent_record(
+    study_id: UUID, user: CurrentUser, stores: StoresDependency
+) -> schemas.AgentStudyRecord:
+    """What an agent stored for a study it ran; 404 agent_record_not_found otherwise."""
+    return await services.read_agent_record(study_id, user, stores)
+
+
 @router.get("/{study_id}/structures", response_model=schemas.StudyStructures)
 async def read_structures(
     study_id: UUID,

@@ -299,6 +299,60 @@
         "title": "AgentSession",
         "type": "object"
       },
+      "AgentStudyRecord": {
+        "description": "What an agent stored for a study it ran, as stored in its ``study/<name>`` artifact.",
+        "properties": {
+          "designs": {
+            "additionalProperties": true,
+            "title": "Designs",
+            "type": "object"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "result": {
+            "title": "Result"
+          },
+          "study": {
+            "format": "uuid",
+            "title": "Study",
+            "type": "string"
+          },
+          "tool": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool"
+          }
+        },
+        "required": [
+          "study",
+          "name",
+          "tool",
+          "method",
+          "designs",
+          "result"
+        ],
+        "title": "AgentStudyRecord",
+        "type": "object"
+      },
       "AgentToolCall": {
         "description": "One tool call of an agent session: its name, outcome and time, no contents.",
         "properties": {
@@ -5603,7 +5657,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.79"
+    "version": "1.1.80"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7509,6 +7563,50 @@
           }
         },
         "summary": "Get Study",
+        "tags": [
+          "Study"
+        ]
+      }
+    },
+    "/api/v1/design/study/{study_id}/agent-record": {
+      "get": {
+        "description": "What an agent stored for a study it ran; 404 agent_record_not_found otherwise.",
+        "operationId": "read_agent_record_api_v1_design_study__study_id__agent_record_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Study Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentStudyRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Agent Record",
         "tags": [
           "Study"
         ]

@@ -15,3 +15,9 @@ class StructurePlantNotStoredError(NotFoundError):
     """gemini stored no plant for this structure's design (only the best and the front have one)."""
 
     code = "structure_plant_not_stored"
+
+
+class AgentRecordNotFoundError(NotFoundError):
+    """The study was not run by an agent, or its artifact is gone."""
+
+    code = "agent_record_not_found"

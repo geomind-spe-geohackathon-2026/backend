@@ -427,6 +427,10 @@ class StudyRecorder(gd.callbacks.Callback):
             "name": event.study.removeprefix(STUDY_PREFIX),
             "settings": {} if artifact is None else artifact.data["study"],
             "status": "done",
+            # A recorded study ended before it was listed: 1 of 1, not the default 0 of 1
+            # the list showed as "-" (QA-088).
+            "progress_done": 1,
+            "progress_total": 1,
             "started_by_kind": "agent",
             "started_by_name": AGENT_NAME,
             "started_by_run_id": self.run_id,
