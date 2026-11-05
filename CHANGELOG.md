@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.69] - 2026-11-05
+
+- QA-071 and the evolve structures view: geomind 0.4.65 and gemini 0.6.6 as local wheels
+  (`.tmp/hotfix-wheels/`): web_search English only with short one-value queries;
+  `gm.study.structure_plant(plant, structure, parameters)` builds the plant of any evolve structure.
+
 ## [1.1.68] - 2026-11-05
 
 - `GET`/`POST /design/study/{id}/structures/{rank}/plant` serve every structure: a plant gemini
