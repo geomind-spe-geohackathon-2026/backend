@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.74] - 2026-11-05
+
+- QA-081: a run geomind refuses to build or go on with (for example a resume whose request is
+  unknown or already answered) ends with `stop_reason` and `error.code` `geomind_refused` and
+  geomind's message, and the worker logs it; it ended as `error` with nothing in the log, and the
+  chat showed "internal error in geomind". Hotfix mode: no tests ran.
+
 ## [1.1.73] - 2026-11-05
 
 - QA-080: gemini 0.6.8 and geomind 0.4.69 as local wheels (`.tmp/hotfix-wheels/`): a doublet's

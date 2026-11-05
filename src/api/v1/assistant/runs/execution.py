@@ -72,6 +72,8 @@ async def resume_run(
         await carry_on(resources, run_id, request_id, answer)
 
 
+GEOMIND_REFUSED = "geomind_refused"
+"""The stop reason of a run geomind refused to build or go on with; its message is geomind's."""
 INTERRUPTED = (
     "The run stopped because the app was updated or restarted; send your message again."
 )
@@ -169,7 +171,10 @@ async def carry_out(
         await wait_again(resources, run, error.expected)
         return
     except AdapterFailedError as error:
-        await fail(resources, run, "error", str(error))
+        # geomind refused to build or go on with the run (QA-081: shown as an internal error,
+        # with nothing in the worker log); name it and log geomind's words.
+        logger.warning("Run %s: geomind refused: %s", run.id, error)
+        await fail(resources, run, GEOMIND_REFUSED, str(error))
         return
     except Exception:
         logger.exception("Run %s failed unexpectedly", run.id)
@@ -252,7 +257,7 @@ async def fail(
         events = RunEventRepository(session)
         last = await events.after(run.id, -1)
         sequence = last[-1].sequence + 1 if last else 1
-        record = adapters.failure_event(run.id, sequence, message)
+        record = adapters.failure_event(run.id, sequence, message, code)
         await events.add(
             run.id, record.sequence, record.type, record.public, record.full
         )

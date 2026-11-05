@@ -344,7 +344,9 @@ EXPECTED_REQUEST = re.compile(r"expected '([^']+)'")
 """geomind's refusal of an answer to a request that is not the pending one (QA-056)."""
 
 
-def failure_event(run_id: UUID, sequence: int, message: str) -> EventRecord:
+def failure_event(
+    run_id: UUID, sequence: int, message: str, stop_reason: str = "error"
+) -> EventRecord:
     """Build the ``run.finished`` of a run that crashed before geomind could end it."""
     event = gd.event_from_dict(
         {
@@ -355,7 +357,7 @@ def failure_event(run_id: UUID, sequence: int, message: str) -> EventRecord:
             "agent": "",
             "parent": None,
             "status": "failed",
-            "stop_reason": "error",
+            "stop_reason": stop_reason,
             "message": message,
         }
     )
