@@ -6,6 +6,18 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.85] - 2026-11-05
+
+- QA-106: Results, Constraints listed 12 rows for 10 case requirements. gemini checks each
+  service's supply temperature itself under the same name as the case's rule
+  (`heating_supply_temperature`, `cooling_supply_temperature`), so the name came twice, the
+  service check took the case's limit, and the page's duplicate row keys drew a third row. Now the
+  repeat is named `<module>.<name>.service`, titled "(service supply rule)", with gemini's own
+  bound (heating at least, cooling at most the demand's supply temperature); a case rule in `°C`
+  matches gemini's `degC`, so it shows its direction (`= 100 degC`). Computed on every result
+  read, so existing results show it at once. Hotfix mode: only test_evaluate and
+  test_no_comments ran.
+
 ## [1.1.84] - 2026-11-05
 
 - geomind 0.4.80 as a local wheel (`.tmp/hotfix-wheels/`, with gemini 0.6.12). 0.4.80: the
