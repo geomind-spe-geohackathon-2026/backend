@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.72] - 2026-11-05
+
+- QA-076, QA-078: geomind 0.4.68 and gemini 0.6.7 as local wheels (`.tmp/hotfix-wheels/`):
+  gm.check returns an incomplete plant's issues again (no more missing_value failures of
+  read_plant/build_plant/patch_plant); engineers may write their own parts; calculation ids are
+  unique and a corrupted state with repeated ids loads again.
+
 ## [1.1.71] - 2026-11-05
 
 - QA-072: geomind 0.4.66 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.66-py3-none-any.whl`):
