@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.106] - 2026-11-05
+
+- geomind 0.4.106 from the local clone (with 0.4.103-0.4.105 of hotfix-python): after a worker
+  restart a nested run goes on from its last step and a finished team mate keeps its answer
+  (QA-176, QA-188); no nested run stays `running` (QA-184). `GEOMIND_TEAM_SIZE` (8 in prod), the
+  most sub-agents a lead runs at once, no default (QA-201); in every backend env file, which now
+  hold the same variables. No contract change.
+
 ## [1.1.105] - 2026-11-05
 
 - `kombu>=5.6,<5.7` in `requirements.txt`: kombu 5.7.0 needs redis 6 and broke every image build
