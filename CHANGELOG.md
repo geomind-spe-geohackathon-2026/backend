@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.92] - 2026-11-05
+
+- geomind 0.4.88 as a local wheel (gemini 0.6.15 kept): QA-131, `sensitivity` takes `values`
+  (only the named drivers move); a chat sensitivity sets the user's ranges in the case, then
+  runs gemini's sensitivity, never run_python.
+
 ## [1.1.91] - 2026-11-05
 
 - QA-136: the report's "Agent log and tokens" writes tokens and cost as Runs and logs does
