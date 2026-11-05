@@ -238,10 +238,37 @@ async def structure_plant(
         raise errors.StructuresNotFoundError(f"The study has no structure at rank {rank}")
     plant = gemini_study.stored_plant(found, row)
     if plant is None:
+        source = await input_plant(study, stores)
+        if source is not None:
+            plant = await asyncio.to_thread(gemini_study.built_plant, source, row)
+    if plant is None:
         raise errors.StructurePlantNotStoredError(
-            "gemini kept a plant only for the best design and the Pareto front"
+            "gemini could not build the plant of this structure from the study's input plant"
         )
     return schemas.StructurePlant(rank=rank, structure=row["structure"], plant=plant)
+
+
+async def input_plant(study: Study, stores: Stores) -> dict[str, Any] | None:
+    """Return the plant file a study ran on: its plant version, or the agent's design artifact."""
+    result = await stores.results.get_for_study(study.id)
+    number = study.plant_version or (result.plant_version if result is not None else None)
+    if number is not None:
+        version = await stores.plants.version_by_number(study.project_id, number)
+        if version is not None:
+            return version.content
+    if study.started_by_run_id is None:
+        return None
+    session = stores.studies.session
+    run = await RunRepository(session).get_by_id(study.started_by_run_id)
+    if run is None:
+        return None
+    artifacts = RunArtifactRepository(session)
+    record = await artifacts.newest_for_chat(run.chat_id, f"study/{study.name}")
+    read = ((record.data.get("designs") or {}).get("read") or []) if record else []
+    if not read:
+        return None
+    design = await artifacts.newest_for_chat(run.chat_id, str(read[0]))
+    return None if design is None else design.data
 
 
 async def save_structure_plant(

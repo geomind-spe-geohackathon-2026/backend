@@ -349,3 +349,19 @@ def stored_plant(evolution: dict[str, Any], row: dict[str, Any]) -> dict[str, An
         if isinstance(design, dict) and _same(design, row) and design.get("plant"):
             return design["plant"]
     return None
+
+
+def built_plant(plant_content: dict[str, Any], row: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the plant of a ranked structure built by gemini, or ``None`` when it cannot.
+
+    ``gm.study.structure_plant`` (gemini 0.6.6) takes the study's input superstructure and a
+    design's ``structure`` and ``parameters`` as ``Evolution.to_dict()`` stores them.
+    """
+    build = getattr(gm.study, "structure_plant", None)
+    if build is None:
+        return None
+    try:
+        plant = gm.Plant.from_dict(plant_content)
+        return build(plant, row["structure"], row["parameters"]).to_dict()
+    except gm.errors.ValidationError:
+        return None
