@@ -4121,7 +4121,7 @@
         "type": "object"
       },
       "Run": {
-        "description": "A run of the assistant, as the runs page and the chat show it.\n\n``sessions``, ``agents`` and ``total`` are geomind's figures from the root run's\nlast ``run.finished``. Only ``GET /assistant/runs/{id}`` reads them; every other\nanswer that holds a run, and a run that is still going or that geomind ended\nwithout them, has ``None``.",
+        "description": "A run of the assistant, as the runs page and the chat show it.\n\n``sessions``, ``agents`` and ``total`` are geomind's figures from the root run's\nlast ``run.finished``. Only ``GET /assistant/runs/{id}`` reads them; every other\nanswer that holds a run, and a run that is still going or that geomind ended\nwithout them, has ``None``. ``prompt`` is the user's message that started the run, in\nthe runs list only (QA-249).",
         "properties": {
           "agents": {
             "anyOf": [
@@ -4184,6 +4184,17 @@
             "format": "uuid",
             "title": "Project",
             "type": "string"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
           },
           "request": {
             "anyOf": [
@@ -5710,7 +5721,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.110"
+    "version": "1.1.111"
   },
   "openapi": "3.1.0",
   "paths": {

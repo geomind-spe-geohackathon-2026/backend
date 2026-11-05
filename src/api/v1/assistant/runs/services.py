@@ -36,6 +36,7 @@ from src.core.clients.postgres.models.project import Project
 from src.core.assistant.settle import settled_ended
 from src.core.clients.postgres.models.run import ACTIVE_RUN_STATUSES, Run
 from src.core.clients.postgres.repositories.run import RunRepository
+from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.redis.repositories.job import JobRepository
 from src.core.clients.redis.repositories.run_delta import RunDeltaRepository
@@ -63,7 +64,14 @@ async def list_runs(
     runs: RunRepository,
 ) -> Page:
     rows = await runs.list_page(project.id, page, active_only=status == "active")
-    return build_page(rows, page, shared.Run)
+    found = build_page(rows, page, shared.Run)
+    prompts = await MessageRepository(runs.session).texts_for_runs(
+        [item.id for item in found.items], "user"
+    )
+    found.items = [
+        item.model_copy(update={"prompt": prompts.get(item.id)}) for item in found.items
+    ]
+    return found
 
 
 def spending_of(stored: dict[str, Any]) -> shared.RunSpending:

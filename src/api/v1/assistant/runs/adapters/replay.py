@@ -4,7 +4,8 @@ import geomind as gd
 
 from src.api.v1.assistant.runs.adapters.errors import LogUnavailableError
 
-LLM_EVENTS = ("llm.completed", "compaction")  # geomind's calls that make a step of the log
+LLM_EVENTS = ("llm.completed", "compaction")
+"""geomind's calls that make a step of the log."""
 
 
 def rebuilt(stored: dict[str, Any]) -> Any | None:

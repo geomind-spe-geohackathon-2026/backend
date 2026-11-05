@@ -111,7 +111,8 @@ class Run(BaseModel):
     ``sessions``, ``agents`` and ``total`` are geomind's figures from the root run's
     last ``run.finished``. Only ``GET /assistant/runs/{id}`` reads them; every other
     answer that holds a run, and a run that is still going or that geomind ended
-    without them, has ``None``.
+    without them, has ``None``. ``prompt`` is the user's message that started the run, in
+    the runs list only (QA-249).
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -126,6 +127,7 @@ class Run(BaseModel):
     usage: Tokens
     request: dict[str, Any] | None
     error: Failure | None
+    prompt: str | None = None
     sessions: list[SessionUsage] | None = None
     agents: list[AgentUsage] | None = None
     total: TotalUsage | None = None

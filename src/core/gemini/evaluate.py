@@ -420,13 +420,30 @@ def role_of(run: dict[str, Any]) -> str:
     return UNCERTAINTY_ROLE if "summary" in found else DESIGN_ROLE
 
 
+DOUBLET_TYPE = "Doublet"
+
+
+def counted_doublets(design: dict[str, Any]) -> int | None:
+    """Return the doublet modules of a plant without a class size, such as a superstructure's
+    ``d0`` and ``d1`` (QA-244); ``None`` when it has none."""
+    modules = design.get("modules")
+    if not isinstance(modules, dict):
+        return None
+    count = sum(
+        1
+        for item in modules.values()
+        if isinstance(item, dict) and item.get("type") == DOUBLET_TYPE
+    )
+    return count or None
+
+
 def design_facts(design: dict[str, Any]) -> dict[str, Any]:
     """Return the doublet count and well depth a design states, when it states them."""
     size = (design.get("size") or {}).get("doublets") or {}
     params = design.get("params") or {}
     depth = params.get("depth") or (params.get("d0") or {}).get("depth") or {}
     return {
-        "doublets": size.get("value"),
+        "doublets": size.get("value") or counted_doublets(design),
         "depth": depth.get("value"),
         "depth_unit": depth.get("unit"),
     }

@@ -6,6 +6,16 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.111] - 2026-11-05
+
+- QA-241: a free plant's `structure` keeps the plant-level params (`dispatch`, `outages`,
+  `backup`), as gemini writes them on a plant without a class; the Plant page no longer shows
+  them missing and a save keeps them.
+- QA-244: `doublets` of a result whose plant has no class size counts its `Doublet` modules (a
+  superstructure's `d0`, `d1`: 2).
+- QA-249 (additive): every run of `GET /assistant/runs` has `prompt`, the user's message that
+  started it.
+
 ## [1.1.110] - 2026-11-05
 
 - QA-237: an assistant run no longer saves the designs it builds, changes or simulates as plant

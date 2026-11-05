@@ -35,6 +35,16 @@ class MessageRepository(BaseRepository):
         )
         return await self.session.scalar(statement.limit(1))
 
+    async def texts_for_runs(self, run_ids: list[UUID], role: str) -> dict[UUID, str]:
+        """Return the text of each run's message of a role, by run id."""
+        if not run_ids:
+            return {}
+        statement = select(Message).where(
+            Message.run_id.in_(run_ids), Message.role == role
+        )
+        rows = await self.session.scalars(statement)
+        return {row.run_id: row.content for row in rows}
+
     async def list_page(self, chat_id: UUID, page: PageRequest) -> list[Message]:
         """List messages, oldest first."""
         statement = select(Message).where(Message.chat_id == chat_id)

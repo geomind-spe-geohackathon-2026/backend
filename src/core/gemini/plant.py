@@ -317,7 +317,20 @@ def free_document(plant: gm.Plant) -> dict[str, Any]:
         for key, value in document["params"].items()
         if key in document["modules"]
     }
+    free["params"].update(plant_level_params(plant))
     return free
+
+
+def plant_level_params(plant: gm.Plant) -> dict[str, Any]:
+    """Return the plant's own stated params (``dispatch``, ``outages``, ``backup``) as gemini
+    writes them on a plant without a class (QA-241): dropping them showed values missing on the
+    Plant page and a save lost them."""
+    base = gm.Plant()
+    for name, _ in base.named_parameters():
+        value = getattr(plant, name, None)
+        if value is not None:
+            setattr(base, name, value)
+    return base.to_dict(structure=True).get("params") or {}
 
 
 def structure(plant: gm.Plant) -> dict[str, list[dict[str, Any]]]:
