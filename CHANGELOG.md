@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.57] - 2026-11-05
+
+- Agent tools step 2: geomind 0.4.57 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.57-py3-none-any.whl`):
+  `run_python` (effect `execute`) in the docker sandbox the worker starts (`ASSISTANT_SANDBOX=docker`,
+  `GEOMIND_SANDBOX_*`); `build_sandbox` now passes `gd.sandbox.DockerSandbox()`.
+
 ## [1.1.56] - 2026-11-05
 
 - Agent tools step 1: geomind 0.4.56 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.56-py3-none-any.whl`):
