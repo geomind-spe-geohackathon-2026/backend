@@ -338,7 +338,11 @@ async def test_workspace_lists_every_plant_version_and_study(
     assert found["studies"][1]["settings"] == {"method": "minimize"}
     assert opened == other
     assert absent is None
-    assert empty == {"plants": [], "studies": []}
+    assert [item["name"] for item in found["results"]] == [result["name"]]
+    assert found["results"][0]["id"] == result["id"]
+    assert found["results"][0]["created"]
+    assert found["results"][0]["kpis"] == result["kpis"]
+    assert empty == {"plants": [], "studies": [], "results": []}
     json.dumps(found)
 
     await workspace.warm(project_id)

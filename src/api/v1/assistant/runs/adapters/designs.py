@@ -1,7 +1,8 @@
 """The project's plant versions and studies, read-only, for the agents (QA-122).
 
 geomind's ``project_designs`` lists every saved plant version and every study of the project
-with its result's KPIs and checks, beside the designs of the chat; ``plant_version`` opens one
+with its result's KPIs and checks, and every result of the project newest first (QA-294: the
+agents could not find a result made in another chat), beside the designs of the chat; ``plant_version`` opens one
 saved plant so an agent can compare alternatives.
 """
 
@@ -48,6 +49,12 @@ def result_entry(result: Result | None) -> dict[str, Any] | None:
     }
 
 
+def listed_result(result: Result) -> dict[str, Any]:
+    """Return one project result with its creation time (QA-294)."""
+    entry = result_entry(result) or {}
+    return {**entry, "created": result.created.isoformat()}
+
+
 def study_entry(study: Study, result: Result | None) -> dict[str, Any]:
     return {
         "id": str(study.id),
@@ -76,12 +83,13 @@ async def read_designs(
     """Return ``project_designs`` and every plant version's content by number."""
     plants = await PlantVersionRepository(session).all_versions(project_id)
     studies = await StudyRepository(session).all_for_project(project_id)
-    results = newest_by_study(
-        await ResultRepository(session).all_for_project(project_id)
-    )
+    every = await ResultRepository(session).all_for_project(project_id)
+    results = newest_by_study(every)
     latest = plants[-1].number if plants else 0
+    newest_first = sorted(every, key=lambda item: (item.created, str(item.id)), reverse=True)
     designs = {
         "plants": [plant_entry(row, latest) for row in plants],
         "studies": [study_entry(item, results.get(item.id)) for item in studies],
+        "results": [listed_result(item) for item in newest_first],
     }
     return designs, {row.number: row.content for row in plants}
