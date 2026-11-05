@@ -318,3 +318,26 @@ def run_totals(
         given["cost"] = amount(total.get("cost"))
     known = {key: value for key, value in given.items() if value is not None}
     return {**summed, **known}
+
+
+def stored_totals(stored: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return a run's input and output tokens and cost from its stored events (QA-231).
+
+    The same figures as ``run_totals`` of ``agent_sessions``, without the context windows.
+    """
+    tallies, summary = tally_sessions(mapping(item) for item in stored)
+    apply_summary(tallies, summary)
+    sessions = list(tallies.values())
+    summed = {
+        "input_tokens": sum(item["input_tokens"] for item in sessions),
+        "output_tokens": sum(item["output_tokens"] for item in sessions),
+        "cost": sum(item["cost"] for item in sessions),
+    }
+    total = mapping((summary or {}).get("total"))
+    for name in ("input_tokens", "output_tokens"):
+        value = number(total.get(name))
+        if value is not None:
+            summed[name] = value
+    if "cost" in total:
+        summed["cost"] = amount(total.get("cost"))
+    return summed

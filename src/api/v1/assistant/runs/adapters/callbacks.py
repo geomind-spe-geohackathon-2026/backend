@@ -13,10 +13,12 @@ from src.core.clients.postgres.repositories.case_version import (
 )
 from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.clients.postgres.repositories.run import RunRepository
+from src.core.clients.postgres.repositories.run_event import RunEventRepository
 from src.core.clients.postgres.repositories.run_artifact import (
     RunArtifactRepository,
 )
 from src.core.clients.postgres.repositories.study import StudyRepository
+from src.api.v1.assistant.runs.adapters.sessions import stored_totals
 from src.core.clients.redis.models.run_delta import PendingDelta
 from src.core.clients.redis.repositories.run_delta import RunDeltaRepository
 from src.core.geomind.windows import window_of
@@ -187,17 +189,26 @@ class UsageTree:
         self.root = run_id.hex
         self.own: dict[str, dict[str, Any]] = {self.root: dict.fromkeys(USAGE_KEYS, 0)}
         self.parents: dict[str, str] = {}
+        self.peak: dict[str, Any] = dict.fromkeys(USAGE_KEYS, 0)
 
-    def add(self, event: Any) -> dict[str, Any] | None:
-        """Take a ``usage`` event; return the tree's totals when a nested one changed them."""
+    def add(self, event: Any) -> dict[str, Any]:
+        """Take a ``usage`` event; return the tree's totals, never below an earlier return.
+
+        The root's own ``usage`` holds only the nested runs that ended, so it is below the
+        tree's sum while children run (QA-231: 2.24 M fell to 0.65 M input tokens); a run
+        resumed after a restart sends its totals again from a lower point. Each key keeps the
+        highest value given so far.
+        """
         totals = {key: getattr(event, key, 0) or 0 for key in USAGE_KEYS}
         if event.parent is None:
             self.own[self.root] = totals
-            return None
-        run = str(event.run_id).replace("-", "")
-        self.own[run] = totals
-        self.parents[run] = str(event.parent).replace("-", "")
-        return self.total(self.root)
+        else:
+            run = str(event.run_id).replace("-", "")
+            self.own[run] = totals
+            self.parents[run] = str(event.parent).replace("-", "")
+        found = self.total(self.root)
+        self.peak = {key: max(self.peak[key], found[key]) for key in USAGE_KEYS}
+        return dict(self.peak)
 
     def total(self, run: str) -> dict[str, Any]:
         """Return the totals of a run and everything below it."""
@@ -238,9 +249,10 @@ class EventPublisher(gd.callbacks.Callback):
             await publish_event_async(
                 self.redis, self.channel, StreamEvent(ANSWER, answered, event.sequence)
             )
+        totals = None
         if event.type == USAGE:
             totals = self.usage.add(event)
-            if totals is not None:
+            if event.parent is not None:
                 tree = {"agent": self.root_agent, "parent": None, **totals}
                 await publish_event_async(
                     self.redis, self.channel, StreamEvent(USAGE, tree, None)
@@ -260,6 +272,8 @@ class EventPublisher(gd.callbacks.Callback):
             await self.forget(event)
             sequence = event.sequence
         data = self.problems.public(event)
+        if totals is not None and event.parent is None:
+            data = {**data, **totals}
         if event.type == "run.finished":
             data = refused_finish(data)
         stream_event = StreamEvent(event.type, data, sequence)
@@ -307,15 +321,21 @@ async def set_values(
             values = {k: v for k, v in values.items() if k not in ("status", "request")}
             if not values:
                 return
+        values = never_lower(run, values)
         await RunRepository(session).update(run, values)
 
 
-def usage_columns(event: Any) -> dict[str, Any]:
-    return {
-        "input_tokens": event.input_tokens,
-        "output_tokens": event.output_tokens,
-        "cost": event.cost,
-    }
+def never_lower(run: Any, values: dict[str, Any]) -> dict[str, Any]:
+    """Return the values with no usage figure below the row's (QA-231).
+
+    A run's usage only grows; a worker that resumes a run after a restart starts its tree
+    again from what geomind sends, which can be below what the row already holds.
+    """
+    kept = dict(values)
+    for key in USAGE_KEYS:
+        if key in kept and kept[key] is not None:
+            kept[key] = max(kept[key], getattr(run, key, 0) or 0)
+    return kept
 
 
 PROVIDER_REFUSED = "provider_refused"
@@ -409,22 +429,30 @@ class RunRecorder(gd.callbacks.Callback):
     async def on_event(self, engine: Any, event: Any) -> None:
         """Write the columns an event changes."""
         values = self.columns(event)
+        if event.type == "run.finished" and event.parent is None:
+            values = {**values, **await self.stored_usage()}
         if values:
             await set_values(self.factory, self.run_id, values)
+
+    async def stored_usage(self) -> dict[str, Any]:
+        """Return the run's usage summed over every stored session, as /agents gives it.
+
+        A run resumed after a restart ended below its agents' total (QA-231: 5.18 M vs
+        5.56 M input tokens); the stored events hold every session's calls.
+        """
+        async with self.factory() as session:
+            rows = await RunEventRepository(session).after(self.run_id, -1)
+        return stored_totals([row.data for row in rows])
 
     def columns(self, event: Any) -> dict[str, Any]:
         if event.type == "request":
             return {"status": "waiting", "request": event.data()}
         if event.type == USAGE:
-            totals = self.usage.add(event)
-            if totals is not None:
-                return totals
+            return self.usage.add(event)
         if event.parent is not None:
             return {}
         if event.type == "run.started" and event.loop is not None:
             return {"loop": event.loop}
-        if event.type == "usage":
-            return usage_columns(event)
         if event.type == "run.finished":
             return finish_columns(event)
         return {}

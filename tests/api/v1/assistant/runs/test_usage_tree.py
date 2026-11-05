@@ -33,3 +33,44 @@ def test_an_ended_child_is_not_counted_twice():
     tree.add(usage(one, lead, 100))
     tree.add(usage(lead, root, 120))
     assert tree.add(usage(one, lead, 100))["input_tokens"] == 120
+
+
+def test_the_root_usage_never_takes_the_total_down():
+    """QA-231: the root's own usage counts only ended children, below the tree's sum."""
+    root, lead = uuid4(), uuid4()
+    tree = UsageTree(root)
+    assert tree.add(usage(lead, root, 2_000))["input_tokens"] == 2_000
+    assert tree.add(usage(root, None, 600))["input_tokens"] == 2_000
+    assert tree.add(usage(lead, root, 2_500))["input_tokens"] == 2_500
+
+
+def test_a_resumed_tree_never_goes_below_what_it_gave():
+    root, lead = uuid4(), uuid4()
+    tree = UsageTree(root)
+    tree.add(usage(lead, root, 900))
+    assert tree.add(usage(lead, root, 100))["input_tokens"] == 900
+
+
+def test_the_row_usage_never_goes_down():
+    from src.api.v1.assistant.runs.adapters.callbacks import never_lower
+
+    row = SimpleNamespace(input_tokens=5_000, output_tokens=10, cost=0.2)
+    kept = never_lower(row, {"input_tokens": 600, "output_tokens": 20, "cost": 0.1, "loop": 1})
+    assert kept == {"input_tokens": 5_000, "output_tokens": 20, "cost": 0.2, "loop": 1}
+
+
+def test_stored_totals_sum_every_session():
+    from src.api.v1.assistant.runs.adapters.sessions import stored_totals
+
+    def call(run, tokens, cost):
+        return {
+            "type": "llm.completed",
+            "run_id": run,
+            "index": 0,
+            "completion": {"usage": {"input_tokens": tokens, "output_tokens": 1, "cost": cost}},
+        }
+
+    totals = stored_totals([call("a", 100, 0.1), call("b", 50, 0.05), call("a", 10, 0.0)])
+    assert totals["input_tokens"] == 160
+    assert totals["output_tokens"] == 3
+    assert round(totals["cost"], 2) == 0.15
