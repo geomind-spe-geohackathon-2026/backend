@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.89] - 2026-11-05
+
+- geomind 0.4.86 and gemini 0.6.14 as local wheels. 0.4.86: QA-125 (`read_result` gives a
+  series summary: peak and low with their day, active days; a module's operating days and
+  energy), QA-124 (requirement values from `check_results`), QA-123 (with gemini 0.6.14 an
+  exchanger rated in W/K is no longer reported as unused).
+
 ## [1.1.88] - 2026-11-05
 
 - geomind 0.4.85 as a local wheel (with gemini 0.6.13). 0.4.85: QA-119 (reference depth moved alone is flagged), QA-120 (8 for 8 % refused). 0.4.84: read_rag by section (outline, section), knowledge hits name their section. 0.4.83: IMP-016 (a requirement failing
