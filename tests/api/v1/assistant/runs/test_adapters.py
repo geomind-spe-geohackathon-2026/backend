@@ -895,3 +895,30 @@ def test_the_run_token_cap_may_be_off(monkeypatch) -> None:
     assert build_run_cap() == []
     monkeypatch.setattr(settings, "ASSISTANT_RUN_MAX_TOKENS", 5)
     assert isinstance(build_run_cap()[0], gd.hooks.TokenBudget)
+
+
+async def test_workspace_saves_a_plant_version_for_the_run_user(
+    session_factory, session, make_user, make_project, make_chat, make_run, blobs
+) -> None:
+    """QA-312: the chat makes a design the project plant; the same plant again saves nothing."""
+    owner = await make_user()
+    project = await make_project(owner)
+    run = await make_run(await make_chat(project, owner), owner)
+    bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+    workspace = DatabaseWorkspace(bridge, blobs, run.id.hex)
+    project_id = str(project.id)
+    adopted = {**example_plant(), "name": "Adopted"}
+
+    first = await asyncio.to_thread(
+        workspace.save_plant_version, project_id, adopted, "Adopted from study/best"
+    )
+    again = await asyncio.to_thread(
+        workspace.save_plant_version, project_id, adopted, "Adopted again"
+    )
+
+    assert first == {"version": 1, "saved": True}
+    assert again == {"version": 1, "saved": False}
+    latest = await PlantVersionRepository(session).latest_version(project.id)
+    assert (latest.note, latest.author_id) == ("Adopted from study/best", owner.id)
+    designs = await asyncio.to_thread(workspace.project_designs, project_id)
+    assert [item["version"] for item in designs["plants"]] == [1]

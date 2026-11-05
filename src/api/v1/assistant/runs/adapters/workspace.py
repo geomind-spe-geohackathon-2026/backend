@@ -29,7 +29,12 @@ from src.core.clients.postgres.repositories.project import ProjectRepository
 from src.core.clients.postgres.repositories.rag_document import RagDocumentRepository
 from src.core.geomind.mcp import server_record
 from src.core.mcp_servers import server_of
+from src.core.clients.postgres.repositories.activity import ActivityRepository
+from src.core.clients.postgres.repositories.run import RunRepository
+from src.core.clients.postgres.repositories.version import content_digest
+from src.core.gemini import plant as plant_document
 from src.core.progress.project_state import project_state
+from src.core.routes import PLANT_ROUTE
 
 DEFAULT_PLANT_NAME = "plant"
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
@@ -82,6 +87,42 @@ async def read_files(session: AsyncSession, project_id: UUID) -> list[RagDocumen
 
 def to_media_type(name: str) -> str:
     return mimetypes.guess_type(name)[0] or UNKNOWN_MEDIA_TYPE
+
+
+ADOPT_ACTOR_KIND = "agent"
+ADOPT_ACTOR_NAME = "assistant"
+
+
+async def save_plant_version(
+    session: AsyncSession,
+    project_id: UUID,
+    run_id: UUID,
+    plant: dict[str, Any],
+    note: str,
+) -> dict[str, Any]:
+    """Save a plant as the project's next version for a run's user (QA-312).
+
+    The plant is checked as a save from the Plant page checks it (``plant_invalid`` else); a
+    plant equal to the latest version saves nothing.
+    """
+    content = await asyncio.to_thread(plant_document.validate_content, plant)
+    versions = PlantVersionRepository(session)
+    latest = await versions.latest_version(project_id)
+    if latest is not None and latest.digest == content_digest(content):
+        return {"version": latest.number, "saved": False}
+    run = await RunRepository(session).get_by_id(run_id)
+    if run is None:
+        raise LookupError(f"save_plant_version: run {run_id} not found")
+    version = await versions.save_version(project_id, content, note, run.author_id)
+    await ActivityRepository(session).add(
+        project_id,
+        ADOPT_ACTOR_KIND,
+        ADOPT_ACTOR_NAME,
+        f"Saved plant version {version.number}",
+        PLANT_ROUTE,
+        str(version.number),
+    )
+    return {"version": version.number, "saved": True}
 
 
 class DatabaseWorkspace:
@@ -218,6 +259,31 @@ class DatabaseWorkspace:
     def plant_version(self, project_id: str, version: int) -> dict[str, Any] | None:
         """Return a saved plant version as gemini's ``to_dict`` wrote it, or ``None``."""
         return self.designs_of(project_id)[1].get(version)
+
+    def save_plant_version(
+        self, project_id: str, plant: dict[str, Any], note: str
+    ) -> dict[str, Any]:
+        """Save ``plant`` as the project's next plant version; return ``{version, saved}``.
+
+        The run's user is the author (QA-312: the chat could not make a design the project
+        plant). A plant equal to the latest version saves nothing: ``saved`` is false and
+        ``version`` the latest. A new version refreshes the copies of the plants and designs.
+        """
+        if self.run_id is None:
+            raise LookupError("save_plant_version: this workspace has no run")
+        saved = self.bridge.call(
+            save_plant_version, UUID(project_id), UUID(self.run_id), plant, note
+        )
+        if saved["saved"]:
+            self.refresh_plants(project_id)
+        return saved
+
+    def refresh_plants(self, project_id: str) -> None:
+        """Read the project's plants and designs again into the copies the loop reads."""
+        plants = self.bridge.call(read_plants, UUID(project_id))
+        if project_id in self.warmed:
+            self.warmed[project_id] = (plants, self.warmed[project_id][1])
+        self.designs[project_id] = self.bridge.call(read_designs, UUID(project_id))
 
     def case(
         self,
