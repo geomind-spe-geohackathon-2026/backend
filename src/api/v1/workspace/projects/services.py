@@ -141,7 +141,16 @@ async def create_project(
     files: CaseFileRepository,
     blobs: BlobStore,
 ) -> schemas.Project:
-    """Create a project, empty or with a copy of another project's latest case."""
+    """Create a project, empty or with a copy of another project's latest case.
+
+    A project created without a choice of MCP servers gets every enabled one, so its agents
+    reach the connectors the admin switched on (QA-255); an empty list keeps none.
+    """
+    if payload.mcp is None:
+        servers = await McpServerRepository(repository.session).list_all()
+        payload = payload.model_copy(
+            update={"mcp": [item.id for item in servers if item.enabled]}
+        )
     if payload.case_from is None:
         project = await repository.create(payload.name, user.id)
         project = await apply_choices(project, payload, repository)
