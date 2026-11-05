@@ -32,12 +32,21 @@ CASE_PATH = "/case"
 SETTING_OPS = ("add", "replace")
 CASE_ARTIFACT = "case/"
 DESIGN_ARTIFACT = "design/"
-PLANT_TOOLS = ("build_plant",)
+PLANT_TOOLS = {
+    "build_plant": "built",
+    "patch_plant": "changed",
+    "merge_designs": "changed",
+    "set_ranges": "changed",
+    "size_plant": "sized",
+    "optimize": "optimised",
+}
+SIMULATE_TOOL = "simulate"
+SIMULATED = "simulated"
 FROM_TOOL = "tool"
 ACTOR_KIND = "agent"
 ACTOR_NAME = "assistant"
 CASE_NOTE = "Case set by the assistant"
-PLANT_NOTE = "Plant {name} built by the assistant"
+PLANT_NOTE = "Plant {name} {how} by the assistant"
 
 logger = logging.getLogger(__name__)
 
@@ -61,23 +70,39 @@ def accepted_case(event: Any) -> dict[str, Any] | None:
     return found
 
 
-def stored_design(event: Any) -> str | None:
-    """Return the ``design/<name>`` a successful ``build_plant`` stored, or ``None``."""
-    if event.type != TOOL_RECORDED or event.tool not in PLANT_TOOLS:
+def stored_design(event: Any) -> tuple[str, str] | None:
+    """Return the ``design/<name>`` a tool stored or simulated, and how, or ``None``.
+
+    A tool that stores one design under its ``name`` input (build, patch, merge,
+    ranges, sizing, optimisation), or ``simulate`` on a stored ``design``, makes that
+    design the project plant: the plant the agents work on is the one the Plant,
+    Study and Results pages show (QA-092: only ``build_plant`` was saved, so a
+    patched, simulated design never reached the Plant page). ``union_designs``
+    stores a superstructure for evolve, not a plant, and saves nothing.
+    """
+    if event.type != TOOL_RECORDED or event.is_error or event.source != FROM_TOOL:
         return None
-    if event.is_error or event.source != FROM_TOOL:
+    given = event.input or {}
+    if event.tool == SIMULATE_TOOL:
+        design = given.get("design")
+        if isinstance(design, str) and design.startswith(DESIGN_ARTIFACT):
+            return design, SIMULATED
         return None
-    name = (event.input or {}).get("name")
-    return f"{DESIGN_ARTIFACT}{name}" if isinstance(name, str) and name else None
+    how = PLANT_TOOLS.get(event.tool)
+    name = given.get("name")
+    if how is None or not isinstance(name, str) or not name:
+        return None
+    return f"{DESIGN_ARTIFACT}{name}", how
 
 
 class VersionRecorder(gd.callbacks.Callback):
     """Save the case and the plant a run settles as the project's next versions.
 
     A case gemini accepted (``state.changed`` on ``/case``) becomes a case version with
-    the files it names; a plant ``build_plant`` stored becomes a plant version. Content
-    equal to the latest version saves nothing. It writes with its own async sessions
-    on the event loop, as ``StudyRecorder`` does, and runs gemini off the loop.
+    the files it names; a design a plant tool stored or ``simulate`` ran becomes a
+    plant version. Content equal to the latest version saves nothing. It writes with
+    its own async sessions on the event loop, as ``StudyRecorder`` does, and runs
+    gemini off the loop.
     """
 
     def __init__(
@@ -100,9 +125,9 @@ class VersionRecorder(gd.callbacks.Callback):
         if content is not None:
             await self.guarded(self.save_case(content))
             return
-        design = stored_design(event)
-        if design is not None:
-            await self.guarded(self.save_plant(design))
+        stored = stored_design(event)
+        if stored is not None:
+            await self.guarded(self.save_plant(*stored))
 
     async def guarded(self, saving: Any) -> None:
         try:
@@ -155,7 +180,7 @@ class VersionRecorder(gd.callbacks.Callback):
                 CASE_ROUTE,
             )
 
-    async def save_plant(self, design: str) -> None:
+    async def save_plant(self, design: str, how: str) -> None:
         async with self.factory() as session:
             row = await RunArtifactRepository(session).newest_for_chat(
                 self.chat_id, design
@@ -169,7 +194,10 @@ class VersionRecorder(gd.callbacks.Callback):
                 return
             name = design.removeprefix(DESIGN_ARTIFACT)
             version = await versions.save_version(
-                self.project_id, content, PLANT_NOTE.format(name=name), self.author_id
+                self.project_id,
+                content,
+                PLANT_NOTE.format(name=name, how=how),
+                self.author_id,
             )
             await ActivityRepository(session).add(
                 self.project_id,

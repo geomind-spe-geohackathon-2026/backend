@@ -28,7 +28,12 @@ def case_set(content: dict[str, Any]) -> Any:
     )
 
 
-def plant_built(name: str, is_error: bool = False, tool: str = "build_plant") -> Any:
+def plant_built(
+    name: str,
+    is_error: bool = False,
+    tool: str = "build_plant",
+    given: dict[str, Any] | None = None,
+) -> Any:
     return gd.event_from_dict(
         {
             **BASE,
@@ -36,7 +41,7 @@ def plant_built(name: str, is_error: bool = False, tool: str = "build_plant") ->
             "index": 3,
             "call_id": "c1",
             "tool": tool,
-            "input": {"name": name, "plant": {}},
+            "input": {"name": name, "plant": {}} if given is None else given,
             "output": {"design": f"design/{name}"},
             "is_error": is_error,
         }
@@ -140,3 +145,30 @@ async def test_a_failed_build_or_another_tool_saves_no_plant(
     await recorder.on_event(None, plant_built("missing"))
 
     assert await PlantVersionRepository(session).latest_version(project.id) is None
+
+
+async def test_a_patched_or_simulated_design_becomes_the_project_plant(
+    session_factory, session, blobs, make_user, make_project, make_chat
+) -> None:
+    """QA-092: the design the agents patched and simulated is the project plant."""
+    _, project, chat, recorder = await recorder_for(
+        session_factory, blobs, make_user, make_project, make_chat
+    )
+    first = gm.Plant.from_dict(example_plant()).to_dict(structure=True)
+    renamed = {**example_plant(), "name": "gas_free"}
+    patched = gm.Plant.from_dict(renamed).to_dict(structure=True)
+    await save_artifact(session_factory, chat.id, "design/first", first)
+    await save_artifact(session_factory, chat.id, "design/gas_free", patched)
+
+    await recorder.on_event(None, plant_built("gas_free", tool="patch_plant"))
+    await recorder.on_event(
+        None, plant_built("", tool="simulate", given={"design": "design/first"})
+    )
+    await recorder.on_event(None, plant_built("", tool="simulate", given={}))
+    await recorder.on_event(None, plant_built("first", tool="union_designs"))
+
+    rows = await PlantVersionRepository(session).list_versions(project.id)
+    assert [(row.number, row.note) for row in rows] == [
+        (1, "Plant gas_free changed by the assistant"),
+        (2, "Plant first simulated by the assistant"),
+    ]

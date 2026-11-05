@@ -6,6 +6,16 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.82] - 2026-11-05
+
+- QA-092: the agent's design reaches the Plant page. Before, only `build_plant` saved a plant
+  version, so a design the agents patched (`patch_plant`) and simulated stayed in the chat's
+  `design/<name>` store and the Plant, Study and Results pages kept the old plant. Now a
+  successful `patch_plant`, `merge_designs`, `set_ranges`, `size_plant` or `optimize` saves the
+  design it stored, and `simulate` on a stored design saves that design, as the project's next
+  plant version (equal content saves nothing). `union_designs` (an evolve superstructure) saves
+  none. Hotfix mode: only test_versions and test_no_comments ran.
+
 ## [1.1.81] - 2026-11-05
 
 - QA-088: when an agent study is recorded, each simulated run in its artifact's `runs` (geomind
