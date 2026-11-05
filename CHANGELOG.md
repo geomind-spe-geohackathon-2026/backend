@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.91] - 2026-11-05
+
+- QA-136: the report's "Agent log and tokens" writes tokens and cost as Runs and logs does
+  (`14.8 M`, `625 K`, `0.46 USD`), no longer raw numbers.
+
 ## [1.1.90] - 2026-11-05
 
 - QA-122: the agents' Workspace gets two read-only methods. `project_designs(project)` lists every

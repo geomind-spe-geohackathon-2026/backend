@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.api.v1.reporting.design import services
 from src.core.clients.postgres.models.project import Project
 from src.core.clients.postgres.models.result import Result
 from src.core.clients.postgres.repositories.activity import ActivityRepository
@@ -168,6 +169,15 @@ async def test_agent_log_describes_the_chosen_run(
     )
 
     assert "Status: queued" in response.json()["sections"][0]["markdown"]
+    assert "Cost: 0.00 USD" in response.json()["sections"][0]["markdown"]
+
+
+def test_token_counts_read_like_runs_and_logs() -> None:
+    assert services.token_count(14_837_406) == "14.8 M"
+    assert services.token_count(625_009) == "625 K"
+    assert services.token_count(1_500) == "1.5 K"
+    assert services.token_count(999_700) == "1 M"
+    assert services.token_count(312) == "312"
 
 
 async def test_unknown_result_and_run_are_not_found(

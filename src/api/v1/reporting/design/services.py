@@ -266,15 +266,23 @@ def appendix_markdown(result: Result) -> str:
     return "\n\n".join(filter(None, [sizes, design_table(plant)]))
 
 
+def token_count(count: int) -> str:
+    """Write a token count as Runs and logs does: ``14.8 M``, ``625 K`` (QA-136)."""
+    for size, unit in ((1_000_000, "M"), (1_000, "K")):
+        if count >= size - size // 2000:
+            return f"{count / size:.3g} {unit}"
+    return str(count)
+
+
 def agentlog_markdown(run: Run | None) -> str:
     if run is None:
         return "No assistant run was chosen."
     return "\n".join(
         [
             f"- Status: {run.status}",
-            f"- Input tokens: {run.input_tokens}",
-            f"- Output tokens: {run.output_tokens}",
-            f"- Cost: {run.cost}",
+            f"- Input tokens: {token_count(run.input_tokens)}",
+            f"- Output tokens: {token_count(run.output_tokens)}",
+            f"- Cost: {run.cost:.2f} USD",
         ]
     )
 
