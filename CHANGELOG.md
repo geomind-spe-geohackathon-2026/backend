@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.64] - 2026-11-05
+
+- QA-069: geomind 0.4.62 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.62-py3-none-any.whl`):
+  `set_case` returns `plants_need`, the case values the project's plants still lack.
+
 ## [1.1.63] - 2026-11-05
 
 - Agent tools step 4: geomind 0.4.61 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.61-py3-none-any.whl`):
