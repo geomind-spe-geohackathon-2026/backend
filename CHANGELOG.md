@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.83] - 2026-11-05
+
+- Held batch: geomind 0.4.78 and gemini 0.6.12 as local wheels (`.tmp/hotfix-wheels/`):
+  QA-074 (constant g, m/s2 and kg/m2), QA-079 (typed approve-all, approved items settled), QA-084
+  (no subsidy recommended), QA-085 (country rows labelled), QA-086 (auto mode continues at the
+  step limit), QA-088 (full runs in agent study records), gemini request 35 (ESP curve windows).
+
 ## [1.1.82] - 2026-11-05
 
 - QA-092: the agent's design reaches the Plant page. Before, only `build_plant` saved a plant
