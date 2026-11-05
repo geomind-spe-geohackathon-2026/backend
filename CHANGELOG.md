@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.56] - 2026-11-05
+
+- Agent tools step 1: geomind 0.4.56 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.56-py3-none-any.whl`):
+  skills folder with roles and the `calculate` tool (effect `compute`); its result is kept in the
+  problem state's new `calculations` list.
+
 ## [1.1.55] - 2026-11-05
 
 - Agent tools (feature agent-tools-2026-11-05): the worker container gets the docker CLI and the
