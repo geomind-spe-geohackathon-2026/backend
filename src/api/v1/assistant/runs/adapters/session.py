@@ -112,14 +112,16 @@ def build_environment(
     simulations = SimulationRecorder(
         resources.factory, run.id, run.chat_id, run.project_id
     )
+    store = DatabaseRunStore(bridge, run.id, run.chat_id)
     publisher = EventPublisher(
         resources.redis,
         channel,
         run.id,
         settings.ASSISTANT_DELTA_TTL_SECONDS,
+        store.stored_sequence,
     )
     return Environment(
-        store=DatabaseRunStore(bridge, run.id, run.chat_id),
+        store=store,
         workspace=DatabaseWorkspace(bridge, blobs, run.id.hex),
         callbacks=[recorder, versions, studies, simulations, publisher],
         is_cancelled=lambda: resources.jobs.is_cancel_requested(str(run.id)),

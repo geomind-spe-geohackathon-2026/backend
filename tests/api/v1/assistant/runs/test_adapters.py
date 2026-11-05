@@ -922,3 +922,36 @@ async def test_workspace_saves_a_plant_version_for_the_run_user(
     assert (latest.note, latest.author_id) == ("Adopted from study/best", owner.id)
     designs = await asyncio.to_thread(workspace.project_designs, project_id)
     assert [item["version"] for item in designs["plants"]] == [1]
+
+
+async def test_an_event_numbered_below_the_stored_ones_is_stored_next(
+    session_factory, make_user, make_project, make_chat, make_run
+) -> None:
+    """QA-336: a resumed run that numbers from below the log still stores in a rising order."""
+    from src.core.clients.postgres.repositories.run_event import RunEventRepository
+
+    owner = await make_user()
+    run = await make_run(await make_chat(await make_project(owner), owner), owner)
+    bridge = LoopBridge(asyncio.get_running_loop(), session_factory)
+    store = DatabaseRunStore(bridge, run.id, run.chat_id)
+    root = run.id.hex
+
+    def step(sequence: int) -> Any:
+        return gd.event_from_dict(
+            {"type": "step.started", "run_id": root, "sequence": sequence, "index": sequence}
+        )
+
+    late = step(5)
+    for event in (step(1), step(9), late):
+        await asyncio.to_thread(store.save_event, root, event)
+    fresh = DatabaseRunStore(bridge, run.id, run.chat_id)
+    after_restart = step(3)
+    await asyncio.to_thread(fresh.save_event, root, after_restart)
+
+    async with session_factory() as session:
+        rows = await RunEventRepository(session).after(run.id, -1)
+    assert [row.sequence for row in rows] == [1, 9, 10, 11]
+    assert [row.data["sequence"] for row in rows] == [1, 9, 10, 11]
+    assert store.stored_sequence(late) == 10
+    assert fresh.stored_sequence(after_restart) == 11
+    assert store.stored_sequence(step(1)) == 1

@@ -280,8 +280,16 @@ class EventPublisher(gd.callbacks.Callback):
     kept in a short-lived buffer for reconnects until its step finishes.
     """
 
-    def __init__(self, redis: Redis, channel: str, run_id: UUID, ttl: int) -> None:
+    def __init__(
+        self,
+        redis: Redis,
+        channel: str,
+        run_id: UUID,
+        ttl: int,
+        sequence_of: Any = None,
+    ) -> None:
         self.redis = redis
+        self.sequence_of = sequence_of or (lambda event: event.sequence)
         self.channel = channel
         self.run_id = str(run_id)
         self.ttl = ttl
@@ -299,7 +307,7 @@ class EventPublisher(gd.callbacks.Callback):
         answered = self.answers.note(event)
         if answered is not None:
             await publish_event_async(
-                self.redis, self.channel, StreamEvent(ANSWER, answered, event.sequence)
+                self.redis, self.channel, StreamEvent(ANSWER, answered, self.sequence_of(event))
             )
         totals = None
         if event.type == USAGE:
@@ -324,7 +332,7 @@ class EventPublisher(gd.callbacks.Callback):
             sequence = None
         else:
             await self.forget(event)
-            sequence = event.sequence
+            sequence = self.sequence_of(event)
         data = self.problems.public(event)
         if totals is not None and event.parent is None:
             data = {**data, **totals}

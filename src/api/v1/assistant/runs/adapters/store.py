@@ -1,8 +1,11 @@
 import asyncio
+import logging
+from collections import OrderedDict
 from typing import Any
 from uuid import UUID
 
 import geomind as gd
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.assistant.runs.adapters.bridge import LoopBridge
@@ -25,6 +28,19 @@ async def add_event(
     data: dict[str, Any],
 ) -> None:
     await RunEventRepository(session).add(run_id, sequence, event_type, public, data)
+
+
+logger = logging.getLogger(__name__)
+RENUMBERED_KEPT = 512
+"""The renumbered events a store remembers for its callbacks, the newest."""
+
+
+async def read_last_sequence(session: AsyncSession, run_id: UUID) -> int:
+    """Return the highest stored sequence of a run, 0 for none."""
+    from src.core.clients.postgres.models.run_event import RunEvent
+
+    statement = select(func.max(RunEvent.sequence)).where(RunEvent.run_id == run_id)
+    return await session.scalar(statement) or 0
 
 
 async def read_events(session: AsyncSession, run_id: UUID) -> list[dict[str, Any]]:
@@ -125,6 +141,8 @@ class DatabaseRunStore:
         self.chat_id = chat_id
         self.warmed: dict[str, list[Any]] = {}
         self.warmed_artifacts: dict[str, Any] = {}
+        self.last: dict[str, int] = {}
+        self.renumbered: OrderedDict[int, int] = OrderedDict()
 
     async def warm(self, run_id: str) -> None:
         """Read a run's events ahead of the run, which reads them on the loop.
@@ -133,6 +151,9 @@ class DatabaseRunStore:
         event of the run.
         """
         self.warmed[run_id] = list(await asyncio.to_thread(self.load_events, run_id))
+        self.last[run_id] = max(
+            (event.sequence for event in self.warmed[run_id]), default=0
+        )
 
     async def warm_chat(self, chat_id: str) -> None:
         """Read a chat's artifacts ahead of the run: geomind's async tools read them.
@@ -145,17 +166,49 @@ class DatabaseRunStore:
         )
 
     def save_event(self, run_id: str, event: Any) -> None:
-        """Store the full ``event.to_dict()``, public or internal."""
+        """Store the full ``event.to_dict()``, public or internal, in a rising sequence.
+
+        A run resumed after a restart numbered its new events from below the stored ones
+        (QA-336: request-797 was stored after event 943), so the stream and every reader that
+        goes by sequence put the question in the past and the chat never showed its card. An
+        event that would not come after the stored ones is stored as the next sequence; the
+        callbacks read that number with ``stored_sequence``.
+        """
+        sequence = self.next_sequence(run_id, event)
+        data = event.to_dict()
+        if sequence != event.sequence:
+            logger.warning(
+                "Run %s: event %s numbered %s after %s; stored as %s",
+                run_id, event.type, event.sequence, sequence - 1, sequence,
+            )
+            data["sequence"] = sequence
+            self.renumbered[id(event)] = sequence
+            while len(self.renumbered) > RENUMBERED_KEPT:
+                self.renumbered.popitem(last=False)
+            event = event.model_copy(update={"sequence": sequence})
         self.bridge.call(
             add_event,
             UUID(run_id),
-            event.sequence,
+            sequence,
             event.type,
             event.is_public,
-            event.to_dict(),
+            data,
         )
         if run_id in self.warmed:
             self.warmed[run_id].append(event)
+
+    def next_sequence(self, run_id: str, event: Any) -> int:
+        """Return the sequence to store an event under: its own, unless that is not new."""
+        last = self.last.get(run_id)
+        if last is None:
+            last = self.bridge.call(read_last_sequence, UUID(run_id))
+        sequence = max(event.sequence, last + 1)
+        self.last[run_id] = sequence
+        return sequence
+
+    def stored_sequence(self, event: Any) -> int:
+        """Return the sequence an event was stored under (QA-336)."""
+        return self.renumbered.get(id(event), event.sequence)
 
     def load_events(self, run_id: str) -> list[Any]:
         """Return the run's events in sequence order, rebuilt by geomind."""
