@@ -98,16 +98,33 @@ async def root_spending(run: Run, events: RunEventRepository) -> shared.RunSpend
     return shared.RunSpending()
 
 
+def request_id_of(data: dict[str, Any]) -> Any:
+    """Return the request id an event names, given as an id or as the request itself."""
+    request = data.get("request")
+    return request.get("id") if isinstance(request, dict) else request
+
+
 async def already_answered(run: Run, request_id: str, session: Any) -> bool:
-    """Tell whether a person's decision on ``request_id`` is stored already (QA-081)."""
-    for row in await RunEventRepository(session).of_type(run.id, PERMISSION):
-        if row.data.get("rule") != "user":
-            continue
-        request = row.data.get("request")
-        found = request.get("id") if isinstance(request, dict) else request
-        if found == request_id:
-            return True
-    return False
+    """Tell whether a person's decision on ``request_id`` is stored and still stands (QA-081).
+
+    A run a restart stopped after the decision asks the same request again when it resumes; the
+    newer ask needs an answer, so a decision older than the newest ask of that request does not
+    count (QA-264: the answer was refused with 409 and the run waited for ever).
+    """
+    events = RunEventRepository(session)
+    decided = [
+        row.sequence
+        for row in await events.of_type(run.id, PERMISSION)
+        if row.data.get("rule") == "user" and request_id_of(row.data) == request_id
+    ]
+    if not decided:
+        return False
+    asked = [
+        row.sequence
+        for row in await events.of_type(run.id, "request")
+        if request_id_of(row.data) == request_id
+    ]
+    return not asked or max(decided) > max(asked)
 
 
 async def current_request(run: Run, session: Any) -> None:
