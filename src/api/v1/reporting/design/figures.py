@@ -8,6 +8,10 @@ SANS = "Helvetica, Arial, sans-serif"
 FONT = f"font-family='{SANS}' fill='#17212b'"
 MUTED = f"font-family='{SANS}' fill='#5b6977'"
 GRID = "#d3dae1"
+ELECTRICITY_COLOR = "#3b6ea8"
+ELECTRICITY_WORD = "Heat-pump electricity"
+"""The heat pumps' compressor work, apart from the brine heat since gemini 0.6.22 (QA-270)."""
+KEY_STEP = 130
 SOURCE_COLORS = {"geothermal": "#2f7d4a", "backup": "#a46700", "short": "#b3362c"}
 MONTHS = (
     "Jan",
@@ -116,9 +120,14 @@ def supply_chart(
         return top + (1 - value / peak) * plot_height
 
     first = [day["geothermal"]["value"] / hours for day in days]
+    split = all("electricity" in day for day in days)
+    middle = [
+        low + (day["electricity"]["value"] / hours if split else 0.0)
+        for low, day in zip(first, days, strict=True)
+    ]
     stacked = [
         low + day["backup"]["value"] / hours
-        for low, day in zip(first, days, strict=True)
+        for low, day in zip(middle, days, strict=True)
     ]
     floor = [point(0, 0), point(len(days) - 1, 0)]
 
@@ -127,6 +136,7 @@ def supply_chart(
         return f"<polygon points='{' '.join(line + base)}' fill='{color}'/>"
 
     upper = [point(at, value) for at, value in enumerate(first)][::-1]
+    above = [point(at, value) for at, value in enumerate(middle)][::-1]
     grid = "".join(
         f"<line x1='{left}' x2='{WIDTH - 12}' y1='{height_of(tick):.1f}' "
         f"y2='{height_of(tick):.1f}' stroke='{GRID}'/>"
@@ -139,15 +149,15 @@ def supply_chart(
         f"{MUTED}>{name}</text>"
         for at, name in enumerate(MONTHS)
     )
-    key = [
-        (labels[0], SOURCE_COLORS["geothermal"]),
-        (labels[1], SOURCE_COLORS["backup"]),
-        ("Demand", "#17212b"),
-    ]
+    key = [(labels[0], SOURCE_COLORS["geothermal"])]
+    if split and any(day["electricity"]["value"] for day in days):
+        key.append((ELECTRICITY_WORD, ELECTRICITY_COLOR))
+    key += [(labels[1], SOURCE_COLORS["backup"]), ("Demand", "#17212b")]
+    start = WIDTH - 12 - len(key) * KEY_STEP
     legend = "".join(
-        f"<rect x='{left + 300 + at * 110}' y='5' width='10' height='10' "
-        f"fill='{color}'/><text x='{left + 314 + at * 110}' y='14' font-size='11' "
-        f"{MUTED}>{name}</text>"
+        f"<rect x='{start + at * KEY_STEP}' y='5' width='10' height='10' "
+        f"fill='{color}'/><text x='{start + 14 + at * KEY_STEP}' y='14' "
+        f"font-size='11' {MUTED}>{name}</text>"
         for at, (name, color) in enumerate(key)
     )
     body = (
@@ -156,7 +166,8 @@ def supply_chart(
         + legend
         + grid
         + area(first, floor[::-1], SOURCE_COLORS["geothermal"])
-        + area(stacked, upper, SOURCE_COLORS["backup"])
+        + area(middle, upper, ELECTRICITY_COLOR)
+        + area(stacked, above, SOURCE_COLORS["backup"])
         + "<polyline points='"
         + " ".join(point(at, value) for at, value in enumerate(demand))
         + "' fill='none' stroke='#17212b' stroke-width='1.2'/>"

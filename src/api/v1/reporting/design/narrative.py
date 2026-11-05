@@ -74,11 +74,24 @@ def grouped_figures(report: dict[str, Any]) -> dict[str, list[list[str]]]:
 
 
 def share_text(coverage: dict[str, Any] | None) -> str | None:
-    """Write how much of the heating demand came from the geothermal plant."""
-    share = geothermal_share(coverage)
-    if share is None:
+    """Write how much of the heating demand came from the brine, heat pumps and backup.
+
+    Before gemini 0.6.22 a coverage day had no ``electricity``: its ``geothermal`` held the
+    heat pumps' compressor work too, so such a share is named so (QA-270).
+    """
+    shares = heat_shares(coverage)
+    if shares is None:
         return None
-    return f"Geothermal covers {share * PERCENT:.0f}% of the heating demand."
+    if shares["electricity"] is None:
+        return (
+            f"Geothermal, with any heat-pump electricity, covers "
+            f"{shares['geothermal'] * PERCENT:.0f}% of the heating demand."
+        )
+    parts = [f"geothermal brine heat {shares['geothermal'] * PERCENT:.0f}%"]
+    if shares["electricity"] > 0:
+        parts.append(f"heat-pump electricity {shares['electricity'] * PERCENT:.0f}%")
+    parts.append(f"backup {shares['backup'] * PERCENT:.0f}%")
+    return f"Of the heating demand, {', '.join(parts)}."
 
 
 def module_words(name: str) -> str:
@@ -141,13 +154,26 @@ def summary_sentences(
     return lines
 
 
-def geothermal_share(coverage: dict[str, Any] | None) -> float | None:
-    """Return the share of the heating demand the geothermal plant gave."""
+def heat_shares(coverage: dict[str, Any] | None) -> dict[str, float | None] | None:
+    """Return the shares of the heating demand: brine heat, heat-pump electricity, backup.
+
+    ``electricity`` is ``None`` for a coverage stored before gemini gave it (QA-270).
+    """
     days = (coverage or {}).get("heating") or []
     demand = sum(day["demand"]["value"] for day in days)
     if demand == 0:
         return None
-    return sum(day["geothermal"]["value"] for day in days) / demand
+
+    def share(key: str) -> float | None:
+        if not all(key in day for day in days):
+            return None
+        return sum(day[key]["value"] for day in days) / demand
+
+    return {
+        "geothermal": share("geothermal"),
+        "electricity": share("electricity"),
+        "backup": share("backup"),
+    }
 
 
 def tiles_of(
@@ -160,9 +186,22 @@ def tiles_of(
         if gemini_evaluate.is_quantity(report.get(name))
         and report[name]["value"] is not None
     ]
-    share = geothermal_share(coverage)
-    if share is not None:
-        tiles.append(("Geothermal share of heat", f"{share * PERCENT:.0f}%"))
+    shares = heat_shares(coverage)
+    if shares is not None and shares["electricity"] is None:
+        tiles.append(
+            ("Geothermal and heat-pump share", f"{shares['geothermal'] * PERCENT:.0f}%")
+        )
+    elif shares is not None:
+        tiles.append(
+            ("Geothermal share of heat", f"{shares['geothermal'] * PERCENT:.0f}%")
+        )
+        if shares["electricity"] > 0:
+            tiles.append(
+                (
+                    "Heat-pump electricity share",
+                    f"{shares['electricity'] * PERCENT:.0f}%",
+                )
+            )
     return tiles
 
 
