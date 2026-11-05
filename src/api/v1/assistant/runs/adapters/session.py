@@ -110,7 +110,7 @@ def build_environment(
     )
     studies = StudyRecorder(resources.factory, run.id, run.chat_id, run.project_id)
     simulations = SimulationRecorder(
-        resources.factory, run.id, run.chat_id, run.project_id
+        resources.factory, run.id, run.chat_id, run.project_id, blobs
     )
     store = DatabaseRunStore(bridge, run.id, run.chat_id)
     publisher = EventPublisher(

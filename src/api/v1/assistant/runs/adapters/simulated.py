@@ -17,8 +17,10 @@ import geomind as gd
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.core.case_versions import files_digest
+from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.models.run_event import RunEvent
 from src.core.clients.postgres.repositories.activity import ActivityRepository
+from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
@@ -34,6 +36,7 @@ from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.clients.postgres.repositories.version import content_digest
 from src.core.errors import AppError
 from src.core.gemini import evaluate, plant, study
+from src.core.gemini.stored import stored_files
 from src.core.routes import RESULTS_ROUTE
 
 RUN_FINISHED = "run.finished"
@@ -127,6 +130,14 @@ async def recorded_design(
     return False
 
 
+def read_design(data: Any) -> str | None:
+    """Return the first design reference a stored study read."""
+    if not isinstance(data, dict):
+        return None
+    read = (data.get("designs") or {}).get("read") or []
+    return read[0] if read and isinstance(read[0], str) else None
+
+
 class SimulationRecorder(gd.callbacks.Callback):
     """Add the last plain ``simulate`` of a finished assistant run to the results."""
 
@@ -136,11 +147,14 @@ class SimulationRecorder(gd.callbacks.Callback):
         run_id: UUID,
         chat_id: UUID,
         project_id: UUID,
+        blobs: BlobStore | None = None,
     ) -> None:
         self.factory = factory
         self.run_id = run_id
         self.chat_id = chat_id
         self.project_id = project_id
+        self.blobs = blobs
+        self.digests: dict[str, int] | None = None
 
     async def on_event(self, engine: Any, event: Any) -> None:
         """Record the run's last simulation when the root run finishes."""
@@ -152,6 +166,7 @@ class SimulationRecorder(gd.callbacks.Callback):
             logger.warning("assistant simulation not recorded: %s", error.code)
 
     async def record(self) -> None:
+        self.digests = None
         async with self.factory() as session:
             rows = await RunEventRepository(session).of_type(self.run_id, TOOL_RECORDED)
             found = last_simulation(rows)
@@ -273,16 +288,16 @@ class SimulationRecorder(gd.callbacks.Callback):
                 continue
             report = outcome["report"]
             summary = evaluate.summarise(report)
-            digest = await design_digest(outcome["design"])
+            plant_version = await self.version_of(session, outcome["design"])
+            if plant_version is None:
+                plant_version = await self.read_version(session, item)
             result = await results.create(
                 {
                     "project_id": self.project_id,
                     "study_id": item.id,
                     "name": item.name,
                     "case_version": item.case_version,
-                    "plant_version": None
-                    if digest is None
-                    else await self.plant_version(session, digest),
+                    "plant_version": plant_version,
                     "summary": summary["summary"],
                     "content": {
                         "capacities": summary["capacities"],
@@ -304,32 +319,63 @@ class SimulationRecorder(gd.callbacks.Callback):
         found: dict[str, Any] | None,
         ran: tuple[tuple[Any, ...], dict[str, Any]] | None,
     ) -> dict[str, Any] | None:
-        """Return the report, coverage and design of the design a study varied."""
-        if found is None or ran is None:
-            return None
-        read = (data.get("designs") or {}).get("read") or []
-        reference = read[0] if read else None
-        if reference is None or reference == (found.get("input") or {}).get("design"):
+        """Return the report, coverage and design of the design a study varied.
+
+        The run's last plain ``simulate`` gives them when it ran the same design. Else the
+        study's design is simulated on that simulate's case, or, in a run with no plain
+        ``simulate``, on the project's latest case version (QA-274: a chat that only ran a
+        sensitivity got no result).
+        """
+        reference = read_design(data)
+        same = found is not None and reference == (found.get("input") or {}).get(
+            "design"
+        )
+        if ran is not None and (reference is None or same):
             return ran[1]
+        if reference is None:
+            return None
         design = await RunArtifactRepository(session).newest_for_chat(
             self.chat_id, reference
         )
         if design is None or not isinstance(design.data, dict):
             return None
-        (_, case_data, files, _), _ = ran
+        if ran is not None:
+            (_, case_data, files, _), _ = ran
+        else:
+            latest = await self.latest_case(session)
+            if latest is None:
+                return None
+            case_data, files = latest
         return await asyncio.to_thread(
             evaluate.design_outcome, design.data, case_data, files
         )
+
+    async def latest_case(
+        self, session: AsyncSession
+    ) -> tuple[dict[str, Any], dict[str, bytes]] | None:
+        """Return the project's latest case version and its files, read from the store."""
+        if self.blobs is None:
+            return None
+        latest = await CaseVersionRepository(session).latest_version(self.project_id)
+        if latest is None:
+            return None
+        rows = await CaseFileRepository(session).list_for_version(latest.id)
+        try:
+            files = await stored_files(rows, self.blobs)
+        except AppError:
+            return None
+        return latest.content, files
 
     async def fill_plant_versions(self, session: AsyncSession) -> None:
         """Give each result of this run's studies the saved plant version of its design (QA-215).
 
         An agent study's result is written without a plant version; the version is found by the
         design's digest among the saved ones, never made (QA-237). A design no version holds,
-        such as an optimiser's new best, keeps none.
+        such as an optimiser's new best or a sized plant, takes the version of the design the
+        study read, as a page study keeps the version it ran on; else it keeps none.
         """
         studies = {
-            item.id
+            item.id: item
             for item in await StudyRepository(session).all_for_project(self.project_id)
             if item.started_by_run_id == self.run_id
         }
@@ -337,10 +383,9 @@ class SimulationRecorder(gd.callbacks.Callback):
         for item in await ResultRepository(session).all_for_project(self.project_id):
             if item.study_id not in studies or item.plant_version is not None:
                 continue
-            digest = await design_digest(item.content.get("design"))
-            number = (
-                None if digest is None else await self.plant_version(session, digest)
-            )
+            number = await self.version_of(session, item.content.get("design"))
+            if number is None:
+                number = await self.read_version(session, studies[item.study_id])
             if number is not None:
                 item.plant_version = number
                 changed = True
@@ -377,9 +422,39 @@ class SimulationRecorder(gd.callbacks.Callback):
         return plant_data, case_data, files, data
 
     async def plant_version(self, session: AsyncSession, digest: str) -> int | None:
-        rows = await PlantVersionRepository(session).list_versions(self.project_id)
-        found = [row.number for row in rows if row.digest == digest]
-        return found[-1] if found else None
+        """Return the newest saved plant version with this digest.
+
+        A version is matched by its stored digest and by the digest of its content read and
+        written by gemini again: a design adopted from a result is saved as it was, not
+        normalised, so its stored digest differs from a run's design (QA-215).
+        """
+        if self.digests is None:
+            found: dict[str, int] = {}
+            rows = await PlantVersionRepository(session).all_versions(self.project_id)
+            for row in rows:
+                found[row.digest] = row.number
+                normal = await design_digest(row.content)
+                if normal is not None:
+                    found[normal] = row.number
+            self.digests = found
+        return self.digests.get(digest)
+
+    async def version_of(self, session: AsyncSession, design: Any) -> int | None:
+        digest = await design_digest(design)
+        return None if digest is None else await self.plant_version(session, digest)
+
+    async def read_version(self, session: AsyncSession, item: Any) -> int | None:
+        """Return the saved plant version of the design a study read, if one holds it."""
+        stored = await RunArtifactRepository(session).newest_for_chat(
+            self.chat_id, f"{STUDY_PREFIX}{item.name}"
+        )
+        reference = read_design(stored.data) if stored is not None else None
+        if reference is None:
+            return None
+        design = await RunArtifactRepository(session).newest_for_chat(
+            self.chat_id, reference
+        )
+        return None if design is None else await self.version_of(session, design.data)
 
     async def case_version(self, session: AsyncSession, digest: str) -> int | None:
         rows = await CaseVersionRepository(session).list_versions(self.project_id)

@@ -5,11 +5,13 @@ import gemini as gm
 
 from src.api.v1.assistant.runs.adapters.simulated import SimulationRecorder
 from src.core.case_versions import files_digest
+from src.core.clients.postgres.repositories.case_file import CaseFileRepository
 from src.core.clients.postgres.repositories.case_version import CaseVersionRepository
 from src.core.clients.postgres.repositories.plant_version import PlantVersionRepository
 from src.core.clients.postgres.repositories.result import ResultRepository
 from src.core.clients.postgres.repositories.run_artifact import RunArtifactRepository
 from src.core.clients.postgres.repositories.run_event import RunEventRepository
+from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.gemini import plant as plant_document
 from tests import design_inputs
 
@@ -136,3 +138,61 @@ async def test_a_second_run_of_a_recorded_design_adds_no_result(
 
     results = await ResultRepository(session).all_for_project(project.id)
     assert [item.content["simulation"] for item in results] == ["result/abc"]
+
+
+async def test_a_sensitivity_without_a_simulate_gets_a_result_on_the_latest_case(
+    session_factory, session, make_user, make_project, make_chat, make_run
+) -> None:
+    from tests.blobs import MemoryBlobStore
+
+    owner = await make_user()
+    project = await make_project(owner)
+    chat = await make_chat(project, owner)
+    run = await make_run(chat, owner)
+    blobs = MemoryBlobStore()
+    case = design_inputs.case_content()
+    files = design_inputs.case_files()
+    version = await CaseVersionRepository(session).save_version(
+        project.id, case, "first", owner.id, files_digest(case, files)
+    )
+    for name, data in files.items():
+        await blobs.put(f"case/{name}", data)
+        await CaseFileRepository(session).add(
+            project.id, version.id, name, len(data), f"case/{name}"
+        )
+    design = gm.Plant.from_dict(design_inputs.plant_content()).to_dict(structure=True)
+    await PlantVersionRepository(session).save_version(
+        project.id, design, "adopted as it was", owner.id
+    )
+    artifacts = RunArtifactRepository(session)
+    await artifacts.save(None, chat.id, "design/v1", design)
+    await artifacts.save(
+        None,
+        chat.id,
+        "study/sens",
+        {"result": {"rows": []}, "designs": {"read": ["design/v1"], "wrote": []}},
+    )
+    study = await StudyRepository(session).create(
+        {
+            "project_id": project.id,
+            "kind": "sensitivity",
+            "name": "sens",
+            "settings": {},
+            "status": "done",
+            "started_by_kind": "agent",
+            "started_by_name": "Assistant",
+            "started_by_run_id": run.id,
+            "case_version": 1,
+            "plant_version": None,
+        }
+    )
+    recorder = SimulationRecorder(session_factory, run.id, chat.id, project.id, blobs)
+
+    await recorder.on_event(None, FINISHED)
+
+    results = await ResultRepository(session).all_for_project(project.id)
+    assert [(item.study_id, item.name, item.plant_version) for item in results] == [
+        (study.id, "sens", 1)
+    ]
+    assert results[0].content["run"] == {"found": {"rows": []}}
+    assert results[0].content["coverage"]["heating"]
