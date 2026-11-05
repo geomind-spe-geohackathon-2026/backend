@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.135] - 2026-11-05
+
+- QA-362: the Report page of a sizing result (study without an objective) no longer fails with 500.
+- geomind main HEAD (QA-361 f7d75af, 894802d).
+
 ## [1.1.134] - 2026-11-05
 
 - geomind 0.4.138, gemini 0.6.35 (QA-356, QA-357, QA-359).
