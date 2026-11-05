@@ -20,13 +20,15 @@ def test_the_heat_pumps_electricity_is_not_geothermal() -> None:
     coverage = {"heating": [day(60.0, 15.0, 25.0), day(60.0, 15.0, 25.0)]}
 
     assert narrative.share_text(coverage) == (
-        "Of the heating demand, geothermal brine heat 60%, "
-        "heat-pump electricity 25%, backup 15%."
+        "Of the heating demand, geothermal brine heat 60\u2009%, "
+        "heat-pump electricity 25\u2009%, backup 15\u2009%."
     )
     tiles = dict(narrative.tiles_of({}, coverage))
-    assert tiles["Geothermal share of heat"] == "60%"
-    assert tiles["Heat-pump electricity share"] == "25%"
-    chart = figures.supply_chart("Heating", coverage["heating"], ("Geothermal", "Backup"))
+    assert tiles["Geothermal share of heat"] == "60\u2009%"
+    assert tiles["Heat-pump electricity share"] == "25\u2009%"
+    chart = figures.supply_chart(
+        "Heating", coverage["heating"], ("Geothermal", "Backup")
+    )
     assert figures.ELECTRICITY_WORD in chart
 
 
@@ -34,8 +36,9 @@ def test_a_coverage_stored_before_the_split_names_its_share_so() -> None:
     coverage = {"heating": [day(90.0, 10.0)]}
 
     assert narrative.share_text(coverage) == (
-        "Geothermal, with any heat-pump electricity, covers 90% of the heating demand."
+        "Geothermal, with any heat-pump electricity, covers 90\u2009% of the heating "
+        "demand."
     )
     assert dict(narrative.tiles_of({}, coverage)) == {
-        "Geothermal and heat-pump share": "90%"
+        "Geothermal and heat-pump share": "90\u2009%"
     }

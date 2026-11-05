@@ -3,7 +3,14 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from src.api.v1.reporting.design import errors, figures, narrative, pdf, schemas
+from src.api.v1.reporting.design import (
+    document,
+    errors,
+    figures,
+    narrative,
+    pdf,
+    schemas,
+)
 from src.core.clients.minio.blobs import BlobStore
 from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.project import Project
@@ -22,22 +29,32 @@ from src.core.clients.postgres.repositories.run import RunRepository
 from src.core.clients.postgres.repositories.study import StudyRepository
 from src.core.gemini import evaluate as gemini_evaluate
 from src.core.gemini import plant as gemini_plant
-from src.core.gemini import study as gemini_study
 from src.core.routes import REPORT_ROUTE
 from src.core.security.access import require_project
 
 SECTION_TITLES = {
-    "summary": "Summary",
-    "design": "Plant",
-    "capacities": "Capacities",
-    "coverage": "Days covered",
-    "checks": "Constraint checks",
-    "costs": "Costs",
-    "capex": "Capital cost by kind",
-    "findings": "Uncertainty and sensitivity",
-    "agentlog": "Agent log and tokens",
-    "appendix": "Appendix: modules and connections",
+    "summary": "1 Summary",
+    "case": "2 Case and demand",
+    "design": "3 Plant design",
+    "coverage": "4 Performance",
+    "costs": "5 Economics",
+    "emissions": "6 Emissions",
+    "findings": "7 Studies",
+    "checks": "8 Checks",
+    "assumptions": "9 Assumptions and sources",
+    "agentlog": "Appendix A - Agent log and tokens",
+    "appendix": "Appendix B - Modules and connections",
 }
+"""The report's sections in order (QA-313); the numbers are the section numbers."""
+FOLDED = {"capacities": "design", "capex": "costs"}
+"""Sections of earlier reports that are now part of a numbered one: a request naming one
+gets the section that holds it."""
+SECTION_NUMBERS = {
+    key: int(title.split(" ", 1)[0])
+    for key, title in SECTION_TITLES.items()
+    if title[0].isdigit()
+}
+PAGE_BREAK = '<div style="page-break-before: always"></div>'
 MEDIA_TYPES = {"md": "text/markdown", "pdf": "application/pdf"}
 
 
@@ -60,15 +77,7 @@ class Export:
 
 
 def table(headers: list[str], rows: list[list[str]]) -> str:
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "| " + " | ".join("---" for _ in headers) + " |",
-    ]
-    lines += [
-        "| " + " | ".join(cell.replace("|", "\\|") for cell in row) + " |"
-        for row in rows
-    ]
-    return "\n".join(lines)
+    return document.table(headers, rows)
 
 
 def rating_rows(items: list[dict[str, Any]]) -> list[list[str]]:
@@ -88,94 +97,9 @@ def rating_rows(items: list[dict[str, Any]]) -> list[list[str]]:
     ]
 
 
-def capacities_markdown(result: Result) -> str:
-    parts = gemini_evaluate.summarise(result.content["report"])
-    rows = rating_rows(parts["capacities"])
-    headers = ["Module", "Kind", "Rated", "Peak", "Used"]
-    return table(headers, rows) if rows else "No capacities."
-
-
-def summary_markdown(result: Result) -> str:
-    report = result.content["report"]
-    parts = gemini_evaluate.summarise(report)
-    coverage = result.content.get("coverage")
-    sentences = narrative.summary_sentences(
-        report, parts["capacities"], coverage, result.summary["checks"]
-    )
-    tiles = narrative.tiles_of(report, coverage)
-    lead = " ".join(sentences)
-    if not tiles:
-        return lead
-    return figures.image_line(figures.kpi_tiles(tiles), "Key figures") + "\n\n" + lead
-
-
-def coverage_markdown(result: Result) -> str:
-    coverage = result.content.get("coverage")
-    if coverage is None:
-        return "Made before daily coverage existed."
-    rows = []
-    charts = [figures.image_line(figures.day_strips(coverage), "Days covered")]
-    for service, days in coverage.items():
-        count = {name: 0 for name in ("geothermal", "backup", "short")}
-        for day in days:
-            count[day["source"]] += 1
-        rows.append([service.capitalize(), *(str(value) for value in count.values())])
-        if days:
-            title = f"{service.capitalize()}: demand and supply"
-            labels = (figures.source_word(service, "geothermal"), "Backup")
-            chart = figures.supply_chart(title, days, labels)
-            charts.append(figures.image_line(chart, title))
-    days_table = table(["Service", "Geothermal or plant", "Backup", "Short"], rows)
-    note = (
-        "On cooling days the whole supply is the plant: gemini has no cooling backup."
-    )
-    return "\n\n".join([*charts, days_table, note])
-
-
-def findings_markdown(result: Result) -> str:
-    run = result.content.get("run", {})
-    parts = []
-    tornado = gemini_evaluate.tornado_of(run)
-    if tornado:
-        rows = [
-            [
-                item["parameter"],
-                item["metric"],
-                f"{item['low']} to {item['high']}",
-                narrative.figure_text({"value": item["effect"], "unit": item["unit"]}),
-            ]
-            for item in tornado
-        ]
-        parts.append(table(["Value", "Metric", "Moved", "Effect"], rows))
-    spread = gemini_evaluate.spread_of(run)
-    if spread:
-        rows = [
-            [
-                item["metric"],
-                *(
-                    narrative.figure_text({"value": item[key], "unit": item["unit"]})
-                    for key in ("mean", "p5", "p95")
-                ),
-            ]
-            for item in spread
-        ]
-        lead = f"Over {spread[0]['draws']} draws."
-        parts.append(lead + "\n\n" + table(["Metric", "Mean", "P5", "P95"], rows))
-    return (
-        "\n\n".join(parts) or "This result is not a sensitivity or uncertainty study."
-    )
-
-
-def checks_markdown(result: Result, limits: dict[str, dict[str, Any]]) -> str:
-    checks = result.summary["checks"]
-    line = (
-        f"{checks['passed']} passed, {checks['failed']} failed, "
-        f"{checks['not_assessed']} not assessed."
-    )
-    parts = gemini_evaluate.summarise(result.content["report"], limits)
-    rows = [check_row(item) for item in parts["constraints"]]
-    headers = ["Check", "Status", "Value", "Limit", "Margin", "Worst day"]
-    return line + "\n\n" + table(headers, rows) if rows else line
+def check_rows(inputs: document.Inputs) -> list[list[str]]:
+    parts = gemini_evaluate.summarise(inputs.report, inputs.limits)
+    return [check_row(item) for item in parts["constraints"]]
 
 
 def check_row(item: dict[str, Any]) -> list[str]:
@@ -201,30 +125,6 @@ def module_title(item: dict[str, Any]) -> str:
     return f"{item['title']} ({narrative.module_words(item['module'])})"
 
 
-def capex_markdown(result: Result, economics: dict[str, Any]) -> str:
-    rows = narrative.capex_rows(result.content["report"], economics)
-    if not rows:
-        return "No capital cost by kind."
-    return table(["Item", "Amount", "Unit cost", "Source"], rows)
-
-
-def costs_markdown(result: Result) -> str:
-    source = (
-        f"From case version {result.case_version}, "
-        f"plant version {result.plant_version}."
-    )
-    groups = narrative.grouped_figures(result.content["report"])
-    if not groups:
-        return "No costs."
-    tables = [
-        f"### {name}\n\n{table(['Figure', 'Value'], rows)}"
-        for name, rows in groups.items()
-    ]
-    shares = narrative.capex_summary(result.content["report"])
-    extra = [table(["Capital cost", "Amount"], shares)] if shares else []
-    return "\n\n".join([source, *tables, *extra])
-
-
 def design_table(summary: str) -> str:
     """Turn gemini's fixed-width module table into a Markdown table."""
     lines = summary.splitlines()
@@ -248,14 +148,6 @@ def design_table(summary: str) -> str:
     notes = [line for line in body if not is_row(line)]
     lead = [line for line in lines[:first] if line.strip()]
     return "\n\n".join([*lead, table(names, rows), *notes])
-
-
-def design_markdown(result: Result, study: Study | None) -> str:
-    kind = gemini_plant.type_of(result.content["design"])
-    titles = {item["kind"]: item["title"] for item in gemini_study.kinds()}
-    kind_title = "" if study is None else titles.get(study.kind, "")
-    origin = f" from a study of kind {kind_title}" if kind_title else ""
-    return f"Design {result.name}{origin}, plant type {narrative.spaced(kind)}."
 
 
 def appendix_markdown(result: Result) -> str:
@@ -287,25 +179,20 @@ def agentlog_markdown(run: Run | None) -> str:
     )
 
 
-def section_markdown(
-    key: str,
-    result: Result,
-    study: Study | None,
-    run: Run | None,
-    limits: dict[str, dict[str, Any]],
-    economics: dict[str, Any],
-) -> str:
+def section_markdown(key: str, inputs: document.Inputs) -> str:
+    numbers = document.Numbers(SECTION_NUMBERS.get(key, 0))
     builders = {
-        "summary": lambda: summary_markdown(result),
-        "capacities": lambda: capacities_markdown(result),
-        "coverage": lambda: coverage_markdown(result),
-        "findings": lambda: findings_markdown(result),
-        "appendix": lambda: appendix_markdown(result),
-        "design": lambda: design_markdown(result, study),
-        "checks": lambda: checks_markdown(result, limits),
-        "costs": lambda: costs_markdown(result),
-        "capex": lambda: capex_markdown(result, economics),
-        "agentlog": lambda: agentlog_markdown(run),
+        "summary": lambda: document.summary(inputs, numbers),
+        "case": lambda: document.case_section(inputs, numbers),
+        "design": lambda: document.design_section(inputs, numbers),
+        "coverage": lambda: document.performance(inputs, numbers),
+        "costs": lambda: document.economics(inputs, numbers),
+        "emissions": lambda: document.emissions(inputs, numbers),
+        "findings": lambda: document.studies(inputs, numbers),
+        "checks": lambda: document.checks(inputs, numbers, check_rows(inputs)),
+        "assumptions": lambda: document.assumptions(inputs, numbers),
+        "appendix": lambda: appendix_markdown(inputs.result),
+        "agentlog": lambda: agentlog_markdown(inputs.run),
     }
     return builders[key]()
 
@@ -360,7 +247,7 @@ async def preview_report(
     blobs: BlobStore,
 ) -> schemas.Report:
     project, result, study, run = await load_inputs(request, user, repositories)
-    wanted = set(request.include)
+    wanted = {FOLDED.get(key, key) for key in request.include}
     case = None
     if result.case_version is not None:
         case = await repositories.cases.version_by_number(
@@ -368,11 +255,10 @@ async def preview_report(
         )
     limits = gemini_evaluate.case_limits(None if case is None else case.content)
     economics = await economics_of(case, repositories, blobs)
+    inputs = document.Inputs(result, study, run, case, limits, economics)
     sections = [
         schemas.ReportSection(
-            key=key,
-            title=title,
-            markdown=section_markdown(key, result, study, run, limits, economics),
+            key=key, title=title, markdown=section_markdown(key, inputs)
         )
         for key, title in SECTION_TITLES.items()
         if key in wanted
@@ -401,10 +287,20 @@ def with_image(
 
 
 def with_flowsheet(report: schemas.Report, svg: str | None) -> schemas.Report:
-    """Put the process diagram under the Plant section of an export."""
-    keys = [item.key for item in report.sections]
-    place = "capacities" if "capacities" in keys else "design"
-    return with_image(report, svg, "Flowsheet", place)
+    """Put the process diagram where the Plant design section marks it, or drop the mark."""
+    drawn = svg is not None and svg.startswith("<svg")
+    line = figures.image_line(svg, "Flowsheet") if drawn else ""
+    sections = [
+        item.model_copy(
+            update={
+                "markdown": item.markdown.replace(document.FLOWSHEET_MARKER, line)
+                .replace("\n\n\n\n", "\n\n")
+                .strip()
+            }
+        )
+        for item in report.sections
+    ]
+    return report.model_copy(update={"sections": sections})
 
 
 def with_full_flowsheet(report: schemas.Report, svg: str | None) -> schemas.Report:
@@ -413,8 +309,12 @@ def with_full_flowsheet(report: schemas.Report, svg: str | None) -> schemas.Repo
 
 
 def to_markdown(report: schemas.Report) -> str:
+    """Write the report as Markdown: each top-level section starts a new printed page."""
     parts = [f"# {report.title}"]
-    parts += [f"## {item.title}\n\n{item.markdown}" for item in report.sections]
+    for at, item in enumerate(report.sections):
+        if at:
+            parts.append(PAGE_BREAK)
+        parts.append(f"## {item.title}\n\n{item.markdown}")
     return "\n\n".join(parts) + "\n"
 
 

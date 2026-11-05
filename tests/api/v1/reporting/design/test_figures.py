@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
-from src.api.v1.reporting.design import figures, narrative, schemas, services
+from src.api.v1.reporting.design import document, figures, narrative, schemas, services
+from tests import design_inputs
 
 
 def day(source: str, demand: float) -> dict:
@@ -51,7 +52,7 @@ def test_capital_cost_groups_by_kind_with_its_unit_cost() -> None:
     }
 
     assert narrative.capex_rows(report, economics) == [
-        ["Drilling", "5 MEUR", "100 EUR/m", "e.json, capex.drilling"]
+        ["Drilling", "5\u2009MEUR", "100\u2009EUR/m", "e.json, capex.drilling"]
     ]
 
 
@@ -65,39 +66,44 @@ def test_cooling_supply_is_not_called_geothermal() -> None:
     assert figures.source_word("heating", "geothermal") == "Geothermal"
 
 
-def test_a_flowsheet_goes_under_the_plant_section_of_an_export() -> None:
-    section = schemas.ReportSection(key="design", title="Plant", markdown="Text")
+def test_a_flowsheet_goes_where_the_plant_section_marks_it() -> None:
+    marked = f"Lead\n\n{document.FLOWSHEET_MARKER}\n\n*Figure 3.1 - Flowsheet*"
+    section = schemas.ReportSection(key="design", title="Plant", markdown=marked)
     report = schemas.Report(title="T", sections=[section], flowsheet={})
 
-    shown = services.with_flowsheet(report, "<svg></svg>")
+    shown = services.with_flowsheet(report, "<svg></svg>").sections[0].markdown
+    dropped = services.with_flowsheet(report, "<script>").sections[0].markdown
 
-    assert "![Flowsheet](data:image/svg+xml" in shown.sections[0].markdown
-    assert services.with_flowsheet(report, "<script>") == report
-
-
-def test_a_flowsheet_page_follows_the_capacities_when_they_are_chosen() -> None:
-    plant = schemas.ReportSection(key="design", title="Plant", markdown="Text")
-    rated = schemas.ReportSection(key="capacities", title="Capacities", markdown="Text")
-    report = schemas.Report(title="T", sections=[plant, rated], flowsheet={})
-
-    shown = services.with_flowsheet(report, "<svg></svg>")
-
-    assert "Flowsheet" not in shown.sections[0].markdown
-    assert "Flowsheet" in shown.sections[1].markdown
+    assert shown.index("Lead") < shown.index("![Flowsheet](data:image/svg+xml")
+    assert shown.index("![Flowsheet]") < shown.index("*Figure 3.1")
+    assert document.FLOWSHEET_MARKER not in dropped
+    assert "![Flowsheet]" not in dropped
 
 
 def test_noise_on_a_bound_is_no_margin() -> None:
     assert narrative.margin_text(1e-5, "-") == "0"
 
 
-def test_the_plant_line_names_the_study_kind_in_words() -> None:
-    result = SimpleNamespace(name="Best", content={"design": {"type": "HeatingPlant"}})
-    study = SimpleNamespace(kind="minimize")
+def test_the_plant_section_names_the_study_kind_and_its_unit_groups() -> None:
+    outcome = design_inputs.outcome()
+    result = SimpleNamespace(
+        name="Best",
+        content={**outcome, "coverage": None},
+        summary={"checks": {}},
+        case_version=1,
+        plant_version=None,
+    )
+    study = SimpleNamespace(kind="minimize", settings={}, name="best")
+    inputs = document.Inputs(result, study, None, None, {}, {})
 
-    line = services.design_markdown(result, study)
+    text = document.design_section(inputs, document.Numbers(3))
 
-    assert "Find the best design" in line
-    assert "Heating plant" in line
+    assert "Find the best design" in text
+    assert "Heating plant" in text
+    for heading in ("### 3.1 Subsurface", "### 3.3 Heating", "### 3.5 Grids"):
+        assert heading in text
+    assert "*Table 3.1 - Subsurface units" in text
+    assert "| ---: |" in text
 
 
 def test_the_full_flowsheet_goes_in_the_appendix_of_an_export() -> None:

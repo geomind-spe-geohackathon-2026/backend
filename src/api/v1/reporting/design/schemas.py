@@ -7,13 +7,16 @@ SVG_LIMIT = 2_000_000
 
 SectionKey = Literal[
     "summary",
+    "case",
     "design",
     "capacities",
     "coverage",
     "checks",
     "costs",
     "capex",
+    "emissions",
     "findings",
+    "assumptions",
     "agentlog",
     "appendix",
 ]

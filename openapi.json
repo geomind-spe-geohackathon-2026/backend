@@ -3073,6 +3073,16 @@
           "case": {
             "$ref": "#/components/schemas/ProgressStep"
           },
+          "economics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProgressStep"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "plant": {
             "$ref": "#/components/schemas/ProgressStep"
           },
@@ -3602,13 +3612,16 @@
             "items": {
               "enum": [
                 "summary",
+                "case",
                 "design",
                 "capacities",
                 "coverage",
                 "checks",
                 "costs",
                 "capex",
+                "emissions",
                 "findings",
+                "assumptions",
                 "agentlog",
                 "appendix"
               ],
@@ -3654,13 +3667,16 @@
           "key": {
             "enum": [
               "summary",
+              "case",
               "design",
               "capacities",
               "coverage",
               "checks",
               "costs",
               "capex",
+              "emissions",
               "findings",
+              "assumptions",
               "agentlog",
               "appendix"
             ],
@@ -3685,13 +3701,16 @@
             "items": {
               "enum": [
                 "summary",
+                "case",
                 "design",
                 "capacities",
                 "coverage",
                 "checks",
                 "costs",
                 "capex",
+                "emissions",
                 "findings",
+                "assumptions",
                 "agentlog",
                 "appendix"
               ],
@@ -3736,13 +3755,16 @@
           "key": {
             "enum": [
               "summary",
+              "case",
               "design",
               "capacities",
               "coverage",
               "checks",
               "costs",
               "capex",
+              "emissions",
               "findings",
+              "assumptions",
               "agentlog",
               "appendix"
             ],

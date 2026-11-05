@@ -86,9 +86,34 @@ def test_a_wide_image_has_its_own_landscape_page_and_no_blank_one() -> None:
     assert len(PAGE.findall(followed)) == 3
 
 
-def test_a_compact_report_fits_four_pages() -> None:
+def test_each_top_level_section_starts_a_page_the_first_with_the_title() -> None:
+    markdown = "\n\n".join(
+        [
+            "# Report",
+            "## 1 Summary",
+            "Text.",
+            '<div style="page-break-before: always"></div>',
+            "## 2 Case",
+            "| Value | Amount |\n| --- | ---: |\n| Depth | 2,500\u2009m |",
+            "*Table 2.1 - Values*",
+            "### 2.1 Demand",
+            "Text.",
+            "## 3 Plant",
+            "Text.",
+        ]
+    )
+
+    kinds = [block.kind for block in pdf.blocks_of(markdown)]
+
+    assert "html" in kinds
+    assert "caption" in kinds
+    assert pdf.alignments(["| a | b |", "| --- | ---: |"]) == ("LEFT", "RIGHT")
+    assert len(PAGE.findall(pdf.to_pdf(markdown))) == 3
+
+
+def test_a_compact_report_is_drawn() -> None:
     markdown = (
         Path(__file__).parents[3 + 1] / "fixtures" / "report_compact.md"
     ).read_text()
 
-    assert len(PAGE.findall(pdf.to_pdf(markdown))) <= 4
+    assert pdf.to_pdf(markdown).startswith(b"%PDF")

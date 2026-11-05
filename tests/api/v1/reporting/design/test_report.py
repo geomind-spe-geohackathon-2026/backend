@@ -80,7 +80,8 @@ async def test_preview_has_the_chosen_sections_in_order(
 
     report = response.json()
     assert report["title"] == "Doublet: Base"
-    assert [item["key"] for item in report["sections"]] == ["capacities", "costs"]
+    assert [item["key"] for item in report["sections"]] == ["design", "costs"]
+    assert report["sections"][0]["title"] == "3 Plant design"
 
 
 async def test_costs_show_source_and_missing(
@@ -114,8 +115,8 @@ async def test_costs_list_the_figures_of_the_report_not_a_fixed_list(
     )
 
     costs = response.json()["sections"][0]["markdown"]
-    assert "| Heat delivered |" in costs
-    assert "| CO2 emissions |" in costs
+    assert "| Investment |" in costs
+    assert "*Table 5.1 - Cost figures of the design*" in costs
 
 
 async def test_design_is_a_table_with_the_columns_of_the_summary(
@@ -147,7 +148,8 @@ async def test_checks_read_cleanly(
     )
 
     checks = response.json()["sections"][0]["markdown"]
-    assert "| Pump efficiency (d0) | pass | 70 % | 70 % |" in checks
+    assert "| Pump efficiency (d0) | pass | 70\u2009% | 70 % |" in checks
+    assert "*Table 8.1 - Constraint checks of the design*" in checks
     assert "Doublet count |" in checks
     assert "T00:00" not in checks
 
@@ -212,7 +214,9 @@ async def test_export_markdown_records_a_report_activity(
 
     assert response.headers["content-type"].startswith("text/markdown")
     assert "attachment" in response.headers["content-disposition"]
-    assert response.text.startswith("# Doublet: Base\n\n## Summary")
+    assert response.text.startswith("# Doublet: Base\n\n## 1 Summary")
+    assert services.PAGE_BREAK in response.text
+    assert "<!-- flowsheet -->" not in response.text
     rows = await ActivityRepository(session).latest(project.id, 1)
     assert (rows[0].link_route, rows[0].link_id) == ("design/report", None)
     assert route_exists(rows[0].link_route, rows[0].link_id)
@@ -240,14 +244,15 @@ async def test_parts_list_the_sections_with_their_titles_in_order(
 
     assert response.status_code == 200
     assert response.json() == [
-        {"key": "summary", "title": "Summary"},
-        {"key": "design", "title": "Plant"},
-        {"key": "capacities", "title": "Capacities"},
-        {"key": "coverage", "title": "Days covered"},
-        {"key": "checks", "title": "Constraint checks"},
-        {"key": "costs", "title": "Costs"},
-        {"key": "capex", "title": "Capital cost by kind"},
-        {"key": "findings", "title": "Uncertainty and sensitivity"},
-        {"key": "agentlog", "title": "Agent log and tokens"},
-        {"key": "appendix", "title": "Appendix: modules and connections"},
+        {"key": "summary", "title": "1 Summary"},
+        {"key": "case", "title": "2 Case and demand"},
+        {"key": "design", "title": "3 Plant design"},
+        {"key": "coverage", "title": "4 Performance"},
+        {"key": "costs", "title": "5 Economics"},
+        {"key": "emissions", "title": "6 Emissions"},
+        {"key": "findings", "title": "7 Studies"},
+        {"key": "checks", "title": "8 Checks"},
+        {"key": "assumptions", "title": "9 Assumptions and sources"},
+        {"key": "agentlog", "title": "Appendix A - Agent log and tokens"},
+        {"key": "appendix", "title": "Appendix B - Modules and connections"},
     ]

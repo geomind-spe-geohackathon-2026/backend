@@ -12,6 +12,8 @@ ENERGY_UNITS = ("MWh", "GWh")
 EMISSION_UNITS = ("kt", "t")
 THOUSAND = 1000
 PERCENT = 100
+THIN = "\u2009"
+"""The thin space between a number and its unit (QA-313)."""
 SHORT_ID = 3
 WELLS_GROUP = "Wells"
 SURFACE_GROUP = "Surface plant"
@@ -31,14 +33,21 @@ def number_text(value: float) -> str:
     return f"{rounded:,.0f}" if rounded.is_integer() else f"{rounded:,g}"
 
 
+def percent_text(share: float) -> str:
+    """Write a share as a percentage: three significant digits at most, whole from 10 %."""
+    value = share * PERCENT
+    shown = f"{value:.0f}" if abs(value) >= 10 or value == 0 else f"{value:.2g}"
+    return f"{shown}{THIN}%"
+
+
 def figure_text(item: dict[str, Any]) -> str:
     """Write a figure in a readable unit; a missing one says why."""
     value, unit = item["value"], item["unit"]
     if value is None:
         return gemini_evaluate.amount(item)
     if unit == ENERGY_UNITS[0] and abs(value) >= THOUSAND:
-        return f"{number_text(value / THOUSAND)} {ENERGY_UNITS[1]}"
-    return f"{number_text(value)} {unit}" if unit != "-" else number_text(value)
+        return f"{number_text(value / THOUSAND)}{THIN}{ENERGY_UNITS[1]}"
+    return f"{number_text(value)}{THIN}{unit}" if unit != "-" else number_text(value)
 
 
 def margin_text(margin: float, unit: str) -> str:
@@ -85,12 +94,12 @@ def share_text(coverage: dict[str, Any] | None) -> str | None:
     if shares["electricity"] is None:
         return (
             f"Geothermal, with any heat-pump electricity, covers "
-            f"{shares['geothermal'] * PERCENT:.0f}% of the heating demand."
+            f"{percent_text(shares['geothermal'])} of the heating demand."
         )
-    parts = [f"geothermal brine heat {shares['geothermal'] * PERCENT:.0f}%"]
+    parts = [f"geothermal brine heat {percent_text(shares['geothermal'])}"]
     if shares["electricity"] > 0:
-        parts.append(f"heat-pump electricity {shares['electricity'] * PERCENT:.0f}%")
-    parts.append(f"backup {shares['backup'] * PERCENT:.0f}%")
+        parts.append(f"heat-pump electricity {percent_text(shares['electricity'])}")
+    parts.append(f"backup {percent_text(shares['backup'])}")
     return f"Of the heating demand, {', '.join(parts)}."
 
 
@@ -115,7 +124,7 @@ def largest_text(capacities: list[dict[str, Any]]) -> str | None:
     if not largest:
         return None
     names = ", ".join(
-        f"{module_words(item['title'])} {number_text(item['value'])} MW"
+        f"{module_words(item['title'])} {number_text(item['value'])}{THIN}MW"
         for item in largest
     )
     return f"The largest rated units are {names}."
@@ -189,17 +198,17 @@ def tiles_of(
     shares = heat_shares(coverage)
     if shares is not None and shares["electricity"] is None:
         tiles.append(
-            ("Geothermal and heat-pump share", f"{shares['geothermal'] * PERCENT:.0f}%")
+            ("Geothermal and heat-pump share", f"{percent_text(shares['geothermal'])}")
         )
     elif shares is not None:
         tiles.append(
-            ("Geothermal share of heat", f"{shares['geothermal'] * PERCENT:.0f}%")
+            ("Geothermal share of heat", f"{percent_text(shares['geothermal'])}")
         )
         if shares["electricity"] > 0:
             tiles.append(
                 (
                     "Heat-pump electricity share",
-                    f"{shares['electricity'] * PERCENT:.0f}%",
+                    f"{percent_text(shares['electricity'])}",
                 )
             )
     return tiles
@@ -219,10 +228,10 @@ def capex_rows(report: dict[str, Any], economics: dict[str, Any]) -> list[list[s
         rows.append(
             [
                 gemini_evaluate.title_of(kind),
-                f"{number_text(total)} MEUR",
+                f"{number_text(total)}{THIN}MEUR",
                 "-"
                 if price is None
-                else f"{number_text(price['value'])} {price['unit']}",
+                else f"{number_text(price['value'])}{THIN}{price['unit']}",
                 "-" if price is None else f"{origin}, capex.{kind}",
             ]
         )
@@ -242,4 +251,4 @@ def capex_summary(report: dict[str, Any]) -> list[list[str]]:
         totals[group] += item["value"]
     if not modules:
         return []
-    return [[name, f"{number_text(total)} MEUR"] for name, total in totals.items()]
+    return [[name, f"{number_text(total)}{THIN}MEUR"] for name, total in totals.items()]
