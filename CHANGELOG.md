@@ -8,7 +8,7 @@ tests pass.
 
 ## [1.1.92] - 2026-11-05
 
-- geomind 0.4.88 as a local wheel (gemini 0.6.15 kept): QA-131, `sensitivity` takes `values`
+- geomind 0.4.89 as a local wheel (gemini 0.6.15 kept; 0.4.89 renames the handbook to handbook-design.md). 0.4.88: QA-131, `sensitivity` takes `values`
   (only the named drivers move); a chat sensitivity sets the user's ranges in the case, then
   runs gemini's sensitivity, never run_python.
 
