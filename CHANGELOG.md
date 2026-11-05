@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.58] - 2026-11-05
+
+- Agent tools step 3: geomind 0.4.58 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.58-py3-none-any.whl`):
+  `web_search` and `read_web_page` (effect `external`) over SearXNG at `GEOMIND_SEARCH_URL`;
+  `calculate` takes plain numbers and constants beside one sourced operand.
+
 ## [1.1.57] - 2026-11-05
 
 - Agent tools step 2: geomind 0.4.57 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.57-py3-none-any.whl`):
