@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.105] - 2026-11-05
+
+- `kombu>=5.6,<5.7` in `requirements.txt`: kombu 5.7.0 needs redis 6 and broke every image build
+  without a layer cache. Ships geomind from the local clone (0.4.102: QA-162, QA-165). No contract
+  change.
+
 ## [1.1.104] - 2026-11-05
 
 - Hotfix deploy builds from local code (Sahand): `scripts/hotfix_deploy.sh` checks that the
