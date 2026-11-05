@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.76] - 2026-11-05
+
+- QA-082: geomind 0.4.72 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.72-py3-none-any.whl`):
+  simulate's summary no longer fails on an ESP failure group (it listed the case's values as
+  missing although the run had run).
+
 ## [1.1.75] - 2026-11-05
 
 - QA-082, QA-083: gemini 0.6.10 and geomind 0.4.71 as local wheels (`.tmp/hotfix-wheels/`):
