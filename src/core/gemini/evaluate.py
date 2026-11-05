@@ -412,6 +412,37 @@ def spread_of(run: dict[str, Any]) -> list[dict[str, Any]] | None:
     ]
 
 
+def design_outcome(
+    design: dict[str, Any],
+    case_content: dict[str, Any],
+    case_files: dict[str, bytes],
+) -> dict[str, Any] | None:
+    """Simulate a stored design on a case; return its report, coverage and design (QA-274).
+
+    A design or case gemini refuses gives ``None``.
+    """
+    import copy
+
+    from src.core.gemini.study import plain_day
+
+    try:
+        built = gm.Plant.from_dict(design)
+        ran = gm.Case.from_dict(copy.deepcopy(case_content), files=case_files)
+        results = gm.simulate(built, ran)
+        report = gm.evaluate.report(built, ran, results).to_dict()
+        coverage = gm.evaluate.daily_coverage(built, ran, results)
+    except gm.errors.GeminiError:
+        return None
+    return {
+        "report": report,
+        "coverage": {
+            service: [plain_day(day) for day in days]
+            for service, days in coverage.items()
+        },
+        "design": plant_document.to_dict(built),
+    }
+
+
 def role_of(run: dict[str, Any]) -> str:
     """Say what a result is: a design, or a test of one under varied inputs."""
     found = run.get("found") or {}
