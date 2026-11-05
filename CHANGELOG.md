@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.112] - 2026-11-05
+
+- QA-252: `GEOMIND_COMPARE_CONCURRENCY=3` and `GEOMIND_COMPARE_RETRIES=1` in every backend env
+  file: a comparison designs its families side by side and gives a failed family one more try
+  (unset, they ran one at a time with no retry). No contract change.
+
 ## [1.1.111] - 2026-11-05
 
 - QA-241: a free plant's `structure` keeps the plant-level params (`dispatch`, `outages`,
