@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.120] - 2026-11-05
+
+- QA-294: the agents' project_designs lists every project result, newest first.
+- geomind main HEAD (0.4.131), gemini dev HEAD.
+
 ## [1.1.119] - 2026-11-05
 
 - QA-239: the results trade-off front counts feasible results only.
