@@ -109,3 +109,30 @@ async def test_a_run_without_simulate_or_nested_finish_records_nothing(
     await recorder.on_event(None, SimpleNamespace(type="tool.result", parent=None))
 
     assert await ResultRepository(session).all_for_project(project.id) == []
+
+
+async def test_a_second_run_of_a_recorded_design_adds_no_result(
+    session_factory, session, make_user, make_project, make_chat, make_run
+) -> None:
+    owner = await make_user()
+    project = await make_project(owner)
+    chat = await make_chat(project, owner)
+    case = design_inputs.case_content()
+    await CaseVersionRepository(session).save_version(
+        project.id,
+        case,
+        "first",
+        owner.id,
+        files_digest(case, design_inputs.case_files()),
+    )
+    events = RunEventRepository(session)
+    for identifier in ("abc", "def"):
+        run = await make_run(chat, owner)
+        await keep_run(session_factory, chat.id, identifier)
+        data = simulated(identifier, f"result/{identifier}")
+        await events.add(run.id, 1, data["type"], False, data)
+        recorder = SimulationRecorder(session_factory, run.id, chat.id, project.id)
+        await recorder.on_event(None, FINISHED)
+
+    results = await ResultRepository(session).all_for_project(project.id)
+    assert [item.content["simulation"] for item in results] == ["result/abc"]

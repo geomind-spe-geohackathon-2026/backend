@@ -96,6 +96,37 @@ def name_of(given: dict[str, Any], plant_data: dict[str, Any]) -> str:
     )
 
 
+async def design_digest(design: Any) -> str | None:
+    """Return the digest of a design as a saved plant version has it; ``None`` if unreadable."""
+    if not isinstance(design, dict):
+        return None
+    try:
+        normalised = await asyncio.to_thread(plant.validate_content, design)
+    except AppError:
+        return None
+    return content_digest(normalised)
+
+
+async def recorded_design(
+    known: list[Any], digest: str | None, case_version: int | None
+) -> bool:
+    """Tell whether a design result of the same design on the same case version exists (QA-215).
+
+    Only design results count: a sensitivity or uncertainty result of the design is another
+    view of it. Without a digest or a saved case version nothing is known to be the same.
+    """
+    if digest is None or case_version is None:
+        return False
+    for item in known:
+        if item.case_version != case_version:
+            continue
+        if evaluate.role_of(item.content.get("run") or {}) != evaluate.DESIGN_ROLE:
+            continue
+        if await design_digest(item.content.get("design")) == digest:
+            return True
+    return False
+
+
 class SimulationRecorder(gd.callbacks.Callback):
     """Add the last plain ``simulate`` of a finished assistant run to the results."""
 
@@ -130,6 +161,7 @@ class SimulationRecorder(gd.callbacks.Callback):
             if ran is not None:
                 await self.add_simulation(session, found, ran)
             await self.add_studies(session, found, ran)
+            await self.fill_plant_versions(session)
 
     async def ran(
         self, session: AsyncSession, reference: str
@@ -161,9 +193,16 @@ class SimulationRecorder(gd.callbacks.Callback):
             return
         (plant_data, case_data, files, _), outcome = ran
         report = outcome["report"]
-        normalised = await asyncio.to_thread(plant.validate_content, plant_data)
-        plant_version = await self.plant_version(session, content_digest(normalised))
+        digest = await design_digest(plant_data)
+        plant_version = (
+            None if digest is None else await self.plant_version(session, digest)
+        )
         case_version = await self.case_version(session, files_digest(case_data, files))
+        if await recorded_design(known, digest, case_version):
+            logger.info(
+                "assistant simulation not recorded: same design already a result"
+            )
+            return
         summary = evaluate.summarise(report)
         name = name_of(found.get("input") or {}, plant_data)
         result = await results.create(
@@ -234,13 +273,16 @@ class SimulationRecorder(gd.callbacks.Callback):
                 continue
             report = outcome["report"]
             summary = evaluate.summarise(report)
+            digest = await design_digest(outcome["design"])
             result = await results.create(
                 {
                     "project_id": self.project_id,
                     "study_id": item.id,
                     "name": item.name,
                     "case_version": item.case_version,
-                    "plant_version": None,
+                    "plant_version": None
+                    if digest is None
+                    else await self.plant_version(session, digest),
                     "summary": summary["summary"],
                     "content": {
                         "capacities": summary["capacities"],
@@ -278,6 +320,32 @@ class SimulationRecorder(gd.callbacks.Callback):
         return await asyncio.to_thread(
             evaluate.design_outcome, design.data, case_data, files
         )
+
+    async def fill_plant_versions(self, session: AsyncSession) -> None:
+        """Give each result of this run's studies the saved plant version of its design (QA-215).
+
+        An agent study's result is written without a plant version; the version is found by the
+        design's digest among the saved ones, never made (QA-237). A design no version holds,
+        such as an optimiser's new best, keeps none.
+        """
+        studies = {
+            item.id
+            for item in await StudyRepository(session).all_for_project(self.project_id)
+            if item.started_by_run_id == self.run_id
+        }
+        changed = False
+        for item in await ResultRepository(session).all_for_project(self.project_id):
+            if item.study_id not in studies or item.plant_version is not None:
+                continue
+            digest = await design_digest(item.content.get("design"))
+            number = (
+                None if digest is None else await self.plant_version(session, digest)
+            )
+            if number is not None:
+                item.plant_version = number
+                changed = True
+        if changed:
+            await session.commit()
 
     async def tell(self, session: AsyncSession, text: str, result_id: UUID) -> None:
         await ActivityRepository(session).add(
