@@ -69,4 +69,4 @@ tests/test_route_guard.py: every route depends on CurrentUser unless in PUBLIC_A
 2. The plant wrapper is broken on format 2, not merely outdated.
 3. Health tests are in tests/test_app.py; no tests/api/v1/system tree.
 4. Celery has zero real tasks.
-5. Venv links gemini to the missing /Users/sahand/Desktop/crust-team/gemini (installed as 1.0.3; ../gemini is 0.3.0); pyvenv.cfg and shebangs point at the old /Users/sahand/Desktop/swarmax path. Root ../.venv has no packages.
+5. Venv links gemini to the missing /Users/sahand/Desktop/crust-team/gemini (installed as 1.0.3; ../gemini is 0.3.0); pyvenv.cfg and shebangs point at an old Desktop folder path. Root ../.venv has no packages.
