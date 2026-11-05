@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.118] - 2026-11-05
+
+- QA-291: live `agent.usage` event per nested agent session (tokens, cost, steps, start time).
+- QA-270: the design report splits heating into brine heat, heat-pump electricity and backup.
+- geomind main HEAD (0.4.129+), gemini dev HEAD (0.6.25: QA-285, QA-282, QA-214).
+
 ## [1.1.117] - 2026-11-05
 
 - QA-231 (QA-144, QA-277): a run's usage only rises during the run and ends equal to the per-agent
