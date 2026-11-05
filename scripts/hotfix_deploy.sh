@@ -20,11 +20,9 @@ sg docker -c "docker exec geomind-postgres sh -c 'pg_dump -U \$POSTGRES_USER -d 
 
 # Hotfix build: the backend, gemini and geomind all come from the local clones, from their
 # committed and pushed HEAD (gemini: dev, geomind: main). No GitHub release or wheel is used.
+# Uncommitted edits of another session stay out of the image (git archive HEAD) and block nothing.
 for repo in gemini geomind; do
   dir=../$repo
-  if [ -n "$(git -C "$dir" status --porcelain --untracked-files=no)" ]; then
-    echo "$repo: commit your changes first"; exit 1
-  fi
   git -C "$dir" fetch -q origin
   if [ "$(git -C "$dir" rev-parse HEAD)" != "$(git -C "$dir" rev-parse @{u})" ]; then
     echo "$repo: HEAD is not its pushed branch: pull or push first"; exit 1
