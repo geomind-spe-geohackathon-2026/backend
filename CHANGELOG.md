@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.131] - 2026-11-05
+
+- QA-350: the projects list and search are newest first; the cursor pages in that order.
+- geomind main HEAD.
+
 ## [1.1.130] - 2026-11-05
 
 - QA-292: per-user auto-approve preference (GET/PUT /assistant/preferences; migration 0015, users.auto_approve).
