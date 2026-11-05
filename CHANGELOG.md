@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.127] - 2026-11-05
+
+- QA-336: events of a resumed run whose sequence collides are renumbered after the stored maximum; the question card shows.
+- geomind main HEAD (QA-336 geomind part, QA-337, QA-278), gemini dev HEAD.
+
 ## [1.1.126] - 2026-11-05
 
 - QA-328: progress.plant is incomplete when designs exist only in results.
