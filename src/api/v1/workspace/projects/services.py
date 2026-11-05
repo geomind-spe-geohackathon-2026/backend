@@ -72,7 +72,9 @@ class ParsedCase:
     missing: int = 0
 
 
-def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
+def describe_project(
+    project: Project, facts: ProjectFacts, economics: bool | None = None
+) -> schemas.Project:
     return schemas.Project(
         id=project.id,
         name=project.name,
@@ -81,7 +83,7 @@ def describe_project(project: Project, facts: ProjectFacts) -> schemas.Project:
         case_version=facts.case_version,
         created=project.created,
         updated=project.updated,
-        progress=build_progress(facts),
+        progress=build_progress(facts, economics),
         chats=facts.chats,
         runs=facts.runs,
         budget=schemas.Budget(
@@ -98,7 +100,8 @@ async def describe_one(
     progress: ProgressReader,
 ) -> schemas.Project:
     facts = await progress.facts([project.id])
-    return describe_project(project, facts[project.id])
+    economics = await progress.economics([project.id])
+    return describe_project(project, facts[project.id], economics[project.id])
 
 
 async def list_projects(
@@ -111,10 +114,15 @@ async def list_projects(
     owner_id = None if user.role == "admin" else user.id
     rows = await repository.list_page(page, owner_id, search)
     items = rows[: page.limit]
-    facts = await progress.facts([project.id for project in items])
+    ids = [project.id for project in items]
+    facts = await progress.facts(ids)
+    economics = await progress.economics(ids)
     last = items[-1] if len(rows) > page.limit else None
     return Page(
-        items=[describe_project(project, facts[project.id]) for project in items],
+        items=[
+            describe_project(project, facts[project.id], economics[project.id])
+            for project in items
+        ],
         next=encode_cursor(last.created, last.id) if last else None,
     )
 

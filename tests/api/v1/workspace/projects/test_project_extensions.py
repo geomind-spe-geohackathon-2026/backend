@@ -98,6 +98,27 @@ async def test_project_shows_case_version_and_progress(
     assert body["case_version"] == 1
     assert body["progress"]["case"] == {"state": "ready", "label": "Version 1"}
     assert body["progress"]["plant"]["state"] == "empty"
+    assert body["progress"]["economics"] == {"state": "empty", "label": "Not set"}
+
+
+async def test_progress_says_when_the_latest_case_has_economics(
+    client, make_user, make_project, session
+) -> None:
+    """QA-194: the project's progress has an economics item from its latest case."""
+    owner = await make_user()
+    project = await make_project(owner)
+    empty = await make_project(owner)
+    await CaseVersionRepository(session).save_version(
+        project.id, {"a": 1, "economics": {"rate": 0.08}}, "", owner.id
+    )
+
+    body = (await client.get(f"{PROJECTS}/{project.id}", headers=bearer(owner))).json()
+    items = (await client.get(PROJECTS, headers=bearer(owner))).json()["items"]
+    by_id = {item["id"]: item for item in items}
+
+    assert body["progress"]["economics"] == {"state": "done", "label": "Set"}
+    assert by_id[str(project.id)]["progress"]["economics"]["state"] == "done"
+    assert by_id[str(empty.id)]["progress"]["economics"]["state"] == "empty"
 
 
 async def test_list_carries_progress(client, make_user, make_project, session) -> None:

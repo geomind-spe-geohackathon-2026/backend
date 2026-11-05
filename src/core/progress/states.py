@@ -43,12 +43,23 @@ def report_step(facts: ProjectFacts) -> ProgressStep:
     return ProgressStep(state="empty", label="Not started")
 
 
-def build_progress(facts: ProjectFacts) -> Progress:
-    """Compute the five steps of a project; nothing here is stored."""
+def economics_step(has_economics: bool) -> ProgressStep:
+    """``done`` when the latest case has an ``economics`` section, else ``empty`` (QA-194)."""
+    if has_economics:
+        return ProgressStep(state="done", label="Set")
+    return ProgressStep(state="empty", label="Not set")
+
+
+def build_progress(facts: ProjectFacts, economics: bool | None = None) -> Progress:
+    """Compute the steps of a project; nothing here is stored.
+
+    ``economics`` says whether the latest case has economics; ``None`` leaves the item out.
+    """
     return Progress(
         case=case_step(facts.case_version, facts.case_missing),
         plant=version_step(facts.plant_version),
         study=study_step(facts.studies),
         results=results_step(facts.results),
         report=report_step(facts),
+        economics=None if economics is None else economics_step(economics),
     )

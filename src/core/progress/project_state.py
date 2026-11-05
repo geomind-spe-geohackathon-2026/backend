@@ -4,10 +4,10 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.clients.postgres.models.case_version import CaseVersion
 from src.core.clients.postgres.models.study import Study
 from src.core.clients.postgres.repositories.progress import ProgressRepository
-from src.core.progress.states import build_progress
+from src.core.progress.reader import has_economics
+from src.core.progress.states import build_progress, economics_step
 
 
 async def newest_study_case(session: AsyncSession, project_id: UUID) -> int | None:
@@ -21,20 +21,14 @@ async def newest_study_case(session: AsyncSession, project_id: UUID) -> int | No
 
 
 async def economics_state(session: AsyncSession, project_id: UUID) -> dict[str, str]:
-    """Return ``{state}`` of the latest case version's economics (QA-194).
+    """Return the progress item of the latest case version's economics (QA-194).
 
-    ``done`` when the case has a non-empty ``economics`` section, else ``empty``; geomind's
-    next-step chips then offer "Set the economics" before a plant.
+    ``{state: done, label: Set}`` when the case has a non-empty ``economics`` section, else
+    ``{state: empty, label: Not set}``; geomind's next-step chips then offer "Set the
+    economics" before a plant.
     """
-    statement = (
-        select(CaseVersion.content)
-        .where(CaseVersion.project_id == project_id)
-        .order_by(CaseVersion.number.desc())
-        .limit(1)
-    )
-    content = await session.scalar(statement)
-    economics = content.get("economics") if isinstance(content, dict) else None
-    return {"state": "done" if economics else "empty"}
+    has = (await has_economics(session, [project_id]))[project_id]
+    return economics_step(has).model_dump()
 
 
 async def project_state(session: AsyncSession, project_id: UUID) -> dict[str, Any]:

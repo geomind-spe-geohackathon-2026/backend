@@ -35,13 +35,14 @@ async def get_overview(
     activity: ActivityRepository,
 ) -> schemas.Overview:
     facts = await progress.facts([project.id])
+    economics = await progress.economics([project.id])
     latest_chats = await chats.latest(project.id, CHAT_LIMIT)
     last_runs = await runs.last_for_chats([chat.id for chat in latest_chats])
     active = await runs.list_page(
         project.id, PageRequest(limit=ACTIVE_RUN_LIMIT), active_only=True
     )
     return schemas.Overview(
-        progress=build_progress(facts[project.id]),
+        progress=build_progress(facts[project.id], economics[project.id]),
         chats=[to_chat(chat, last_runs.get(chat.id)) for chat in latest_chats],
         activity=[
             describe_activity(row)

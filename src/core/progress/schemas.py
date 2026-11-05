@@ -16,3 +16,4 @@ class Progress(BaseModel):
     study: ProgressStep
     results: ProgressStep
     report: ProgressStep
+    economics: ProgressStep | None = None
