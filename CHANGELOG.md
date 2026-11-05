@@ -8,7 +8,9 @@ tests pass.
 
 ## [1.1.89] - 2026-11-05
 
-- geomind 0.4.86 and gemini 0.6.14 as local wheels. 0.4.86: QA-125 (`read_result` gives a
+- geomind 0.4.86 and gemini 0.6.15 as local wheels. gemini 0.6.15: a doublet runs at most at its
+  pump's nominal_flow (QA-130); a free plant takes a size.doublets range and the optimiser
+  searches it (QA-129, gemini part). 0.4.86: QA-125 (`read_result` gives a
   series summary: peak and low with their day, active days; a module's operating days and
   energy), QA-124 (requirement values from `check_results`), QA-123 (with gemini 0.6.14 an
   exchanger rated in W/K is no longer reported as unused).
