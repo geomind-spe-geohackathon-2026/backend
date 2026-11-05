@@ -6,6 +6,11 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.122] - 2026-11-05
+
+- QA-312: the agents' workspace saves an approved design as the project's next plant version.
+- geomind main HEAD, gemini dev HEAD.
+
 ## [1.1.121] - 2026-11-05
 
 - QA-310: a cancelled run stores 'Cancelled by the user.' and the user's denials as an assistant message.
