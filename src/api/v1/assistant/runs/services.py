@@ -12,8 +12,11 @@ from starlette.concurrency import run_in_threadpool
 
 from src.api.v1.assistant.runs import schemas
 from src.api.v1.assistant.runs.adapters.callbacks import (
+    ANSWER,
+    PERMISSION,
     STEP_STARTED,
     TOOL_RECORDED,
+    AnswerTrail,
     ToolProblems,
 )
 from src.api.v1.assistant.runs.adapters.errors import LogUnavailableError
@@ -248,9 +251,10 @@ async def stored_events(
     """
     async with factory() as session:
         rows = await RunEventRepository(session).after(
-            run_id, after, public_only=True, also=(TOOL_RECORDED,)
+            run_id, after, public_only=True, also=(TOOL_RECORDED, PERMISSION)
         )
     problems = ToolProblems()
+    answers = AnswerTrail()
     known = [(row, rebuilt(row.data)) for row in rows]
     steps = [event for _, event in known if event and event.type == STEP_STARTED]
     await load_windows(event.model for event in steps)
@@ -259,6 +263,9 @@ async def stored_events(
         if event is None:
             continue
         problems.note(event)
+        answered = answers.note(event)
+        if answered is not None:
+            events.append(StreamEvent(ANSWER, answered, row.sequence))
         if row.public:
             events.append(StreamEvent(row.type, problems.public(event), row.sequence))
     for delta in await deltas.pending(str(run_id)):

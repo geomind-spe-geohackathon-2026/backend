@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.59] - 2026-11-05
+
+- QA-058: a person's decision on a request is a public `answer` event, live and on replay (its id
+  is the sequence of geomind's internal event it comes from, so a reload shows the same record):
+  `{request, kind, message, tool, call_id, decision, reason, text, by, time}`; `decision` is
+  `allow`, `deny` or `answer` (typed text in `text`). Hotfix mode: no tests ran.
+
 ## [1.1.58] - 2026-11-05
 
 - Agent tools step 3: geomind 0.4.58 as a local wheel (`.tmp/hotfix-wheels/geomind-0.4.58-py3-none-any.whl`):

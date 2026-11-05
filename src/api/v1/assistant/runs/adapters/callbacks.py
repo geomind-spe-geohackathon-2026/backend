@@ -102,6 +102,65 @@ def problem_of(event: Any) -> dict[str, Any] | None:
     }
 
 
+PERMISSION = "permission"
+ANSWER = "answer"
+
+
+class AnswerTrail:
+    """Turn a person's decision on a request into a public ``answer`` event (QA-058).
+
+    geomind records it only in the internal ``permission`` event (``rule: user``) and, for a
+    typed answer, in the ``tool.result`` with ``source: answer``; the chat could not show it after
+    a reload. ``note`` returns the ``answer`` data, or ``None``, for each event in order.
+    """
+
+    def __init__(self) -> None:
+        self.typed: dict[str, dict[str, Any]] = {}
+
+    def note(self, event: Any) -> dict[str, Any] | None:
+        if event.type == PERMISSION:
+            data = event.data()
+            if data.get("rule") != "user":
+                return None
+            notice = answer_data(data)
+            if notice["time"] is None and getattr(event, "time", None) is not None:
+                stamp = event.time
+                notice["time"] = (stamp.isoformat() if hasattr(stamp, "isoformat") else str(stamp)) or None
+            if data.get("decision") == "answer" and data.get("call_id"):
+                self.typed[data["call_id"]] = notice
+                return None
+            return notice
+        if event.type == TOOL_RECORDED and getattr(event, "source", None) == "answer":
+            notice = self.typed.pop(getattr(event, "call_id", None) or "", None)
+            if notice is None:
+                return None
+            output = getattr(event, "output", None)
+            text = output.get("answer") if isinstance(output, dict) else output
+            return {**notice, "text": None if text is None else str(text)}
+        return None
+
+
+def answer_data(data: dict[str, Any]) -> dict[str, Any]:
+    """Return the public ``answer`` fields of a user's ``permission`` decision."""
+    request = data.get("request") or {}
+    if not isinstance(request, dict):
+        request = {}
+    return {
+        "agent": data.get("agent"),
+        "parent": data.get("parent"),
+        "request": request.get("id") or request.get("request"),
+        "kind": request.get("kind"),
+        "message": request.get("message"),
+        "tool": data.get("tool"),
+        "call_id": data.get("call_id"),
+        "decision": data.get("decision"),
+        "reason": data.get("reason"),
+        "text": None,
+        "by": "user",
+        "time": data.get("time"),
+    }
+
+
 USAGE = "usage"
 USAGE_KEYS = ("input_tokens", "output_tokens", "cost")
 
@@ -153,10 +212,16 @@ class EventPublisher(gd.callbacks.Callback):
         self.problems = ToolProblems()
         self.usage = UsageTree(run_id)
         self.root_agent = ""
+        self.answers = AnswerTrail()
 
     async def on_event(self, engine: Any, event: Any) -> None:
         """Publish one event if it is public."""
         self.problems.note(event)
+        answered = self.answers.note(event)
+        if answered is not None:
+            await publish_event_async(
+                self.redis, self.channel, StreamEvent(ANSWER, answered, event.sequence)
+            )
         if event.type == USAGE:
             totals = self.usage.add(event)
             if totals is not None:
