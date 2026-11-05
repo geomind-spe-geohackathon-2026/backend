@@ -6,6 +6,14 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.95] - 2026-11-05
+
+- geomind 0.4.91 as a local wheel (gemini 0.6.15 kept). 0.4.90/0.4.91: IMP-025 parallel
+  instances: a Team runs a list of {role, task} briefs at once (at most 4), each instance named
+  `<Role> <Roman>` with `instance` on its events; the case lead runs several geoscientists, who
+  read no file (the lead gives them the report text); the cost catalogue is
+  `knowledge/data-economics.csv`/.md (was cost-sources.*).
+
 ## [1.1.94] - 2026-11-05
 
 - IMP-025 (backend, part 2; contract with hotfix-python-IV and the frontend): parallel instances of
