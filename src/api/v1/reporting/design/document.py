@@ -1175,11 +1175,12 @@ def study_origin(study: Study | None) -> str | None:
     titles = {item["kind"]: item["title"] for item in gemini_study.kinds()}
     kind = titles.get(study.kind, study.kind)
     objective = (study.settings or {}).get("objective")
-    goal = f", with the objective {gemini_evaluate.title_of(objective).lower()}"
-    return (
-        f"The result comes from the study {study.name} (kind: {kind})"
-        f"{goal if objective else ''}."
+    goal = (
+        f", with the objective {gemini_evaluate.title_of(objective).lower()}"
+        if isinstance(objective, str) and objective
+        else ""
     )
+    return f"The result comes from the study {study.name} (kind: {kind}){goal}."
 
 
 def tornado_reading(rows: list[dict[str, Any]]) -> str:

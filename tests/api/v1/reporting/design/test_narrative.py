@@ -135,3 +135,17 @@ def test_floating_point_residue_is_no_unmet_demand() -> None:
 
     assert "All demand is met." in text
     assert "not met" not in text
+
+
+def test_study_origin_without_objective_names_no_objective() -> None:
+    """QA-362: a sizing study has no objective; the report said nothing and returned 500."""
+    from types import SimpleNamespace
+
+    from src.api.v1.reporting.design.document import study_origin
+
+    sizing = SimpleNamespace(name="b_sized", kind="size", settings={"objective": None})
+    tuned = SimpleNamespace(name="best", kind="minimize", settings={"objective": "lcts"})
+
+    assert "objective" not in study_origin(sizing)
+    assert study_origin(sizing).startswith("The result comes from the study b_sized")
+    assert "with the objective" in study_origin(tuned)
