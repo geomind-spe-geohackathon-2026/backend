@@ -6,6 +6,13 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.86] - 2026-11-05
+
+- geomind 0.4.81 as a local wheel (with gemini 0.6.12): QA-104 (a requirement with no value names
+  the failed steps), QA-105 (per-energy map all given or all open), IMP-012/IMP-013
+  (evaluate_module and set_case fix slips of form, evaluate_module reads a design or a result),
+  a tool's skill sent with its first result.
+
 ## [1.1.85] - 2026-11-05
 
 - QA-106: Results, Constraints listed 12 rows for 10 case requirements. gemini checks each
