@@ -49,11 +49,14 @@ class AgentSession(BaseModel):
     it has been. ``context_left`` is geomind's ``remaining``, else the window minus
     the context used, never below zero; ``None`` when either is unknown.
     ``cached_tokens`` is part of ``input_tokens``, ``None`` when no call reported it.
+    ``instance`` names one of parallel instances of a role ("Geoscientist II"), else
+    ``None`` (IMP-025).
     """
 
     session: str
     parent_session: str | None
     agent: str
+    instance: str | None
     model: str | None
     status: Literal["running", "finished", "failed"] | None
     steps: int

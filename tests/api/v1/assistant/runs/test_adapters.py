@@ -680,14 +680,18 @@ async def test_the_live_stream_gives_a_failed_tool_its_problem() -> None:
         type="tool.result",
         is_public=False,
         is_error=True,
+        run_id="r1",
         agent="designer",
+        parent=None,
         call_id="c1",
         output={"error": problem},
     )
     finished = SimpleNamespace(
         type="tool.finished",
         is_public=True,
+        run_id="r1",
         agent="designer",
+        parent=None,
         call_id="c1",
         sequence=4,
         data=lambda: {"call_id": "c1", "error": "cut"},

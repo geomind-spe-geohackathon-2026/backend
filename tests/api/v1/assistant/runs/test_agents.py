@@ -430,6 +430,35 @@ async def test_a_finished_run_takes_geomind_sessions_and_total(
     assert totals["steps"] == 3 and totals["llm_calls"] == 3
 
 
+async def test_parallel_instances_of_one_role_are_separate_agents(
+    client, make_user, make_project, make_chat, make_run, session, monkeypatch
+) -> None:
+    use_windows(monkeypatch, {"m/x": 1000})
+    owner = await make_user()
+    run = await make_run(await make_chat(await make_project(owner), owner), owner)
+    root = run.id.hex
+    events = [event("run.started", root, "lead", run=root)]
+    for number, name in ((1, "Geoscientist I"), (2, "Geoscientist II")):
+        child = f"{root}-g{number}"
+        events.append(
+            event("run.started", child, "geoscientist", root, run=child, instance=name)
+        )
+        events += step(child, "geoscientist", 1, 1000 * number, 163840, root)
+    await store_dicts(session, run, events)
+
+    body = (await client.get(run_url(run.id, "/agents"), headers=bearer(owner))).json()
+
+    lead, first, second = body["agents"]
+    assert lead["instance"] is None
+    assert [first["instance"], second["instance"]] == [
+        "Geoscientist I",
+        "Geoscientist II",
+    ]
+    assert first["agent"] == second["agent"] == "geoscientist"
+    assert first["session"] != second["session"]
+    assert [first["context_used"], second["context_used"]] == [1000, 2000]
+
+
 def test_a_step_passes_geomind_window_through(monkeypatch) -> None:
     use_windows(monkeypatch, {"m/x": 1000})
     step_event = SimpleNamespace(

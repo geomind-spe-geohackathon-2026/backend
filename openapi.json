@@ -147,7 +147,7 @@
         "type": "object"
       },
       "AgentSession": {
-        "description": "One agent session of a run, with its context against its own model's window.\n\n``context_used`` is the session's current context: geomind's last reported\n``used``, else the input of its latest LLM call. ``context_peak`` is the largest\nit has been. ``context_left`` is geomind's ``remaining``, else the window minus\nthe context used, never below zero; ``None`` when either is unknown.\n``cached_tokens`` is part of ``input_tokens``, ``None`` when no call reported it.",
+        "description": "One agent session of a run, with its context against its own model's window.\n\n``context_used`` is the session's current context: geomind's last reported\n``used``, else the input of its latest LLM call. ``context_peak`` is the largest\nit has been. ``context_left`` is geomind's ``remaining``, else the window minus\nthe context used, never below zero; ``None`` when either is unknown.\n``cached_tokens`` is part of ``input_tokens``, ``None`` when no call reported it.\n``instance`` names one of parallel instances of a role (\"Geoscientist II\"), else\n``None`` (IMP-025).",
         "properties": {
           "agent": {
             "title": "Agent",
@@ -216,6 +216,17 @@
             "title": "Input Tokens",
             "type": "integer"
           },
+          "instance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance"
+          },
           "llm_calls": {
             "title": "Llm Calls",
             "type": "integer"
@@ -282,6 +293,7 @@
           "session",
           "parent_session",
           "agent",
+          "instance",
           "model",
           "status",
           "steps",
@@ -5688,7 +5700,7 @@
   },
   "info": {
     "title": "geomind-backend",
-    "version": "1.1.93"
+    "version": "1.1.94"
   },
   "openapi": "3.1.0",
   "paths": {

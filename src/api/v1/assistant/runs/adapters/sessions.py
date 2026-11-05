@@ -82,6 +82,7 @@ def new_session(event: dict[str, Any]) -> dict[str, Any]:
         "session": session_of(event),
         "parent_session": parent_session_of(event),
         "agent": event.get("agent") or "",
+        "instance": event.get("instance"),
         "model": None,
         "status": "running",
         "step_indexes": set(),
@@ -232,6 +233,8 @@ def tally_sessions(
         if key not in tallies:
             tallies[key] = new_session(event)
         note(tallies[key], event)
+        if tallies[key]["instance"] is None and event.get("instance"):
+            tallies[key]["instance"] = event["instance"]
         if is_root_summary(event):
             summary = event
         elif event.get("type") in llm_event_types():

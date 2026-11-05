@@ -6,6 +6,16 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.94] - 2026-11-05
+
+- IMP-025 (backend, part 2; contract with hotfix-python-IV and the frontend): parallel instances of
+  one role ("Geoscientist I", "Geoscientist II") share `agent` and `parent` but each is its own
+  nested run. The live text buffer, the live usage tree and tool problems are now keyed by the
+  event's `run_id`, not by `agent`, so instances never mix. A buffered `text.delta` on reconnect
+  carries `session` (that run id) and `instance` when it has one; `GET /assistant/runs/{id}/agents`
+  gives each session `instance` (`null` outside a team of instances). geomind 0.4.90 puts
+  `instance` on every event of an instance's run; the stream and `/events` pass it through.
+
 ## [1.1.93] - 2026-11-05
 
 - IMP-025 (backend, part 1): the assistant's case and plant versions are saved one at a time, in

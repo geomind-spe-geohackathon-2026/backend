@@ -267,7 +267,7 @@ async def test_replay_adds_the_buffered_text_of_a_running_step(
 ) -> None:
     owner = await make_user()
     run = await make_run(await make_chat(await make_project(owner), owner), owner)
-    delta = PendingDelta("analyst", None, 9, "partial")
+    delta = PendingDelta("analyst", None, 9, "partial", "s1", "Analyst II")
     deltas = RunDeltaRepository(redis)
     await deltas.append(str(run.id), delta, 60)
 
@@ -277,6 +277,8 @@ async def test_replay_adds_the_buffered_text_of_a_running_step(
         ("text.delta", None, "partial")
     ]
     assert events[0].data["buffered"] is True
+    assert events[0].data["session"] == "s1"
+    assert events[0].data["instance"] == "Analyst II"
 
 
 async def test_buffered_text_is_one_event_per_step_after_the_stored_events(
@@ -286,8 +288,12 @@ async def test_buffered_text_is_one_event_per_step_after_the_stored_events(
     run = await make_run(await make_chat(await make_project(owner), owner), owner)
     await store_events(session, run, await play(run.id))
     deltas = RunDeltaRepository(redis)
-    await deltas.append(str(run.id), PendingDelta("analyst", None, 9, "par"), 60)
-    await deltas.append(str(run.id), PendingDelta("analyst", None, 9, "tial"), 60)
+    await deltas.append(
+        str(run.id), PendingDelta("analyst", None, 9, "par", "s1", None), 60
+    )
+    await deltas.append(
+        str(run.id), PendingDelta("analyst", None, 9, "tial", "s1", None), 60
+    )
 
     events = await stored_events(session_factory, deltas, run.id, -1)
 

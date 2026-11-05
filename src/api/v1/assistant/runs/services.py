@@ -320,8 +320,11 @@ async def stored_events(
             "text": delta.text,
             "agent": delta.agent,
             "parent": delta.parent,
+            "session": delta.session,
             "buffered": True,
         }
+        if delta.instance is not None:
+            data["instance"] = delta.instance
         events.append(StreamEvent("text.delta", data, None))
     return events
 

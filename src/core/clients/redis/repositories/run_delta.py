@@ -7,8 +7,17 @@ from src.core.clients.redis.repositories.base import BaseRedisRepository
 KEY_PREFIX = "run_delta"
 
 
-def step_name(agent: str, parent: str | None, index: int) -> str:
-    return json.dumps([agent, parent, index])
+def step_name(delta: PendingDelta) -> str:
+    return json.dumps(
+        [delta.agent, delta.parent, delta.index, delta.session, delta.instance]
+    )
+
+
+def from_step(step: str, text: str) -> PendingDelta:
+    """Read a step name back; one written before 1.1.94 has no session or instance."""
+    agent, parent, index, *rest = json.loads(step)
+    session, instance = (rest + [None, None])[:2]
+    return PendingDelta(agent, parent, index, text, session, instance)
 
 
 class RunDeltaRepository(BaseRedisRepository):
@@ -32,16 +41,16 @@ class RunDeltaRepository(BaseRedisRepository):
         delta: PendingDelta,
         expires_in: int,
     ) -> None:
-        step = step_name(delta.agent, delta.parent, delta.index)
+        step = step_name(delta)
         text_key = self.text_key(run_id, step)
         await self.redis.append(text_key, delta.text)
         await self.redis.expire(text_key, expires_in)
         await self.redis.sadd(self.steps_key(run_id), step)
         await self.redis.expire(self.steps_key(run_id), expires_in)
 
-    async def clear(self, run_id: str, agent: str, parent: str | None, index: int):
-        """Forget the text of a step that finished."""
-        step = step_name(agent, parent, index)
+    async def clear(self, run_id: str, delta: PendingDelta) -> None:
+        """Forget the text of a step that finished; ``delta.text`` is not read."""
+        step = step_name(delta)
         await self.redis.delete(self.text_key(run_id, step))
         await self.redis.srem(self.steps_key(run_id), step)
 
@@ -52,8 +61,7 @@ class RunDeltaRepository(BaseRedisRepository):
             text = await self.redis.get(self.text_key(run_id, step))
             if text is None:
                 continue
-            agent, parent, index = json.loads(step)
-            pending.append(PendingDelta(agent, parent, index, text))
+            pending.append(from_step(step, text))
         return sorted(pending, key=lambda delta: (delta.index, delta.agent))
 
 

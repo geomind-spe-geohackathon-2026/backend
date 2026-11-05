@@ -69,7 +69,7 @@ class ToolProblems:
         """Keep the problem of a recorded tool result."""
         problem = problem_of(event)
         if problem is not None:
-            self.found[(event.agent, event.call_id)] = problem
+            self.found[(event.run_id, event.call_id)] = problem
 
     def public(self, event: Any) -> dict[str, Any]:
         """Return an event's public data, with its problem when it has one.
@@ -83,7 +83,7 @@ class ToolProblems:
             return data if window is None else {**data, "context_window": window}
         if event.type != TOOL_FINISHED:
             return data
-        problem = self.found.pop((event.agent, event.call_id), None)
+        problem = self.found.pop((event.run_id, event.call_id), None)
         return data if problem is None else {**data, "problem": problem}
 
 
@@ -126,7 +126,9 @@ class AnswerTrail:
             notice = answer_data(data)
             if notice["time"] is None and getattr(event, "time", None) is not None:
                 stamp = event.time
-                notice["time"] = (stamp.isoformat() if hasattr(stamp, "isoformat") else str(stamp)) or None
+                notice["time"] = (
+                    stamp.isoformat() if hasattr(stamp, "isoformat") else str(stamp)
+                ) or None
             if data.get("decision") == "answer" and data.get("call_id"):
                 self.typed[data["call_id"]] = notice
                 return None
@@ -189,7 +191,7 @@ class UsageTree:
             return None
         if str(event.parent).replace("-", "") != self.root or self.base is None:
             return None
-        self.children[str(event.agent)] = totals
+        self.children[str(event.run_id)] = totals
         return {
             key: self.base[key] + sum(child[key] for child in self.children.values())
             for key in USAGE_KEYS
@@ -251,13 +253,24 @@ class EventPublisher(gd.callbacks.Callback):
         await publish_event_async(self.redis, self.channel, stream_event)
 
     async def buffer(self, event: Any) -> None:
-        delta = PendingDelta(event.agent, event.parent, event.index, event.text)
-        await self.deltas.append(self.run_id, delta, self.ttl)
+        await self.deltas.append(self.run_id, step_delta(event, event.text), self.ttl)
 
     async def forget(self, event: Any) -> None:
         if event.type != STEP_FINISHED:
             return
-        await self.deltas.clear(self.run_id, event.agent, event.parent, event.index)
+        await self.deltas.clear(self.run_id, step_delta(event, ""))
+
+
+def step_delta(event: Any, text: str) -> PendingDelta:
+    """Return the buffered text of an event's step, keyed by its session (IMP-025)."""
+    return PendingDelta(
+        event.agent,
+        event.parent,
+        event.index,
+        text,
+        event.run_id,
+        getattr(event, "instance", None),
+    )
 
 
 async def set_values(
@@ -274,7 +287,10 @@ async def set_values(
         run = await RunRepository(session).get_by_id(run_id)
         if run is None:
             return
-        if run.status in TERMINAL_STATUSES and values.get("status") not in TERMINAL_STATUSES:
+        if (
+            run.status in TERMINAL_STATUSES
+            and values.get("status") not in TERMINAL_STATUSES
+        ):
             values = {k: v for k, v in values.items() if k not in ("status", "request")}
             if not values:
                 return
@@ -424,7 +440,9 @@ class StudyRecorder(gd.callbacks.Callback):
                 str(study.id),
             )
 
-    async def add_results(self, session: Any, study: Any, artifact: Any, case: Any) -> None:
+    async def add_results(
+        self, session: Any, study: Any, artifact: Any, case: Any
+    ) -> None:
         """Add a result row per simulated run of an agent study, as a page study has (QA-088).
 
         geomind 0.4.77 stores ``runs`` in the ``study/<name>`` artifact: each with the full
@@ -434,13 +452,17 @@ class StudyRecorder(gd.callbacks.Callback):
         from src.core.gemini import evaluate as gemini_evaluate
 
         runs = (artifact.data.get("runs") if artifact is not None else None) or []
-        simulated = [item for item in runs if isinstance(item, dict) and item.get("report")]
+        simulated = [
+            item for item in runs if isinstance(item, dict) and item.get("report")
+        ]
         artifacts = RunArtifactRepository(session)
         results = ResultRepository(session)
         for item in simulated:
             reference = item.get("design")
             design = (
-                await artifacts.newest_for_chat(self.chat_id, reference) if reference else None
+                await artifacts.newest_for_chat(self.chat_id, reference)
+                if reference
+                else None
             )
             parts = gemini_evaluate.summarise(item["report"])
             name = study.name
