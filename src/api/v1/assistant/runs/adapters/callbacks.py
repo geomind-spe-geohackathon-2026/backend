@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.core.clients.postgres.client import utc_now
 from src.core.clients.postgres.repositories.activity import ActivityRepository
+from src.core.clients.postgres.repositories.message import MessageRepository
 from src.core.clients.postgres.repositories.case_version import (
     CaseVersionRepository,
 )
@@ -83,7 +84,12 @@ class ToolProblems:
         if event.type in (STEP_STARTED, STEP_FINISHED):
             stamp = getattr(event, "time", None)
             if stamp is not None and "ts" not in data:
-                data = {**data, "ts": stamp.isoformat() if hasattr(stamp, "isoformat") else str(stamp)}
+                data = {
+                    **data,
+                    "ts": stamp.isoformat()
+                    if hasattr(stamp, "isoformat")
+                    else str(stamp),
+                }
         if event.type == STEP_STARTED and data.get("context_window") is None:
             window = window_of(getattr(event, "model", None))
             return data if window is None else {**data, "context_window": window}
@@ -457,6 +463,45 @@ def finish_columns(event: Any) -> dict[str, Any]:
     return values
 
 
+CANCELLED = "cancelled"
+CANCEL_TEXT = "Cancelled by the user."
+CANCEL_REASON = "cancelled"
+"""The reason of the stand-in denial ``cancel_answer`` gives a waiting run: not the user's."""
+
+
+def denial_lines(rows: list[Any]) -> list[str]:
+    """Return ``Denied: <tool> (<reason>)`` for each tool the user denied, oldest first."""
+    lines = []
+    for row in sorted(rows, key=lambda item: item.sequence):
+        data = row.data
+        if data.get("rule") != "user" or data.get("decision") != "deny":
+            continue
+        tool, reason = data.get("tool"), data.get("reason")
+        if not tool or reason == CANCEL_REASON:
+            continue
+        lines.append(f"Denied: {tool} ({reason})" if reason else f"Denied: {tool}")
+    return lines
+
+
+async def note_cancel(factory: async_sessionmaker[AsyncSession], run_id: UUID) -> None:
+    """Store the assistant message of a cancelled run (QA-310).
+
+    A cancelled run left its user message with no answer, so the next run's agents read it as
+    still open and redid what the user had denied. The message says it was cancelled and lists
+    each tool the user denied in the run, with the user's reason; the agents read it as history.
+    """
+    async with factory() as session:
+        run = await RunRepository(session).get_by_id(run_id)
+        if run is None:
+            return
+        messages = MessageRepository(session)
+        if await messages.for_run(run_id, "assistant") is not None:
+            return
+        rows = await RunEventRepository(session).of_type(run_id, PERMISSION)
+        text = "\n".join([CANCEL_TEXT, *denial_lines(rows)])
+        await messages.add(run.chat_id, "assistant", text, run_id)
+
+
 class RunRecorder(gd.callbacks.Callback):
     """Keep the run's row current while the run goes.
 
@@ -481,6 +526,8 @@ class RunRecorder(gd.callbacks.Callback):
             values = {**values, **await self.stored_usage()}
         if values:
             await set_values(self.factory, self.run_id, values)
+        if values.get("status") == CANCELLED:
+            await note_cancel(self.factory, self.run_id)
 
     async def stored_usage(self) -> dict[str, Any]:
         """Return the run's usage summed over every stored session, as /agents gives it.
