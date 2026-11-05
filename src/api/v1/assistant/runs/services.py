@@ -289,13 +289,18 @@ async def answer_run(
     runs: RunRepository,
     enqueue: Enqueue,
 ) -> Run:
+    """Hand the answer to the run; a run waiting on a request it already has a decision on goes
+    on from its log instead (QA-264: a restart left the row waiting on an answered request, and
+    every answer was refused with 409, so the run never moved again).
+    """
     if run.status != "waiting":
         raise RunNotWaitingError("Run is not waiting for an answer")
     await current_request(run, runs.session)
     check_answer(run.request, body)
     if await already_answered(run, body.request, runs.session):
-        raise ConflictError(f"Request {body.request} was answered already")
-    await hand_over(runs, run, enqueue, (body.request, body.to_dict()))
+        await hand_over(runs, run, enqueue, (None, None))
+    else:
+        await hand_over(runs, run, enqueue, (body.request, body.to_dict()))
     await runs.session.refresh(run)
     return run
 

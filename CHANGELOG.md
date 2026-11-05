@@ -6,6 +6,12 @@ release stays on 1.1 and raises only the patch: 1.1.0, 1.1.1 and on (Sahand, 202
 release is tagged `v<version>` on `main`. Work goes to `dev` first and reaches `main` when its
 tests pass.
 
+## [1.1.116] - 2026-11-05
+
+- QA-264: a run a restart left `waiting` on a request that already has the user's decision (the
+  run had gone on past it) resumes from its log when that request is answered again, instead of
+  `409 answered already`.
+
 ## [1.1.115] - 2026-11-05
 
 - QA-264: a run a restart stopped after the user's decision asks the same request again; its
